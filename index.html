@@ -129,6 +129,9 @@ alter table tarefas disable row level security;
     <button class="btn btn-sm" onclick="syncAgora()" title="Sincronizar agora" style="font-size:12px">
       <i class="ti ti-refresh"></i> Sync
     </button>
+    <button class="btn btn-sm" onclick="testarConexao()" title="Testar conexão" style="font-size:12px">
+      <i class="ti ti-wifi"></i> Testar
+    </button>
   </div>
 </div>
 
@@ -162,6 +165,9 @@ alter table tarefas disable row level security;
         <button class="btn btn-sm" onclick="document.getElementById('sb-config-banner').style.display='none'">Agora não</button>
       </div>
     </div>
+    <!-- Diagnóstico Supabase -->
+    <div id="sb-diagnostico" style="display:none;font-size:12px;padding:8px 14px;background:var(--bg2);border-radius:var(--radius);margin-bottom:10px;border:1px solid var(--border)"></div>
+
     <div class="metric-grid" id="metrics"></div>
     <div class="two-col">
       <div>
@@ -527,7 +533,7 @@ async function saveSessoes(){
   try {
     // Upsert completo: delete e reinsere apenas as novas/alteradas
     // Para simplicidade: upsert por id
-    await fetch(`${SB_URL}/rest/v1/sessoes`, {
+    await fetch(`${getSbUrl()}/rest/v1/sessoes`, {
       method:'POST',
       headers:{...sbHeaders(),'Prefer':'resolution=merge-duplicates'},
       body: JSON.stringify(sessoes)
@@ -540,7 +546,7 @@ async function saveTarefas(){
   localStorage.setItem(LS_T, JSON.stringify(tarefas));
   if(!sbConfigured()) return;
   try {
-    await fetch(`${SB_URL}/rest/v1/tarefas`, {
+    await fetch(`${getSbUrl()}/rest/v1/tarefas`, {
       method:'POST',
       headers:{...sbHeaders(),'Prefer':'resolution=merge-duplicates'},
       body: JSON.stringify(tarefas)
@@ -552,7 +558,7 @@ async function saveTarefas(){
 async function deleteSessaoRemote(id){
   if(!sbConfigured()) return;
   try {
-    await fetch(`${SB_URL}/rest/v1/sessoes?id=eq.${id}`,{
+    await fetch(`${getSbUrl()}/rest/v1/sessoes?id=eq.${id}`,{
       method:'DELETE', headers: sbHeaders()
     });
   } catch(e){}
@@ -562,7 +568,7 @@ async function deleteSessaoRemote(id){
 async function deleteTarefaRemote(id){
   if(!sbConfigured()) return;
   try {
-    await fetch(`${SB_URL}/rest/v1/tarefas?id=eq.${id}`,{
+    await fetch(`${getSbUrl()}/rest/v1/tarefas?id=eq.${id}`,{
       method:'DELETE', headers: sbHeaders()
     });
   } catch(e){}
@@ -583,8 +589,8 @@ async function load(){
     document.getElementById('sb-status').textContent = '🔄 Sincronizando...';
     try {
       const [rs, rt] = await Promise.all([
-        fetch(`${SB_URL}/rest/v1/sessoes?order=id&limit=1000`, {headers: sbHeaders()}),
-        fetch(`${SB_URL}/rest/v1/tarefas?order=id&limit=1000`,  {headers: sbHeaders()})
+        fetch(`${getSbUrl()}/rest/v1/sessoes?order=id&limit=1000`, {headers: sbHeaders()}),
+        fetch(`${getSbUrl()}/rest/v1/tarefas?order=id&limit=1000`,  {headers: sbHeaders()})
       ]);
       if(rs.ok && rt.ok){
         const ds = await rs.json();
@@ -1217,25 +1223,69 @@ document.getElementById('f-acertos').addEventListener('input',atualizarPreview);
 document.getElementById('f-meta').addEventListener('input',atualizarPreview);
 document.getElementById('f-data').value=new Date().toISOString().slice(0,10);
 
-function salvarConfigSB(){
-  const url = document.getElementById('cfg-url').value.trim();
-  const key = document.getElementById('cfg-key').value.trim();
-  if(!url||!key){ alert('Preencha os dois campos'); return; }
-  // Salvar no localStorage para persistir entre sessões
-  localStorage.setItem('sb_url', url);
-  localStorage.setItem('sb_key', key);
-  // Atualizar variáveis (requer reload para atualizar SB_URL/SB_KEY do script)
-  alert('Configuração salva! Recarregue a página para conectar.');
-  location.reload();
-}
-
-// Carregar config salva do localStorage se existir
+// Carregar config do localStorage ao iniciar
 (()=>{
   const savedUrl = localStorage.getItem('sb_url');
   const savedKey = localStorage.getItem('sb_key');
-  if(savedUrl && SB_URL === '') { window.SB_URL_RT = savedUrl; }
-  if(savedKey && SB_KEY === '') { window.SB_KEY_RT = savedKey; }
+  if(savedUrl) window.SB_URL_RT = savedUrl;
+  if(savedKey) window.SB_KEY_RT = savedKey;
 })();
+
+function salvarConfigSB(){
+  const url = document.getElementById('cfg-url').value.trim().replace(/\/+$/,'');
+  const key = document.getElementById('cfg-key').value.trim();
+  if(!url||!key){ alert('Preencha os dois campos'); return; }
+  localStorage.setItem('sb_url', url);
+  localStorage.setItem('sb_key', key);
+  window.SB_URL_RT = url;
+  window.SB_KEY_RT = key;
+  document.getElementById('sb-config-banner').style.display='none';
+  testarConexao();
+}
+
+async function testarConexao(){
+  const statusEl = document.getElementById('sb-status');
+  if(!sbConfigured()){
+    statusEl.textContent = '⚙️ Supabase não configurado';
+    mostrarDiagnostico('não_configurado');
+    return;
+  }
+  statusEl.textContent = '🔄 Testando conexão...';
+  try {
+    const r = await fetch(
+      `${getSbUrl()}/rest/v1/sessoes?limit=1`,
+      {headers: sbHeaders()}
+    );
+    if(r.ok){
+      const data = await r.json();
+      statusEl.textContent = '🟢 Conectado';
+      mostrarDiagnostico('ok', data.length);
+      // Sincronizar dados
+      await load();
+      renderAll();
+    } else {
+      const err = await r.text();
+      statusEl.textContent = '🔴 Erro '+r.status;
+      mostrarDiagnostico('erro', r.status, err);
+    }
+  } catch(e){
+    statusEl.textContent = '🔴 Sem conexão';
+    mostrarDiagnostico('sem_conexao', null, e.message);
+  }
+}
+
+function mostrarDiagnostico(tipo, dado, detalhe){
+  const el = document.getElementById('sb-diagnostico');
+  if(!el) return;
+  const msgs = {
+    'não_configurado': `<span style="color:var(--amber)">⚙️ Supabase não configurado.</span> Cole a URL e a chave no banner abaixo.`,
+    'ok': `<span style="color:var(--green)">🟢 Conectado com sucesso.</span> ${dado!==undefined?dado+' registros na tabela sessoes.':''}`,
+    'erro': `<span style="color:var(--red)">🔴 Erro ${dado}.</span> ${detalhe||''} — verifique se a URL e a chave estão corretas e se as tabelas foram criadas.`,
+    'sem_conexao': `<span style="color:var(--red)">🔴 Sem conexão.</span> ${detalhe||''} — verifique sua internet.`,
+  };
+  el.innerHTML = msgs[tipo]||'';
+  el.style.display = 'block';
+}
 
 function getSbUrl(){ return (typeof SB_URL_RT!=='undefined'&&SB_URL_RT) ? SB_URL_RT : SB_URL; }
 function getSbKey(){ return (typeof SB_KEY_RT!=='undefined'&&SB_KEY_RT) ? SB_KEY_RT : SB_KEY; }
@@ -1255,7 +1305,12 @@ async function syncAgora(){
   renderAll();
 }
 
-(async()=>{ await load(); renderAll(); })();
+(async()=>{
+  await load();
+  renderAll();
+  // Testar conexão silenciosamente ao abrir
+  setTimeout(testarConexao, 500);
+})();
 </script>
 </body>
 </html>
