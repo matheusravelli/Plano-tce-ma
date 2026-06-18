@@ -1246,31 +1246,43 @@ function salvarConfigSB(){
 async function testarConexao(){
   const statusEl = document.getElementById('sb-status');
   if(!sbConfigured()){
-    statusEl.textContent = '⚙️ Supabase não configurado';
+    statusEl.textContent = '⚙️ Não configurado';
     mostrarDiagnostico('não_configurado');
     return;
   }
-  statusEl.textContent = '🔄 Testando conexão...';
+
+  // Mostrar URL exata que vai ser chamada
+  const url = getSbUrl();
+  const urlLimpa = url.replace(/\/+$/,'');  // garantir sem barra final
+  const urlCompleta = `${urlLimpa}/rest/v1/sessoes?select=id&limit=1`;
+
+  statusEl.textContent = '🔄 Testando...';
+  mostrarDiagnostico('tentando', null, urlCompleta);
+
   try {
-    const r = await fetch(
-      `${getSbUrl()}/rest/v1/sessoes?limit=1`,
-      {headers: sbHeaders()}
-    );
+    const r = await fetch(urlCompleta, {
+      method: 'GET',
+      headers: {
+        'apikey': getSbKey(),
+        'Authorization': 'Bearer ' + getSbKey()
+      }
+    });
+
+    const body = await r.text();
+
     if(r.ok){
-      const data = await r.json();
       statusEl.textContent = '🟢 Conectado';
-      mostrarDiagnostico('ok', data.length);
-      // Sincronizar dados
+      const data = JSON.parse(body);
+      mostrarDiagnostico('ok', data.length, urlCompleta);
       await load();
       renderAll();
     } else {
-      const err = await r.text();
       statusEl.textContent = '🔴 Erro '+r.status;
-      mostrarDiagnostico('erro', r.status, err);
+      mostrarDiagnostico('erro', r.status, body + ' | URL: ' + urlCompleta);
     }
   } catch(e){
-    statusEl.textContent = '🔴 Sem conexão';
-    mostrarDiagnostico('sem_conexao', null, e.message);
+    statusEl.textContent = '🔴 Falha';
+    mostrarDiagnostico('sem_conexao', null, e.message + ' | URL: ' + urlCompleta);
   }
 }
 
@@ -1278,12 +1290,13 @@ function mostrarDiagnostico(tipo, dado, detalhe){
   const el = document.getElementById('sb-diagnostico');
   if(!el) return;
   const msgs = {
-    'não_configurado': `<span style="color:var(--amber)">⚙️ Supabase não configurado.</span> Cole a URL e a chave no banner abaixo.`,
-    'ok': `<span style="color:var(--green)">🟢 Conectado com sucesso.</span> ${dado!==undefined?dado+' registros na tabela sessoes.':''}`,
-    'erro': `<span style="color:var(--red)">🔴 Erro ${dado}.</span> ${detalhe||''} — verifique se a URL e a chave estão corretas e se as tabelas foram criadas.`,
-    'sem_conexao': `<span style="color:var(--red)">🔴 Sem conexão.</span> ${detalhe||''} — verifique sua internet.`,
+    'não_configurado': `<span style="color:var(--amber)">⚙️ Não configurado.</span> Preencha URL e chave no banner abaixo.`,
+    'tentando': `<span style="color:var(--text2)">🔄 Tentando conectar em:</span> <code style="font-size:11px;background:var(--bg3);padding:2px 6px;border-radius:4px">${detalhe||''}</code>`,
+    'ok': `<span style="color:var(--green)">🟢 Conectado!</span> ${dado} registros em sessoes. URL: <code style="font-size:11px">${detalhe||''}</code>`,
+    'erro': `<span style="color:var(--red)">🔴 Erro ${dado}.</span><br><code style="font-size:11px;background:var(--bg3);padding:4px 8px;border-radius:4px;display:block;margin-top:4px;word-break:break-all">${(detalhe||'').replace(/</g,'&lt;')}</code>`,
+    'sem_conexao': `<span style="color:var(--red)">🔴 Sem conexão.</span> ${detalhe||''}`,
   };
-  el.innerHTML = msgs[tipo]||'';
+  el.innerHTML = msgs[tipo] || `<span>${tipo}: ${detalhe||''}</span>`;
   el.style.display = 'block';
 }
 
