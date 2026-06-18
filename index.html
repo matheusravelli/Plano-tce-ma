@@ -168,6 +168,23 @@ alter table tarefas disable row level security;
     <!-- Diagnóstico Supabase -->
     <div id="sb-diagnostico" style="display:none;font-size:12px;padding:8px 14px;background:var(--bg2);border-radius:var(--radius);margin-bottom:10px;border:1px solid var(--border)"></div>
 
+    <!-- Backup / Restore -->
+    <div id="backup-panel" style="margin-bottom:10px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="exportarDados()" title="Baixar backup JSON">
+          <i class="ti ti-download"></i> Exportar backup
+        </button>
+        <button class="btn btn-sm" onclick="document.getElementById('import-file').click()" title="Importar backup JSON">
+          <i class="ti ti-upload"></i> Importar backup
+        </button>
+        <button class="btn btn-sm" onclick="enviarLocalParaSupabase()" title="Enviar dados locais para o Supabase">
+          <i class="ti ti-cloud-upload"></i> Enviar local → Supabase
+        </button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importarDados(event)">
+        <span id="backup-msg" style="font-size:12px;color:var(--text2);align-self:center"></span>
+      </div>
+    </div>
+
     <div class="metric-grid" id="metrics"></div>
     <div class="two-col">
       <div>
@@ -517,6 +534,116 @@ function atualizarPreviewTarefa(id){
   if(el && qtd>0){
     const p = pct(ac,qtd);
     el.innerHTML = `<span style="font-size:18px;font-weight:500;margin-right:6px">${p}%</span>${statusBadge(p,meta)}`;
+  }
+}
+
+// ── BACKUP / RESTORE ────────────────────────────────────────────────────────
+function exportarDados(){
+  const dados = {
+    versao: 1,
+    exportado_em: new Date().toISOString(),
+    sessoes: sessoes,
+    tarefas: tarefas
+  };
+  const blob = new Blob([JSON.stringify(dados, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `tcema_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  document.getElementById('backup-msg').textContent = `✅ Backup exportado (${sessoes.length} sessões, ${tarefas.length} tarefas)`;
+  setTimeout(()=>{ const el=document.getElementById('backup-msg'); if(el) el.textContent=''; }, 4000);
+}
+
+function importarDados(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const dados = JSON.parse(e.target.result);
+      if(!dados.sessoes || !dados.tarefas) throw new Error('Formato inválido');
+
+      // Mesclar com dados existentes (sem duplicar por id)
+      const idsS = new Set(sessoes.map(s=>s.id));
+      const idsT = new Set(tarefas.map(t=>t.id));
+      const novasSessoes = dados.sessoes.filter(s=>!idsS.has(s.id));
+      const novasTarefas = dados.tarefas.filter(t=>!idsT.has(t.id));
+
+      sessoes = [...sessoes, ...novasSessoes];
+      tarefas = [...tarefas, ...novasTarefas];
+      await saveSessoes();
+      await saveTarefas();
+      renderAll();
+
+      const msg = `✅ Importado: +${novasSessoes.length} sessões, +${novasTarefas.length} tarefas`;
+      document.getElementById('backup-msg').textContent = msg;
+      setTimeout(()=>{ const el=document.getElementById('backup-msg'); if(el) el.textContent=''; }, 5000);
+    } catch(err) {
+      document.getElementById('backup-msg').textContent = '🔴 Erro ao importar: '+err.message;
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+async function enviarLocalParaSupabase(){
+  if(!sbConfigured()){
+    document.getElementById('backup-msg').textContent = '⚙️ Configure o Supabase primeiro';
+    return;
+  }
+  const msgEl = document.getElementById('backup-msg');
+  msgEl.textContent = '🔄 Enviando...';
+
+  // Ler dados do localStorage (pode ter mais do que o que está em memória)
+  let dadosLocaisS = sessoes;
+  let dadosLocaisT = tarefas;
+  try {
+    const raw = localStorage.getItem('tcema_sessoes');
+    if(raw) dadosLocaisS = JSON.parse(raw);
+    const rawT = localStorage.getItem('tcema_tarefas');
+    if(rawT) dadosLocaisT = JSON.parse(rawT);
+  } catch(e){}
+
+  try {
+    const baseUrl = getSbUrl().replace(/\/+$/,'');
+
+    // Enviar sessoes em lotes de 50
+    const loteS = 50;
+    for(let i=0; i<dadosLocaisS.length; i+=loteS){
+      const lote = dadosLocaisS.slice(i, i+loteS);
+      const r = await fetch(`${baseUrl}/rest/v1/sessoes`, {
+        method: 'POST',
+        headers: {...sbHeaders(), 'Prefer': 'resolution=merge-duplicates'},
+        body: JSON.stringify(lote)
+      });
+      if(!r.ok){ const err=await r.text(); throw new Error('Sessões: '+err); }
+      msgEl.textContent = `🔄 Sessões: ${Math.min(i+loteS, dadosLocaisS.length)}/${dadosLocaisS.length}...`;
+    }
+
+    // Enviar tarefas em lotes de 50
+    const loteT = 50;
+    for(let i=0; i<dadosLocaisT.length; i+=loteT){
+      const lote = dadosLocaisT.slice(i, i+loteT);
+      const r = await fetch(`${baseUrl}/rest/v1/tarefas`, {
+        method: 'POST',
+        headers: {...sbHeaders(), 'Prefer': 'resolution=merge-duplicates'},
+        body: JSON.stringify(lote)
+      });
+      if(!r.ok){ const err=await r.text(); throw new Error('Tarefas: '+err); }
+    }
+
+    msgEl.textContent = `✅ Enviado: ${dadosLocaisS.length} sessões + ${dadosLocaisT.length} tarefas para o Supabase`;
+    setTimeout(()=>{ if(msgEl) msgEl.textContent=''; }, 6000);
+
+    // Atualizar memória
+    sessoes = dadosLocaisS;
+    tarefas = dadosLocaisT;
+    renderAll();
+
+  } catch(err){
+    msgEl.textContent = '🔴 Erro: '+err.message;
   }
 }
 
