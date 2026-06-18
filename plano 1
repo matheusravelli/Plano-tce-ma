@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerenciador de Estudos — TCE-MA</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#ffffff;--bg2:#f5f5f5;--bg3:#eeeeee;
+    --text:#111111;--text2:#555555;--text3:#888888;
+    --border:#e0e0e0;--border2:#cccccc;
+    --radius:8px;--radius-lg:12px;
+    --green:#3B6D11;--green-bg:#EAF3DE;
+    --amber:#854F0B;--amber-bg:#FEF9E7;
+    --red:#A32D2D;--red-bg:#FDEDEC;
+    --blue:#185FA5;--blue-bg:#EBF5FB;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --bg:#1a1a1a;--bg2:#242424;--bg3:#2e2e2e;
+      --text:#eeeeee;--text2:#aaaaaa;--text3:#777777;
+      --border:#333333;--border2:#444444;
+      --green:#C0DD97;--green-bg:#1a2e0a;
+      --amber:#FAC775;--amber-bg:#2e1f05;
+      --red:#F09595;--red-bg:#2e0a0a;
+      --blue:#85B7EB;--blue-bg:#042c53;
+    }
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:var(--text);background:var(--bg);padding:0;margin:0}
+  .container{max-width:900px;margin:0 auto;padding:1.5rem 1rem}
+  h1{font-size:18px;font-weight:500;margin-bottom:4px}
+  .subtitle{font-size:12px;color:var(--text2);margin-bottom:1.5rem}
+  .nav{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.5rem}
+  .nav-btn{padding:8px 16px;font-size:13px;font-weight:500;color:var(--text2);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit}
+  .nav-btn.active{color:var(--text);border-bottom-color:var(--text)}
+  .nav-btn:hover{color:var(--text)}
+  .view{display:none}.view.active{display:block}
+  .metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem}
+  @media(max-width:600px){.metric-grid{grid-template-columns:repeat(2,1fr)}}
+  .metric{background:var(--bg2);border-radius:var(--radius);padding:12px 14px}
+  .metric-label{font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+  .metric-val{font-size:22px;font-weight:500}
+  .metric-sub{font-size:11px;color:var(--text3);margin-top:2px}
+  .section-title{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+  .card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:12px}
+  .row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+  .row:last-child{border-bottom:none}
+  .badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px}
+  .badge-ok{background:var(--green-bg);color:var(--green)}
+  .badge-warn{background:var(--amber-bg);color:var(--amber)}
+  .badge-bad{background:var(--red-bg);color:var(--red)}
+  .badge-new{background:var(--blue-bg);color:var(--blue)}
+  .badge-pend{background:var(--bg2);color:var(--text2)}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  @media(max-width:500px){.form-grid{grid-template-columns:1fr}}
+  .form-label{font-size:12px;color:var(--text2);margin-bottom:4px;display:block}
+  input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);outline:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--text)}
+  .btn{padding:7px 16px;border:1px solid var(--border2);border-radius:var(--radius);font-size:13px;font-family:inherit;cursor:pointer;background:transparent;color:var(--text)}
+  .btn:hover{background:var(--bg2)}
+  .btn-primary{background:var(--text);color:var(--bg);border-color:var(--text)}
+  .btn-primary:hover{opacity:.85}
+  .btn-sm{padding:3px 8px;font-size:11px}
+  .bar-bg{flex:1;height:6px;background:var(--bg2);border-radius:3px;overflow:hidden}
+  .bar-fill{height:6px;border-radius:3px;transition:width .3s}
+  .task-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+  .task-row:last-child{border-bottom:none}
+  .task-check{width:16px;height:16px;border:1px solid var(--border2);border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:transparent}
+  .task-check.done{background:var(--text);border-color:var(--text)}
+  .task-text{flex:1;font-size:13px}
+  .task-text.done{text-decoration:line-through;color:var(--text2)}
+  .task-meta{font-size:11px;color:var(--text3)}
+  .empty{text-align:center;padding:2rem;color:var(--text3);font-size:13px}
+  .tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .tab{padding:5px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:12px;cursor:pointer;background:transparent;color:var(--text2);font-family:inherit}
+  .tab.active{background:var(--bg2);color:var(--text);font-weight:500}
+  .chart-wrap{position:relative;width:100%;height:220px}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  @media(max-width:600px){.two-col{grid-template-columns:1fr}}
+  a{color:var(--blue)}
+  .preview-box{margin-left:auto;font-size:13px;font-weight:500}
+  .msg{font-size:12px;color:var(--text2)}
+  .del-btn{padding:2px 7px;font-size:11px;color:var(--text2);border:none;background:transparent;cursor:pointer;border-radius:4px}
+  .del-btn:hover{background:var(--bg2)}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Gerenciador de Estudos</h1>
+  <div class="subtitle">TCE-MA · Cebraspe · Auditor de Controle Externo — Engenharia Civil</div>
+
+  <div class="nav">
+    <button class="nav-btn active" onclick="showView('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+    <button class="nav-btn" onclick="showView('registrar',this)"><i class="ti ti-plus"></i> Registrar</button>
+    <button class="nav-btn" onclick="showView('tarefas',this)"><i class="ti ti-checklist"></i> Tarefas</button>
+    <button class="nav-btn" onclick="showView('desempenho',this)"><i class="ti ti-chart-bar"></i> Desempenho</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="view-dashboard" class="view active">
+    <div class="metric-grid" id="metrics"></div>
+    <div class="two-col">
+      <div>
+        <div class="section-title">Últimas sessões</div>
+        <div class="card" id="ultimas-sessoes"><div class="empty">Nenhuma sessão registrada</div></div>
+      </div>
+      <div>
+        <div class="section-title">Tarefas pendentes</div>
+        <div class="card" id="dash-tarefas"><div class="empty">Nenhuma tarefa pendente</div></div>
+      </div>
+    </div>
+    <div class="section-title">Desempenho por disciplina</div>
+    <div class="card" id="dash-desempenho"><div class="empty">Nenhum registro ainda</div></div>
+  </div>
+
+  <!-- REGISTRAR -->
+  <div id="view-registrar" class="view">
+    <div class="section-title">Nova sessão de estudo</div>
+    <div class="card">
+      <div class="form-grid">
+        <div><label class="form-label">Semana</label>
+          <select id="f-semana"><option>S01</option><option>S02</option><option>S03</option><option>S04</option><option>S05</option><option>S06</option><option>S07</option><option>S08</option><option>S09</option><option>S10</option></select></div>
+        <div><label class="form-label">Data</label><input type="date" id="f-data"></div>
+        <div><label class="form-label">Disciplina</label>
+          <select id="f-disc">
+            <option>LP</option><option>Dir. Adm</option><option>Dir. Const</option>
+            <option>AFO</option><option>Ctrl Ext</option><option>Auditoria</option>
+            <option>Eng — PNFL</option><option>Eng — Edificações</option>
+            <option>Eng — Hídricas</option><option>Eng — Rodoviárias</option>
+          </select></div>
+        <div><label class="form-label">Assunto</label><input type="text" id="f-assunto" placeholder="Ex: Pontuação"></div>
+        <div><label class="form-label">Tipo</label>
+          <select id="f-tipo"><option>Diagnóstico</option><option>Fixação</option><option>Revisão</option><option>Rev. Cirúrgica</option><option>Rev. Espaçada</option></select></div>
+        <div><label class="form-label">Questões (total)</label><input type="number" id="f-qtd" placeholder="10" min="1"></div>
+        <div><label class="form-label">Acertos</label><input type="number" id="f-acertos" placeholder="8" min="0"></div>
+        <div><label class="form-label">Meta (%)</label><input type="number" id="f-meta" placeholder="75" min="0" max="100"></div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label class="form-label">Padrão de erro / obs</label>
+        <textarea id="f-obs" rows="2" placeholder="Anotar onde errou, sub-tópico problemático..."></textarea>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="registrarSessao()">Registrar sessão</button>
+        <span class="msg" id="f-msg"></span>
+        <span class="preview-box" id="f-preview"></span>
+      </div>
+    </div>
+    <div class="section-title">Sessões registradas</div>
+    <div class="card" id="historico-sessoes"><div class="empty">Nenhuma sessão ainda</div></div>
+  </div>
+
+  <!-- TAREFAS -->
+  <div id="view-tarefas" class="view">
+    <div class="section-title">Nova tarefa</div>
+    <div class="card">
+      <div class="form-grid">
+        <div><label class="form-label">Semana</label>
+          <select id="t-semana"><option>S01</option><option>S02</option><option>S03</option><option>S04</option><option>S05</option><option>S06</option><option>S07</option><option>S08</option><option>S09</option><option>S10</option></select></div>
+        <div><label class="form-label">Prioridade</label>
+          <select id="t-prio"><option value="A">[A] Alta</option><option value="B">[B] Média</option><option value="C">[C] Baixa</option></select></div>
+        <div><label class="form-label">Disciplina</label>
+          <select id="t-disc">
+            <option>LP</option><option>Dir. Adm</option><option>Dir. Const</option>
+            <option>AFO</option><option>Ctrl Ext</option><option>Auditoria</option>
+            <option>Eng — PNFL</option><option>Eng — Edificações</option>
+            <option>Eng — Hídricas</option><option>Eng — Rodoviárias</option>
+          </select></div>
+        <div><label class="form-label">Tipo</label>
+          <select id="t-tipo"><option>Diagnóstico</option><option>Fixação</option><option>Revisão</option><option>Rev. Cirúrgica</option><option>Rev. Espaçada</option></select></div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label class="form-label">Assunto / descrição</label>
+        <input type="text" id="t-assunto" placeholder="Ex: Pontuação — revisão de vírgula">
+      </div>
+      <div style="margin-bottom:10px">
+        <label class="form-label">Link TEC Concursos (opcional)</label>
+        <input type="url" id="t-link" placeholder="https://www.tecconcursos.com.br/s/...">
+      </div>
+      <button class="btn btn-primary" onclick="addTarefa()">Adicionar tarefa</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+      <div class="section-title" style="margin:0;flex:1">Tarefas</div>
+      <div class="tabs" style="margin:0">
+        <button class="tab active" onclick="filtrarTarefas('todas',this)">Todas</button>
+        <button class="tab" onclick="filtrarTarefas('pendente',this)">Pendentes</button>
+        <button class="tab" onclick="filtrarTarefas('feita',this)">Concluídas</button>
+      </div>
+    </div>
+    <div class="card" id="lista-tarefas"><div class="empty">Nenhuma tarefa cadastrada</div></div>
+  </div>
+
+  <!-- DESEMPENHO -->
+  <div id="view-desempenho" class="view">
+    <div class="metric-grid" id="desemp-metrics"></div>
+    <div class="two-col">
+      <div>
+        <div class="section-title">Por disciplina</div>
+        <div class="card" id="desemp-disc"><div class="empty">Nenhum registro</div></div>
+      </div>
+      <div>
+        <div class="section-title">Por semana</div>
+        <div class="card"><div class="chart-wrap"><canvas id="chart-semanas"></canvas></div></div>
+      </div>
+    </div>
+    <div class="section-title">Reforço necessário (abaixo da meta)</div>
+    <div class="card" id="desemp-reforco"><div class="empty">Todos acima da meta 🎉</div></div>
+  </div>
+</div>
+
+<script>
+const LS_S = 'tcema_sessoes';
+const LS_T = 'tcema_tarefas';
+let sessoes = [], tarefas = [], chartSemanas = null, filtroT = 'todas';
+
+function load(){
+  try{ sessoes = JSON.parse(localStorage.getItem(LS_S)||'[]'); }catch(e){ sessoes=[]; }
+  try{ tarefas = JSON.parse(localStorage.getItem(LS_T)||'[]'); }catch(e){ tarefas=[]; }
+}
+function saveSessoes(){ localStorage.setItem(LS_S, JSON.stringify(sessoes)); }
+function saveTarefas(){ localStorage.setItem(LS_T, JSON.stringify(tarefas)); }
+
+function pct(a,q){ return q>0 ? Math.round(a/q*100) : 0; }
+
+function statusBadge(p, meta){
+  if(p===null||p===undefined) return '<span class="badge badge-pend">—</span>';
+  if(p>=meta+6) return `<span class="badge badge-ok">⭐ ${p}%</span>`;
+  if(p>=meta)   return `<span class="badge badge-ok">✅ ${p}%</span>`;
+  if(p>=meta-8) return `<span class="badge badge-warn">⚠️ ${p}%</span>`;
+  return `<span class="badge badge-bad">🔴 ${p}%</span>`;
+}
+function barColor(p,meta){ return p>=meta?'#639922':p>=meta-8?'#EF9F27':'#E24B4A'; }
+
+function showView(v, btn){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  if(btn) btn.classList.add('active');
+  renderAll();
+}
+
+function renderAll(){
+  renderMetrics();
+  renderUltimasSessoes();
+  renderDashTarefas();
+  renderDashDesempenho();
+  renderHistorico();
+  renderTarefas();
+  renderDesempenho();
+}
+
+function renderMetrics(){
+  const total = sessoes.length;
+  const exec  = sessoes.filter(s=>s.acertos!=null).length;
+  const allP  = sessoes.filter(s=>s.acertos!=null&&s.qtd>0).map(s=>pct(s.acertos,s.qtd));
+  const media = allP.length ? Math.round(allP.reduce((a,b)=>a+b,0)/allP.length) : 0;
+  const abaixo= sessoes.filter(s=>s.acertos!=null&&s.meta&&pct(s.acertos,s.qtd)<s.meta).length;
+  const pendT = tarefas.filter(t=>t.status==='pendente').length;
+  const html = `
+    <div class="metric"><div class="metric-label">Sessões</div><div class="metric-val">${total}</div><div class="metric-sub">${exec} com % registrado</div></div>
+    <div class="metric"><div class="metric-label">Média geral</div><div class="metric-val">${media}%</div><div class="metric-sub">todas as sessões</div></div>
+    <div class="metric"><div class="metric-label">Abaixo da meta</div><div class="metric-val">${abaixo}</div><div class="metric-sub">precisam de reforço</div></div>
+    <div class="metric"><div class="metric-label">Tarefas pendentes</div><div class="metric-val">${pendT}</div><div class="metric-sub">a concluir</div></div>`;
+  document.getElementById('metrics').innerHTML = html;
+  const dm = document.getElementById('desemp-metrics');
+  if(dm) dm.innerHTML = html;
+}
+
+function renderUltimasSessoes(){
+  const el = document.getElementById('ultimas-sessoes');
+  const ult = [...sessoes].reverse().slice(0,6);
+  if(!ult.length){ el.innerHTML='<div class="empty">Nenhuma sessão registrada</div>'; return; }
+  el.innerHTML = ult.map(s=>{
+    const p = s.acertos!=null ? pct(s.acertos,s.qtd) : null;
+    return `<div class="row">
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">${s.assunto}</div>
+      <div style="font-size:11px;color:var(--text2)">${s.disc} · ${s.tipo} · ${s.semana} · ${s.data}</div></div>
+      ${statusBadge(p,s.meta||75)}</div>`;
+  }).join('');
+}
+
+function renderDashTarefas(){
+  const el = document.getElementById('dash-tarefas');
+  const pend = tarefas.filter(t=>t.status==='pendente').slice(0,6);
+  if(!pend.length){ el.innerHTML='<div class="empty">Nenhuma tarefa pendente</div>'; return; }
+  el.innerHTML = pend.map(t=>`<div class="row">
+    <div style="flex:1"><div style="font-size:13px">${t.assunto}</div>
+    <div style="font-size:11px;color:var(--text2)">[${t.prio}] ${t.disc} · ${t.semana}</div></div>
+  </div>`).join('');
+}
+
+function renderDashDesempenho(){
+  const el = document.getElementById('dash-desempenho');
+  const discs = {};
+  sessoes.filter(s=>s.acertos!=null&&s.qtd>0).forEach(s=>{
+    if(!discs[s.disc]) discs[s.disc]={total:0,count:0,meta:s.meta||75};
+    discs[s.disc].total+=pct(s.acertos,s.qtd); discs[s.disc].count++;
+  });
+  if(!Object.keys(discs).length){ el.innerHTML='<div class="empty">Nenhum registro ainda</div>'; return; }
+  el.innerHTML = Object.entries(discs).sort((a,b)=>b[1].total/b[1].count-a[1].total/a[1].count).map(([disc,d])=>{
+    const avg=Math.round(d.total/d.count), meta=d.meta;
+    return `<div class="row">
+      <div style="width:130px;font-size:13px;font-weight:500">${disc}</div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${avg}%;background:${barColor(avg,meta)}"></div></div>
+      ${statusBadge(avg,meta)}
+      <span style="font-size:11px;color:var(--text3);min-width:36px;text-align:right">${d.count}s</span>
+    </div>`;
+  }).join('');
+}
+
+function registrarSessao(){
+  const qtd = parseInt(document.getElementById('f-qtd').value)||0;
+  const ac  = document.getElementById('f-acertos').value!=='' ? parseInt(document.getElementById('f-acertos').value) : null;
+  const meta= parseInt(document.getElementById('f-meta').value)||75;
+  const s = {
+    id:Date.now(),
+    semana:document.getElementById('f-semana').value,
+    data:document.getElementById('f-data').value||new Date().toISOString().slice(0,10),
+    disc:document.getElementById('f-disc').value,
+    assunto:document.getElementById('f-assunto').value.trim(),
+    tipo:document.getElementById('f-tipo').value,
+    qtd, acertos:ac, meta,
+    obs:document.getElementById('f-obs').value.trim()
+  };
+  if(!s.assunto){ document.getElementById('f-msg').textContent='Preencha o assunto'; return; }
+  sessoes.push(s); saveSessoes();
+  document.getElementById('f-msg').textContent='✅ Registrado';
+  document.getElementById('f-assunto').value='';
+  document.getElementById('f-acertos').value='';
+  document.getElementById('f-obs').value='';
+  document.getElementById('f-preview').innerHTML='';
+  setTimeout(()=>document.getElementById('f-msg').textContent='',2000);
+  renderAll();
+}
+
+function renderHistorico(){
+  const el = document.getElementById('historico-sessoes');
+  if(!sessoes.length){ el.innerHTML='<div class="empty">Nenhuma sessão ainda</div>'; return; }
+  el.innerHTML = [...sessoes].reverse().map(s=>{
+    const p = s.acertos!=null ? pct(s.acertos,s.qtd) : null;
+    return `<div class="task-row">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500">${s.assunto} <span style="font-weight:400;color:var(--text2)">· ${s.tipo}</span></div>
+        <div style="font-size:11px;color:var(--text2)">${s.disc} · ${s.semana} · ${s.data}${s.obs?' · <em>'+s.obs+'</em>':''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${p!==null?`<span style="font-size:12px;color:var(--text2)">${s.acertos}/${s.qtd}q</span>`:''}
+        ${statusBadge(p,s.meta||75)}
+        <button class="del-btn" onclick="deleteSessao(${s.id})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function deleteSessao(id){ sessoes=sessoes.filter(s=>s.id!==id); saveSessoes(); renderAll(); }
+
+function atualizarPreview(){
+  const qtd=parseInt(document.getElementById('f-qtd').value)||0;
+  const ac=parseInt(document.getElementById('f-acertos').value)||0;
+  const meta=parseInt(document.getElementById('f-meta').value)||75;
+  const prev=document.getElementById('f-preview');
+  if(qtd>0) prev.innerHTML=statusBadge(pct(ac,qtd),meta);
+  else prev.innerHTML='';
+}
+
+function addTarefa(){
+  const t={
+    id:Date.now(),
+    semana:document.getElementById('t-semana').value,
+    prio:document.getElementById('t-prio').value,
+    disc:document.getElementById('t-disc').value,
+    tipo:document.getElementById('t-tipo').value,
+    assunto:document.getElementById('t-assunto').value.trim(),
+    link:document.getElementById('t-link').value.trim(),
+    status:'pendente'
+  };
+  if(!t.assunto) return;
+  tarefas.push(t); saveTarefas();
+  document.getElementById('t-assunto').value='';
+  document.getElementById('t-link').value='';
+  renderAll();
+}
+
+function toggleTarefa(id){
+  const t=tarefas.find(t=>t.id===id); if(!t) return;
+  t.status=t.status==='feita'?'pendente':'feita';
+  saveTarefas(); renderAll();
+}
+function deleteTarefa(id){ tarefas=tarefas.filter(t=>t.id!==id); saveTarefas(); renderAll(); }
+
+function filtrarTarefas(f,btn){
+  filtroT=f;
+  document.querySelectorAll('#view-tarefas .tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTarefas();
+}
+
+function renderTarefas(){
+  const el=document.getElementById('lista-tarefas');
+  let lista=[...tarefas].reverse();
+  if(filtroT==='pendente') lista=lista.filter(t=>t.status==='pendente');
+  if(filtroT==='feita')    lista=lista.filter(t=>t.status==='feita');
+  if(!lista.length){ el.innerHTML='<div class="empty">Nenhuma tarefa aqui</div>'; return; }
+  const pb={'A':'badge-bad','B':'badge-warn','C':'badge-new'};
+  el.innerHTML=lista.map(t=>`<div class="task-row">
+    <div class="task-check ${t.status==='feita'?'done':''}" onclick="toggleTarefa(${t.id})">
+      ${t.status==='feita'?'<i class="ti ti-check" style="font-size:11px;color:white"></i>':''}
+    </div>
+    <div style="flex:1">
+      <div class="task-text ${t.status==='feita'?'done':''}">${t.assunto}</div>
+      <div class="task-meta">${t.semana} · ${t.disc} · ${t.tipo}
+        ${t.link?` · <a href="${t.link}" target="_blank">🔗 abrir</a>`:''}
+      </div>
+    </div>
+    <span class="badge ${pb[t.prio]||'badge-pend'}">[${t.prio}]</span>
+    <button class="del-btn" onclick="deleteTarefa(${t.id})">✕</button>
+  </div>`).join('');
+}
+
+function renderDesempenho(){
+  const discs={};
+  sessoes.filter(s=>s.acertos!=null&&s.qtd>0).forEach(s=>{
+    if(!discs[s.disc]) discs[s.disc]={total:0,count:0,meta:s.meta||75};
+    discs[s.disc].total+=pct(s.acertos,s.qtd); discs[s.disc].count++;
+  });
+  const el=document.getElementById('desemp-disc');
+  if(!Object.keys(discs).length){ el.innerHTML='<div class="empty">Nenhum registro</div>'; }
+  else el.innerHTML=Object.entries(discs).sort((a,b)=>b[1].total/b[1].count-a[1].total/a[1].count).map(([disc,d])=>{
+    const avg=Math.round(d.total/d.count),meta=d.meta;
+    return `<div class="row">
+      <div style="width:120px;font-size:12px;font-weight:500">${disc}</div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${avg}%;background:${barColor(avg,meta)}"></div></div>
+      <div style="width:42px;text-align:right;font-size:12px;font-weight:500">${avg}%</div>
+      <div style="font-size:11px;color:var(--text3);width:36px;text-align:right">${d.count}s</div>
+    </div>`;
+  }).join('');
+
+  const semanas=['S01','S02','S03','S04','S05','S06','S07','S08','S09','S10'];
+  const meds=semanas.map(sem=>{
+    const ss=sessoes.filter(s=>s.semana===sem&&s.acertos!=null&&s.qtd>0);
+    return ss.length?Math.round(ss.reduce((a,s)=>a+pct(s.acertos,s.qtd),0)/ss.length):null;
+  });
+  const labels=semanas.filter((_,i)=>meds[i]!==null);
+  const data=meds.filter(v=>v!==null);
+  if(chartSemanas){ chartSemanas.destroy(); chartSemanas=null; }
+  if(data.length){
+    chartSemanas=new Chart(document.getElementById('chart-semanas'),{
+      type:'bar',
+      data:{labels,datasets:[{label:'Média %',data,backgroundColor:'#378ADD',borderRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}},x:{ticks:{autoSkip:false}}}}
+    });
+  }
+
+  const porA={};
+  sessoes.filter(s=>s.acertos!=null&&s.qtd>0&&s.meta).forEach(s=>{
+    const k=s.disc+'|'+s.assunto;
+    if(!porA[k]) porA[k]={disc:s.disc,assunto:s.assunto,total:0,count:0,meta:s.meta,obs:s.obs};
+    porA[k].total+=pct(s.acertos,s.qtd); porA[k].count++;
+  });
+  const rfs=Object.values(porA).filter(a=>Math.round(a.total/a.count)<a.meta)
+    .sort((a,b)=>Math.round(a.total/a.count)-Math.round(b.total/b.count));
+  const rfEl=document.getElementById('desemp-reforco');
+  if(!rfs.length){ rfEl.innerHTML='<div class="empty">Todos acima da meta 🎉</div>'; return; }
+  rfEl.innerHTML=rfs.map(a=>{
+    const avg=Math.round(a.total/a.count), gap=avg-a.meta;
+    return `<div class="row">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500">${a.assunto}</div>
+        <div style="font-size:11px;color:var(--text2)">${a.disc}${a.obs?' · '+a.obs:''}</div>
+      </div>
+      <span style="font-size:12px;color:var(--text2);margin-right:6px">meta ${a.meta}%</span>
+      ${statusBadge(avg,a.meta)}
+      <span style="font-size:12px;font-weight:500;color:var(--red);margin-left:6px">${gap}pp</span>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('f-qtd').addEventListener('input',atualizarPreview);
+document.getElementById('f-acertos').addEventListener('input',atualizarPreview);
+document.getElementById('f-meta').addEventListener('input',atualizarPreview);
+document.getElementById('f-data').value=new Date().toISOString().slice(0,10);
+
+load(); renderAll();
+</script>
+</body>
+</html>
