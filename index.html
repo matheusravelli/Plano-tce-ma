@@ -1234,7 +1234,7 @@ document.getElementById('f-data').value=new Date().toISOString().slice(0,10);
 })();
 
 function salvarConfigSB(){
-  const url = document.getElementById('cfg-url').value.trim().replace(/\/+$/,'');
+  const url = document.getElementById('cfg-url').value.trim().replace(/\/rest\/v1.*$/,'').replace(/\/+$/,'');
   const key = document.getElementById('cfg-key').value.trim();
   if(!url||!key){ alert('Preencha os dois campos'); return; }
   localStorage.setItem('sb_url', url);
@@ -1314,7 +1314,10 @@ function mostrarDiagnostico(tipo, dado, detalhe){
   el.style.display = 'block';
 }
 
-function getSbUrl(){ return (typeof SB_URL_RT!=='undefined'&&SB_URL_RT) ? SB_URL_RT : SB_URL; }
+function getSbUrl(){
+  const raw = (typeof SB_URL_RT!=='undefined'&&SB_URL_RT) ? SB_URL_RT : SB_URL;
+  return raw.replace(/\/rest\/v1.*$/,'').replace(/\/+$/,'');
+}
 function getSbKey(){ return (typeof SB_KEY_RT!=='undefined'&&SB_KEY_RT) ? SB_KEY_RT : SB_KEY; }
 function sbConfigured(){ return !!(getSbUrl() && getSbKey()); }
 function sbHeaders(){
