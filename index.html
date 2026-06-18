@@ -97,6 +97,8 @@
     <button class="nav-btn" onclick="showView('registrar',this)"><i class="ti ti-plus"></i> Registrar</button>
     <button class="nav-btn" onclick="showView('tarefas',this)"><i class="ti ti-checklist"></i> Tarefas</button>
     <button class="nav-btn" onclick="showView('importar',this)"><i class="ti ti-file-import"></i> Importar metas</button>
+    <button class="nav-btn" onclick="showView('evolucao',this)"><i class="ti ti-trending-up"></i> Evolução</button>
+    <button class="nav-btn" onclick="showView('reforco',this)"><i class="ti ti-refresh-alert"></i> Reforço</button>
     <button class="nav-btn" onclick="showView('desempenho',this)"><i class="ti ti-chart-bar"></i> Desempenho</button>
   </div>
 
@@ -155,42 +157,58 @@
 
   <!-- TAREFAS -->
   <div id="view-tarefas" class="view">
-    <div class="section-title">Nova tarefa</div>
-    <div class="card">
-      <div class="form-grid">
-        <div><label class="form-label">Semana</label>
-          <select id="t-semana"><option>S01</option><option>S02</option><option>S03</option><option>S04</option><option>S05</option><option>S06</option><option>S07</option><option>S08</option><option>S09</option><option>S10</option></select></div>
-        <div><label class="form-label">Prioridade</label>
-          <select id="t-prio"><option value="A">[A] Alta</option><option value="B">[B] Média</option><option value="C">[C] Baixa</option></select></div>
-        <div><label class="form-label">Disciplina</label>
-          <select id="t-disc">
-            <option>LP</option><option>Dir. Adm</option><option>Dir. Const</option>
-            <option>AFO</option><option>Ctrl Ext</option><option>Auditoria</option>
-            <option>Eng — PNFL</option><option>Eng — Edificações</option>
-            <option>Eng — Hídricas</option><option>Eng — Rodoviárias</option>
-          </select></div>
-        <div><label class="form-label">Tipo</label>
-          <select id="t-tipo"><option>Diagnóstico</option><option>Fixação</option><option>Revisão</option><option>Rev. Cirúrgica</option><option>Rev. Espaçada</option></select></div>
-      </div>
-      <div style="margin-bottom:10px">
-        <label class="form-label">Assunto / descrição</label>
-        <input type="text" id="t-assunto" placeholder="Ex: Pontuação — revisão de vírgula">
-      </div>
-      <div style="margin-bottom:10px">
-        <label class="form-label">Link TEC Concursos (opcional)</label>
-        <input type="url" id="t-link" placeholder="https://www.tecconcursos.com.br/s/...">
-      </div>
-      <button class="btn btn-primary" onclick="addTarefa()">Adicionar tarefa</button>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-      <div class="section-title" style="margin:0;flex:1">Tarefas</div>
+
+    <!-- Dashboard por semana -->
+    <div class="section-title">Progresso por semana</div>
+    <div id="dash-semanas" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem"></div>
+
+    <!-- Tarefas pendentes Prio A -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div class="section-title" style="margin:0;flex:1">Pendentes — Prioridade <span style="color:var(--red);font-weight:600">[A]</span></div>
       <div class="tabs" style="margin:0">
-        <button class="tab active" onclick="filtrarTarefas('todas',this)">Todas</button>
-        <button class="tab" onclick="filtrarTarefas('pendente',this)">Pendentes</button>
-        <button class="tab" onclick="filtrarTarefas('feita',this)">Concluídas</button>
+        <button class="tab active" id="tab-prio-a" onclick="setPrioFiltro('A',this)">Prio A</button>
+        <button class="tab" onclick="setPrioFiltro('B',this)">Prio B</button>
+        <button class="tab" onclick="setPrioFiltro('C',this)">Prio C</button>
+        <button class="tab" onclick="setPrioFiltro('todas',this)">Todas</button>
+        <button class="tab" onclick="setPrioFiltro('feitas',this)">Feitas</button>
       </div>
     </div>
     <div class="card" id="lista-tarefas"><div class="empty">Nenhuma tarefa cadastrada</div></div>
+
+    <!-- Adicionar tarefa (colapsável) -->
+    <div style="margin-top:1rem">
+      <button class="btn" onclick="toggleAddTarefa()" id="btn-add-tarefa" style="width:100%;text-align:left">
+        <i class="ti ti-plus"></i> Adicionar tarefa manualmente
+      </button>
+      <div id="form-add-tarefa" style="display:none;margin-top:10px">
+        <div class="card">
+          <div class="form-grid">
+            <div><label class="form-label">Semana</label>
+              <select id="t-semana"><option>S01</option><option>S02</option><option>S03</option><option>S04</option><option>S05</option><option>S06</option><option>S07</option><option>S08</option><option>S09</option><option>S10</option></select></div>
+            <div><label class="form-label">Prioridade</label>
+              <select id="t-prio"><option value="A">[A] Alta</option><option value="B">[B] Média</option><option value="C">[C] Baixa</option></select></div>
+            <div><label class="form-label">Disciplina</label>
+              <select id="t-disc">
+                <option>LP</option><option>Dir. Adm</option><option>Dir. Const</option>
+                <option>AFO</option><option>Ctrl Ext</option><option>Auditoria</option>
+                <option>Eng — PNFL</option><option>Eng — Edificações</option>
+                <option>Eng — Hídricas</option><option>Eng — Rodoviárias</option>
+              </select></div>
+            <div><label class="form-label">Tipo</label>
+              <select id="t-tipo"><option>Diagnóstico</option><option>Fixação</option><option>Revisão</option><option>Rev. Cirúrgica</option><option>Rev. Espaçada</option></select></div>
+          </div>
+          <div style="margin-bottom:10px">
+            <label class="form-label">Assunto</label>
+            <input type="text" id="t-assunto" placeholder="Ex: Pontuação — revisão de vírgula">
+          </div>
+          <div style="margin-bottom:10px">
+            <label class="form-label">Link TEC Concursos (opcional)</label>
+            <input type="url" id="t-link" placeholder="https://www.tecconcursos.com.br/s/...">
+          </div>
+          <button class="btn btn-primary" onclick="addTarefa()">Adicionar</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- IMPORTAR -->
@@ -231,6 +249,25 @@
         <button class="btn btn-primary" onclick="confirmarImport()">Adicionar todas as tarefas</button>
         <button class="btn" onclick="cancelarImport()">Cancelar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- EVOLUÇÃO -->
+  <div id="view-evolucao" class="view">
+    <div class="metric-grid" id="ev-metrics"></div>
+    <div id="ev-blocos"></div>
+  </div>
+
+  <!-- REFORÇO -->
+  <div id="view-reforco" class="view">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <div class="section-title" style="margin:0;flex:1">Reforço necessário</div>
+      <span style="font-size:12px;color:var(--text2)">Assuntos abaixo da meta nas últimas sessões</span>
+    </div>
+    <div id="rf-lista"></div>
+    <div style="margin-top:1.5rem">
+      <div class="section-title">Tarefas de reforço geradas</div>
+      <div class="card" id="rf-tarefas-geradas"><div class="empty">Nenhuma tarefa de reforço gerada ainda</div></div>
     </div>
   </div>
 
@@ -301,6 +338,8 @@ function renderAll(){
   renderHistorico();
   renderTarefas();
   renderDesempenho();
+  renderEvolucao();
+  renderReforco();
 }
 
 function renderMetrics(){
@@ -412,8 +451,10 @@ function atualizarPreview(){
   const ac=parseInt(document.getElementById('f-acertos').value)||0;
   const meta=parseInt(document.getElementById('f-meta').value)||75;
   const prev=document.getElementById('f-preview');
-  if(qtd>0) prev.innerHTML=statusBadge(pct(ac,qtd),meta);
-  else prev.innerHTML='';
+  if(qtd>0&&ac>=0){
+    const p=pct(ac,qtd);
+    prev.innerHTML=`<span style="font-size:20px;font-weight:500;margin-right:6px">${p}%</span>${statusBadge(p,meta)}`;
+  } else prev.innerHTML='';
 }
 
 function addTarefa(){
@@ -441,33 +482,85 @@ function toggleTarefa(id){
 }
 function deleteTarefa(id){ tarefas=tarefas.filter(t=>t.id!==id); saveTarefas(); renderAll(); }
 
-function filtrarTarefas(f,btn){
-  filtroT=f;
+let prioFiltro = 'A';
+
+function setPrioFiltro(f, btn){
+  prioFiltro = f;
   document.querySelectorAll('#view-tarefas .tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderTarefas();
 }
 
+function toggleAddTarefa(){
+  const el = document.getElementById('form-add-tarefa');
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+
+function filtrarTarefas(f,btn){
+  filtroT=f;
+  renderTarefas();
+}
+
 function renderTarefas(){
-  const el=document.getElementById('lista-tarefas');
-  let lista=[...tarefas].reverse();
-  if(filtroT==='pendente') lista=lista.filter(t=>t.status==='pendente');
-  if(filtroT==='feita')    lista=lista.filter(t=>t.status==='feita');
-  if(!lista.length){ el.innerHTML='<div class="empty">Nenhuma tarefa aqui</div>'; return; }
+  // Dashboard por semana
+  const semanas = [...new Set(tarefas.map(t=>t.semana))].sort();
+  const dashEl = document.getElementById('dash-semanas');
+  if(dashEl && semanas.length){
+    dashEl.innerHTML = semanas.map(sem=>{
+      const todas   = tarefas.filter(t=>t.semana===sem);
+      const feitas  = todas.filter(t=>t.status==='feita').length;
+      const total   = todas.length;
+      const falta   = total - feitas;
+      const pct_    = total ? Math.round(feitas/total*100) : 0;
+      const cor     = pct_===100 ? 'var(--green)' : pct_>50 ? 'var(--amber)' : 'var(--text2)';
+      return `<div style="background:var(--bg2);border-radius:var(--radius-lg);padding:10px 14px;min-width:110px;flex:1;max-width:140px">
+        <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:6px">${sem}</div>
+        <div style="font-size:22px;font-weight:500;color:${cor}">${pct_}%</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${feitas}/${total} feitas</div>
+        <div style="height:4px;background:var(--bg3);border-radius:2px;margin-top:6px;overflow:hidden">
+          <div style="height:4px;width:${pct_}%;background:${cor};border-radius:2px"></div>
+        </div>
+        ${falta>0?`<div style="font-size:10px;color:var(--text3);margin-top:4px">${falta} pendente${falta>1?'s':''}</div>`:'<div style="font-size:10px;color:var(--green);margin-top:4px">Completo ✓</div>'}
+      </div>`;
+    }).join('');
+  } else if(dashEl) dashEl.innerHTML = '';
+
+  // Lista de tarefas filtrada
+  const el = document.getElementById('lista-tarefas');
+  let lista = [...tarefas].sort((a,b)=>a.semana.localeCompare(b.semana));
+
+  if(prioFiltro==='feitas'){
+    lista = lista.filter(t=>t.status==='feita');
+  } else if(prioFiltro==='todas'){
+    lista = lista.filter(t=>t.status==='pendente');
+  } else {
+    lista = lista.filter(t=>t.status==='pendente' && t.prio===prioFiltro);
+  }
+
+  if(!lista.length){
+    el.innerHTML=`<div class="empty">${prioFiltro==='feitas'?'Nenhuma tarefa concluída':'Nenhuma tarefa pendente aqui 🎉'}</div>`;
+    return;
+  }
+
   const pb={'A':'badge-bad','B':'badge-warn','C':'badge-new'};
-  el.innerHTML=lista.map(t=>`<div class="task-row">
-    <div class="task-check ${t.status==='feita'?'done':''}" onclick="toggleTarefa(${t.id})">
-      ${t.status==='feita'?'<i class="ti ti-check" style="font-size:11px;color:white"></i>':''}
-    </div>
-    <div style="flex:1">
-      <div class="task-text ${t.status==='feita'?'done':''}">${t.assunto}</div>
-      <div class="task-meta">${t.semana} · ${t.disc} · ${t.tipo}
-        ${t.link?` · <a href="${t.link}" target="_blank">🔗 abrir</a>`:''}
+  // Agrupar por semana
+  const porSem = {};
+  lista.forEach(t=>{ if(!porSem[t.semana]) porSem[t.semana]=[]; porSem[t.semana].push(t); });
+
+  el.innerHTML = Object.entries(porSem).map(([sem, tasks])=>`
+    <div style="font-size:11px;font-weight:500;color:var(--text3);padding:6px 0 4px;border-bottom:1px solid var(--border);margin-bottom:2px;letter-spacing:.04em">${sem}</div>
+    ${tasks.map(t=>`<div class="task-row">
+      <div class="task-check ${t.status==='feita'?'done':''}" onclick="toggleTarefa(${t.id})">
+        ${t.status==='feita'?'<i class="ti ti-check" style="font-size:11px;color:white"></i>':''}
       </div>
-    </div>
-    <span class="badge ${pb[t.prio]||'badge-pend'}">[${t.prio}]</span>
-    <button class="del-btn" onclick="deleteTarefa(${t.id})">✕</button>
-  </div>`).join('');
+      <div style="flex:1">
+        <div class="task-text ${t.status==='feita'?'done':''}">${t.assunto}</div>
+        <div class="task-meta">${t.disc} · ${t.tipo}${t.link?` · <a href="${t.link}" target="_blank">🔗 abrir</a>`:''}</div>
+      </div>
+      <span class="badge ${pb[t.prio]||'badge-pend'}">[${t.prio}]</span>
+      <button class="del-btn" onclick="deleteTarefa(${t.id})">✕</button>
+    </div>`).join('')}
+  `).join('');
 }
 
 function renderDesempenho(){
@@ -490,8 +583,13 @@ function renderDesempenho(){
 
   const semanas=['S01','S02','S03','S04','S05','S06','S07','S08','S09','S10'];
   const meds=semanas.map(sem=>{
-    const ss=sessoes.filter(s=>s.semana===sem&&s.acertos!=null&&s.qtd>0);
-    return ss.length?Math.round(ss.reduce((a,s)=>a+pct(s.acertos,s.qtd),0)/ss.length):null;
+    // Incluir a semana se tiver qualquer sessão registrada (mesmo com acertos null)
+    const todas=sessoes.filter(s=>s.semana===sem);
+    if(!todas.length) return null;
+    // Calcular média só das que têm acertos
+    const exec=todas.filter(s=>s.acertos!=null&&s.qtd>0);
+    if(!exec.length) return null;
+    return Math.round(exec.reduce((a,s)=>a+pct(s.acertos,s.qtd),0)/exec.length);
   });
   const labels=semanas.filter((_,i)=>meds[i]!==null);
   const data=meds.filter(v=>v!==null);
@@ -621,6 +719,180 @@ function cancelarImport(){
   importBuffer=[];
   document.getElementById('imp-preview').style.display='none';
   document.getElementById('imp-msg').textContent='';
+}
+
+// ── EVOLUÇÃO ────────────────────────────────────────────────────────────────
+function renderEvolucao(){
+  if(!document.getElementById('ev-blocos')) return;
+
+  // Calcular média por disciplina+assunto
+  const porAssunto = {};
+  sessoes.filter(s=>s.acertos!=null&&s.qtd>0).forEach(s=>{
+    const k = s.disc+'|||'+s.assunto;
+    if(!porAssunto[k]) porAssunto[k]={disc:s.disc,assunto:s.assunto,total:0,count:0,meta:s.meta||75,obs:s.obs};
+    porAssunto[k].total += pct(s.acertos,s.qtd);
+    porAssunto[k].count++;
+  });
+
+  const items = Object.values(porAssunto).map(a=>({
+    ...a,
+    avg: Math.round(a.total/a.count)
+  }));
+
+  // Métricas gerais
+  const total = items.length;
+  const acima = items.filter(a=>a.avg>=a.meta).length;
+  const abaixo = items.filter(a=>a.avg<a.meta).length;
+  const mediaGeral = total ? Math.round(items.reduce((s,a)=>s+a.avg,0)/total) : 0;
+
+  document.getElementById('ev-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Assuntos monitorados</div><div class="metric-val">${total}</div></div>
+    <div class="metric"><div class="metric-label">Acima da meta</div><div class="metric-val" style="color:var(--green)">${acima}</div></div>
+    <div class="metric"><div class="metric-label">Abaixo da meta</div><div class="metric-val" style="color:var(--red)">${abaixo}</div></div>
+    <div class="metric"><div class="metric-label">Média geral</div><div class="metric-val">${mediaGeral}%</div></div>`;
+
+  // Agrupar por disciplina
+  const porDisc = {};
+  items.forEach(a=>{
+    if(!porDisc[a.disc]) porDisc[a.disc]=[];
+    porDisc[a.disc].push(a);
+  });
+
+  const blocoEl = document.getElementById('ev-blocos');
+  if(!items.length){ blocoEl.innerHTML='<div class="empty" style="padding:3rem">Nenhuma sessão com registro de acertos ainda.<br>Registre sessões na aba Registrar para ver sua evolução.</div>'; return; }
+
+  blocoEl.innerHTML = Object.entries(porDisc)
+    .sort((a,b)=>a[0].localeCompare(b[0]))
+    .map(([disc, assuntos])=>{
+      const sorted = [...assuntos].sort((a,b)=>a.avg-b.avg);
+      const mediaDisc = Math.round(sorted.reduce((s,a)=>s+a.avg,0)/sorted.length);
+      const rows = sorted.map(a=>{
+        const diff = a.avg - a.meta;
+        const cor = a.avg>=a.meta ? 'var(--green)' : a.avg>=a.meta-8 ? 'var(--amber)' : 'var(--red)';
+        const label = a.avg>=a.meta ? '✅' : a.avg>=a.meta-8 ? '⚠️' : '🔴';
+        return `<div class="row" style="gap:10px">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:${a.avg<a.meta?'500':'400'};color:${a.avg<a.meta-8?'var(--red)':'var(--text)'}">${a.assunto}</div>
+            ${a.obs?`<div style="font-size:11px;color:var(--text3);font-style:italic">${a.obs}</div>`:''}
+          </div>
+          <div style="width:100px">
+            <div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">
+              <div style="height:5px;width:${Math.min(a.avg,100)}%;background:${cor};border-radius:3px"></div>
+            </div>
+          </div>
+          <div style="font-size:13px;font-weight:500;color:${cor};min-width:36px;text-align:right">${a.avg}%</div>
+          <div style="font-size:11px;color:var(--text3);min-width:52px;text-align:right">meta ${a.meta}%</div>
+          <div style="font-size:13px;min-width:20px;text-align:center">${label}</div>
+          <div style="font-size:11px;font-weight:500;min-width:36px;text-align:right;color:${diff>=0?'var(--green)':'var(--red)'}">${diff>=0?'+':''}${diff}pp</div>
+        </div>`;
+      }).join('');
+
+      return `<div style="margin-bottom:1.25rem">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <div style="font-size:13px;font-weight:500">${disc}</div>
+          <div style="font-size:12px;color:var(--text2)">${sorted.length} assunto${sorted.length>1?'s':''}</div>
+          <div style="margin-left:auto;font-size:13px;font-weight:500">${mediaDisc}%</div>
+        </div>
+        <div class="card" style="padding:.75rem 1rem">${rows}</div>
+      </div>`;
+    }).join('');
+}
+
+// ── REFORÇO ──────────────────────────────────────────────────────────────────
+let tarefasReforco = []; // buffer antes de confirmar
+
+function renderReforco(){
+  if(!document.getElementById('rf-lista')) return;
+
+  // Calcular média por assunto
+  const porAssunto = {};
+  sessoes.filter(s=>s.acertos!=null&&s.qtd>0).forEach(s=>{
+    const k = s.disc+'|||'+s.assunto;
+    if(!porAssunto[k]) porAssunto[k]={disc:s.disc,assunto:s.assunto,total:0,count:0,meta:s.meta||75,semana:s.semana,obs:s.obs};
+    porAssunto[k].total += pct(s.acertos,s.qtd);
+    porAssunto[k].count++;
+    if(s.semana > porAssunto[k].semana) porAssunto[k].semana = s.semana;
+  });
+
+  const abaixo = Object.values(porAssunto)
+    .map(a=>({...a, avg:Math.round(a.total/a.count)}))
+    .filter(a=>a.avg < a.meta)
+    .sort((a,b)=>a.avg-b.avg);
+
+  const el = document.getElementById('rf-lista');
+  if(!abaixo.length){
+    el.innerHTML='<div class="empty" style="padding:2rem">Todos os assuntos acima da meta — sem reforço necessário 🎉</div>';
+    return;
+  }
+
+  el.innerHTML = abaixo.map(a=>{
+    const gap = a.avg - a.meta;
+    const proximaSem = 'S'+String(parseInt(a.semana.replace('S',''))+1).padStart(2,'0');
+    const jaGerada = tarefas.some(t=>t.assunto===a.assunto+'— Reforço'&&t.status==='pendente');
+    return `<div class="card" style="padding:.875rem 1rem;margin-bottom:8px">
+      <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:13px;font-weight:500">${a.assunto}</span>
+            <span class="badge badge-bad">${a.avg}%</span>
+            <span style="font-size:11px;color:var(--text2)">meta ${a.meta}%</span>
+            <span style="font-size:11px;font-weight:500;color:var(--red)">${gap}pp</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3)">${a.disc} · última sessão ${a.semana}${a.obs?' · '+a.obs:''}</div>
+          <div style="margin-top:6px;font-size:12px;color:var(--text2)">
+            ${Math.abs(gap)>15
+              ? '🔴 Ciclo completo: 20q diagnóstico → revisar conceito do erro → 15q confirmação'
+              : Math.abs(gap)>8
+                ? '⚠️ Revisão cirúrgica: identificar sub-tópico exato e resolver 15q focadas nele'
+                : '⚠️ Bateria de confirmação: 10q para confirmar se o erro foi corrigido'}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+          ${jaGerada
+            ? '<span style="font-size:12px;color:var(--text3)">tarefa já gerada</span>'
+            : `<button class="btn btn-sm" onclick="gerarTarefaReforco('${a.disc}','${a.assunto.replace(/'/g,"\'")}',${a.meta},'${proximaSem}')">
+                <i class="ti ti-plus"></i> Gerar tarefa
+              </button>`}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Listar tarefas de reforço já geradas
+  const geradas = tarefas.filter(t=>t.obs==='reforco');
+  const gtEl = document.getElementById('rf-tarefas-geradas');
+  if(!geradas.length){ gtEl.innerHTML='<div class="empty">Nenhuma tarefa de reforço gerada ainda</div>'; return; }
+  const pb={'A':'badge-bad','B':'badge-warn','C':'badge-new'};
+  gtEl.innerHTML = geradas.map(t=>`<div class="task-row">
+    <div class="task-check ${t.status==='feita'?'done':''}" onclick="toggleTarefa(${t.id})">
+      ${t.status==='feita'?'<i class="ti ti-check" style="font-size:11px;color:white"></i>':''}
+    </div>
+    <div style="flex:1">
+      <div class="task-text ${t.status==='feita'?'done':''}">${t.assunto}</div>
+      <div class="task-meta">${t.semana} · ${t.disc} · ${t.tipo}</div>
+    </div>
+    <span class="badge ${pb[t.prio]||'badge-pend'}">[${t.prio}]</span>
+    <button class="del-btn" onclick="deleteTarefa(${t.id})">✕</button>
+  </div>`).join('');
+}
+
+function gerarTarefaReforco(disc, assunto, meta, semana){
+  const t = {
+    id: Date.now(),
+    semana, prio:'A', disc,
+    tipo:'Reforço',
+    assunto: assunto + ' — Reforço',
+    link:'',
+    status:'pendente',
+    obs:'reforco'
+  };
+  tarefas.push(t);
+  saveTarefas();
+  renderReforco();
+  renderTarefas();
+  // Feedback
+  const btns = document.querySelectorAll('#rf-lista button');
+  btns.forEach(b=>{ if(b.textContent.includes('Gerar')) b.textContent='✅ Gerada'; });
 }
 
 document.getElementById('f-qtd').addEventListener('input',atualizarPreview);
