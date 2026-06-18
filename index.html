@@ -1,6 +1,30 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<!--
+=== SETUP SUPABASE — execute no SQL Editor do seu projeto ===
+
+create table sessoes (
+  id bigint primary key,
+  semana text, data text, disc text, assunto text,
+  tipo text, qtd int, acertos int, meta int, obs text,
+  created_at timestamptz default now()
+);
+
+create table tarefas (
+  id bigint primary key,
+  semana text, prio text, disc text, tipo text,
+  assunto text, link text, status text, obs text,
+  created_at timestamptz default now()
+);
+
+-- Permitir acesso público (RLS off para simplicidade)
+alter table sessoes disable row level security;
+alter table tarefas disable row level security;
+
+=== FIM DO SQL ===
+-->
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gerenciador de Estudos — TCE-MA</title>
@@ -86,11 +110,27 @@
   .del-btn{padding:2px 7px;font-size:11px;color:var(--text2);border:none;background:transparent;cursor:pointer;border-radius:4px}
   .del-btn:hover{background:var(--bg2)}
 </style>
+
+  <!-- ⚙️ CONFIGURAÇÃO SUPABASE — preencha com seus dados -->
+  <script>
+    const SB_URL = ''; // ex: https://xyzxyz.supabase.co
+    const SB_KEY = ''; // sua anon/public key
+  </script>
 </head>
 <body>
 <div class="container">
-  <h1>Gerenciador de Estudos</h1>
-  <div class="subtitle">TCE-MA · Cebraspe · Auditor de Controle Externo — Engenharia Civil</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:1.5rem">
+  <div>
+    <h1>Gerenciador de Estudos</h1>
+    <div class="subtitle" style="margin-bottom:0">TCE-MA · Cebraspe · Auditor de Controle Externo — Engenharia Civil</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span id="sb-status" style="font-size:12px;color:var(--text2)"></span>
+    <button class="btn btn-sm" onclick="syncAgora()" title="Sincronizar agora" style="font-size:12px">
+      <i class="ti ti-refresh"></i> Sync
+    </button>
+  </div>
+</div>
 
   <div class="nav">
     <button class="nav-btn active" onclick="showView('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
@@ -104,6 +144,25 @@
 
   <!-- DASHBOARD -->
   <div id="view-dashboard" class="view active">
+    <!-- Banner configuração Supabase -->
+    <div id="sb-config-banner" style="display:none;background:var(--blue-bg);border:1px solid var(--blue);border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:1rem;font-size:13px">
+      <div style="font-weight:500;margin-bottom:6px;color:var(--blue)">⚙️ Configure o Supabase para sincronizar entre dispositivos</div>
+      <div style="color:var(--text2);margin-bottom:10px;font-size:12px">1. Crie conta em supabase.com → 2. Crie projeto → 3. Execute o SQL do comentário no &lt;head&gt; → 4. Preencha SB_URL e SB_KEY no código</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <label class="form-label">URL do projeto</label>
+          <input type="text" id="cfg-url" placeholder="https://xyzxyz.supabase.co">
+        </div>
+        <div style="flex:1;min-width:200px">
+          <label class="form-label">Anon Key</label>
+          <input type="text" id="cfg-key" placeholder="eyJh...">
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="salvarConfigSB()">Salvar e conectar</button>
+        <button class="btn btn-sm" onclick="document.getElementById('sb-config-banner').style.display='none'">Agora não</button>
+      </div>
+    </div>
     <div class="metric-grid" id="metrics"></div>
     <div class="two-col">
       <div>
@@ -290,26 +349,109 @@
 </div>
 
 <script>
-const LS_S = 'tcema_sessoes';
-const LS_T = 'tcema_tarefas';
 let sessoes = [], tarefas = [], chartSemanas = null, filtroT = 'todas';
 
 const SEED_S = [{"id": 1, "semana": "S01", "data": "2026-06-04", "disc": "LP", "assunto": "Interpretação de Textos", "tipo": "Diagnóstico", "qtd": 10, "acertos": 6, "meta": 72, "obs": "Mapear padrão de erro"}, {"id": 2, "semana": "S01", "data": "2026-06-04", "disc": "LP", "assunto": "Interpretação de Textos", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 75, "obs": "Pendente"}, {"id": 3, "semana": "S01", "data": "2026-06-04", "disc": "Eng — PNFL", "assunto": "Planej. e Controle de Obras", "tipo": "Diagnóstico", "qtd": 10, "acertos": 9, "meta": 70, "obs": ""}, {"id": 4, "semana": "S01", "data": "2026-06-04", "disc": "Eng — PNFL", "assunto": "PERT-CPM", "tipo": "Fixação", "qtd": 10, "acertos": 8, "meta": 88, "obs": ""}, {"id": 5, "semana": "S01", "data": "2026-06-05", "disc": "LP", "assunto": "Coerência e Coesão", "tipo": "Diagnóstico", "qtd": 10, "acertos": 7, "meta": 72, "obs": ""}, {"id": 6, "semana": "S01", "data": "2026-06-05", "disc": "LP", "assunto": "Coerência e Coesão", "tipo": "Fixação", "qtd": 10, "acertos": 8, "meta": 75, "obs": ""}, {"id": 7, "semana": "S01", "data": "2026-06-05", "disc": "Eng — PNFL", "assunto": "Cronograma Físico-Financeiro", "tipo": "Fixação", "qtd": 10, "acertos": 8, "meta": 75, "obs": ""}, {"id": 8, "semana": "S01", "data": "2026-06-05", "disc": "Eng — PNFL", "assunto": "Curva ABC", "tipo": "Fixação", "qtd": 10, "acertos": 10, "meta": 80, "obs": ""}, {"id": 9, "semana": "S01", "data": "2026-06-05", "disc": "Eng — PNFL", "assunto": "Curva S", "tipo": "Fixação", "qtd": 10, "acertos": 10, "meta": 80, "obs": ""}, {"id": 10, "semana": "S01", "data": "2026-06-05", "disc": "Eng — PNFL", "assunto": "GVA / Gantt / EAP", "tipo": "Fixação", "qtd": 10, "acertos": 8, "meta": 72, "obs": ""}, {"id": 11, "semana": "S01", "data": "2026-06-06", "disc": "LP", "assunto": "Pontuação", "tipo": "Diagnóstico", "qtd": 10, "acertos": 8, "meta": 68, "obs": "Revisar uso ponto e vírgula"}, {"id": 12, "semana": "S01", "data": "2026-06-06", "disc": "LP", "assunto": "Pontuação", "tipo": "Fixação", "qtd": 10, "acertos": 4, "meta": 72, "obs": "Revisar uso da vírgula — queda severa"}, {"id": 13, "semana": "S01", "data": "2026-06-06", "disc": "Eng — Edificações", "assunto": "Fundações", "tipo": "Diagnóstico", "qtd": 10, "acertos": 8, "meta": 68, "obs": ""}, {"id": 14, "semana": "S01", "data": "2026-06-06", "disc": "Eng — Edificações", "assunto": "Fundações", "tipo": "Fixação", "qtd": 10, "acertos": 7, "meta": 75, "obs": ""}, {"id": 15, "semana": "S01", "data": "2026-06-06", "disc": "Eng — Rodoviárias", "assunto": "Pavimentação", "tipo": "Diagnóstico", "qtd": 10, "acertos": 6, "meta": 75, "obs": ""}, {"id": 16, "semana": "S01", "data": "2026-06-06", "disc": "Eng — Rodoviárias", "assunto": "Pavimentação", "tipo": "Fixação", "qtd": 10, "acertos": 7, "meta": 82, "obs": ""}, {"id": 17, "semana": "S01", "data": "2026-06-06", "disc": "Eng — Rodoviárias", "assunto": "Terraplenagem", "tipo": "Diagnóstico", "qtd": 10, "acertos": 7, "meta": 72, "obs": "Atenção fórmula umidade e peso específico"}, {"id": 18, "semana": "S01", "data": "2026-06-07", "disc": "Eng — Rodoviárias", "assunto": "Terraplenagem", "tipo": "Fixação", "qtd": 10, "acertos": 10, "meta": 75, "obs": ""}, {"id": 19, "semana": "S01", "data": "2026-06-07", "disc": "Eng — Edificações", "assunto": "Estruturas de Concreto", "tipo": "Diagnóstico", "qtd": 10, "acertos": 10, "meta": 68, "obs": ""}, {"id": 20, "semana": "S01", "data": "2026-06-07", "disc": "Eng — Edificações", "assunto": "Estruturas de Concreto", "tipo": "Fixação", "qtd": 10, "acertos": 6, "meta": 72, "obs": ""}, {"id": 21, "semana": "S01", "data": "2026-06-07", "disc": "LP", "assunto": "Interpretação de Textos", "tipo": "Fixação B", "qtd": 10, "acertos": null, "meta": 75, "obs": "Pendente"}, {"id": 22, "semana": "S01", "data": "2026-06-07", "disc": "LP", "assunto": "Coerência e Coesão", "tipo": "Fixação B", "qtd": 10, "acertos": 7, "meta": 75, "obs": ""}, {"id": 23, "semana": "S01", "data": "2026-06-07", "disc": "LP", "assunto": "Pontuação", "tipo": "Fixação B", "qtd": 10, "acertos": 8, "meta": 72, "obs": ""}, {"id": 24, "semana": "S01", "data": "2026-06-07", "disc": "Eng — PNFL", "assunto": "Cronograma Físico-Financeiro", "tipo": "Fixação B", "qtd": 10, "acertos": 10, "meta": 75, "obs": ""}, {"id": 25, "semana": "S01", "data": "2026-06-07", "disc": "Eng — PNFL", "assunto": "PERT-CPM", "tipo": "Fixação B", "qtd": 10, "acertos": 9, "meta": 88, "obs": ""}, {"id": 26, "semana": "S01", "data": "2026-06-07", "disc": "Eng — PNFL", "assunto": "Curva ABC", "tipo": "Fixação B", "qtd": 10, "acertos": 10, "meta": 80, "obs": ""}, {"id": 27, "semana": "S01", "data": "2026-06-07", "disc": "Eng — PNFL", "assunto": "Curva S", "tipo": "Fixação B", "qtd": 3, "acertos": 3, "meta": 80, "obs": ""}, {"id": 28, "semana": "S01", "data": "2026-06-07", "disc": "Eng — PNFL", "assunto": "GVA / Gantt / EAP", "tipo": "Fixação B", "qtd": 7, "acertos": 4, "meta": 72, "obs": ""}, {"id": 29, "semana": "S01", "data": "2026-06-07", "disc": "Eng — Edificações", "assunto": "Fundações", "tipo": "Fixação B", "qtd": 10, "acertos": 7, "meta": 75, "obs": ""}, {"id": 30, "semana": "S01", "data": "2026-06-07", "disc": "Eng — Rodoviárias", "assunto": "Pavimentação", "tipo": "Fixação B", "qtd": 10, "acertos": 9, "meta": 82, "obs": ""}, {"id": 31, "semana": "S01", "data": "2026-06-07", "disc": "Eng — Rodoviárias", "assunto": "Terraplenagem", "tipo": "Fixação B", "qtd": 10, "acertos": 9, "meta": 75, "obs": ""}, {"id": 32, "semana": "S01", "data": "2026-06-07", "disc": "Eng — Edificações", "assunto": "Estruturas de Concreto", "tipo": "Fixação B", "qtd": 10, "acertos": 7, "meta": 72, "obs": ""}, {"id": 33, "semana": "S01", "data": "2026-06-08", "disc": "LP", "assunto": "Interpretação de Textos", "tipo": "Fixação C", "qtd": 10, "acertos": null, "meta": 75, "obs": "Pendente"}, {"id": 34, "semana": "S01", "data": "2026-06-08", "disc": "LP", "assunto": "Coerência e Coesão", "tipo": "Fixação C", "qtd": 10, "acertos": null, "meta": 75, "obs": "Pendente"}, {"id": 35, "semana": "S01", "data": "2026-06-08", "disc": "LP", "assunto": "Pontuação", "tipo": "Fixação C", "qtd": 10, "acertos": null, "meta": 72, "obs": "Pendente"}, {"id": 36, "semana": "S01", "data": "2026-06-08", "disc": "Eng — PNFL", "assunto": "Cronograma Físico-Financeiro", "tipo": "Fixação C", "qtd": 10, "acertos": 9, "meta": 75, "obs": ""}, {"id": 37, "semana": "S01", "data": "2026-06-08", "disc": "Eng — PNFL", "assunto": "PERT-CPM", "tipo": "Fixação C", "qtd": 10, "acertos": 9, "meta": 88, "obs": ""}, {"id": 38, "semana": "S01", "data": "2026-06-08", "disc": "Eng — PNFL", "assunto": "Curva ABC", "tipo": "Fixação C", "qtd": 2, "acertos": 2, "meta": 80, "obs": ""}, {"id": 39, "semana": "S01", "data": "2026-06-08", "disc": "Eng — Edificações", "assunto": "Fundações", "tipo": "Fixação C", "qtd": 10, "acertos": 9, "meta": 75, "obs": "Viga de rigidez"}, {"id": 40, "semana": "S01", "data": "2026-06-08", "disc": "Eng — Rodoviárias", "assunto": "Pavimentação", "tipo": "Fixação C", "qtd": 10, "acertos": 6, "meta": 82, "obs": ""}, {"id": 41, "semana": "S01", "data": "2026-06-08", "disc": "Eng — Rodoviárias", "assunto": "Terraplenagem", "tipo": "Fixação C", "qtd": 10, "acertos": 9, "meta": 75, "obs": ""}, {"id": 42, "semana": "S01", "data": "2026-06-08", "disc": "Eng — Edificações", "assunto": "Estruturas de Concreto", "tipo": "Fixação C", "qtd": 10, "acertos": 10, "meta": 72, "obs": ""}, {"id": 101, "semana": "S02", "data": "2026-06-09", "disc": "LP", "assunto": "Interpretação de Textos", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 75, "obs": "Reforço S01"}, {"id": 102, "semana": "S02", "data": "2026-06-09", "disc": "LP", "assunto": "Pontuação", "tipo": "Rev. Cirúrgica", "qtd": 10, "acertos": null, "meta": 75, "obs": "Foco vírgula"}, {"id": 103, "semana": "S02", "data": "2026-06-09", "disc": "Dir. Adm", "assunto": "Dir. Adm — Conceito e Fontes", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 104, "semana": "S02", "data": "2026-06-09", "disc": "Eng — PNFL", "assunto": "GVA / Gantt / EAP", "tipo": "Rev. Cirúrgica", "qtd": 10, "acertos": null, "meta": 75, "obs": "Foco CPI e SPI"}, {"id": 105, "semana": "S02", "data": "2026-06-10", "disc": "Dir. Adm", "assunto": "Dir. Adm — Conceito e Fontes", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 106, "semana": "S02", "data": "2026-06-10", "disc": "Dir. Adm", "assunto": "Dir. Adm — Conceito e Fontes", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 107, "semana": "S02", "data": "2026-06-10", "disc": "Dir. Const", "assunto": "Princípios Fundamentais da CF", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 108, "semana": "S02", "data": "2026-06-10", "disc": "Dir. Const", "assunto": "Princípios Fundamentais da CF", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 109, "semana": "S02", "data": "2026-06-11", "disc": "LP", "assunto": "Coerência e Coesão", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 80, "obs": "Reforço S01"}, {"id": 110, "semana": "S02", "data": "2026-06-11", "disc": "AFO", "assunto": "AFO — Orçamento Público Conceito", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 111, "semana": "S02", "data": "2026-06-11", "disc": "AFO", "assunto": "AFO — Orçamento Público Conceito", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 112, "semana": "S02", "data": "2026-06-11", "disc": "Eng — PNFL", "assunto": "GVA / Gantt / EAP", "tipo": "Rev. Cirúrgica", "qtd": 10, "acertos": null, "meta": 75, "obs": ""}, {"id": 113, "semana": "S02", "data": "2026-06-12", "disc": "AFO", "assunto": "AFO — Orçamento Público Classificações", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 114, "semana": "S02", "data": "2026-06-12", "disc": "AFO", "assunto": "AFO — Orçamento Público Classificações", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 115, "semana": "S02", "data": "2026-06-12", "disc": "Ctrl Ext", "assunto": "Controle Externo — tipos e formas", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 75, "obs": ""}, {"id": 116, "semana": "S02", "data": "2026-06-12", "disc": "Ctrl Ext", "assunto": "Controle Externo — tipos e formas", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 75, "obs": ""}, {"id": 117, "semana": "S02", "data": "2026-06-12", "disc": "Eng — Rodoviárias", "assunto": "Pavimentação", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 85, "obs": "Identificar sub-tópico"}, {"id": 118, "semana": "S02", "data": "2026-06-13", "disc": "LP", "assunto": "Interpretação de Textos", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 75, "obs": ""}, {"id": 119, "semana": "S02", "data": "2026-06-13", "disc": "Auditoria", "assunto": "Auditoria — Conceitos Básicos", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 80, "obs": ""}, {"id": 120, "semana": "S02", "data": "2026-06-13", "disc": "Auditoria", "assunto": "Auditoria — Conceitos Básicos", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 80, "obs": ""}, {"id": 121, "semana": "S02", "data": "2026-06-13", "disc": "Auditoria", "assunto": "Auditoria — Tipos", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 80, "obs": ""}, {"id": 122, "semana": "S02", "data": "2026-06-13", "disc": "Auditoria", "assunto": "Auditoria — Tipos", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 80, "obs": ""}];
 const SEED_T = [{"id": 301, "semana": "S03", "prio": "A", "disc": "LP", "tipo": "Diagnóstico", "assunto": "Denotação e Conotação", "link": "https://www.tecconcursos.com.br/s/Q6UR6C", "status": "pendente"}, {"id": 302, "semana": "S03", "prio": "A", "disc": "LP", "tipo": "Fixação", "assunto": "Denotação e Conotação", "link": "https://www.tecconcursos.com.br/s/Q6UR6s", "status": "pendente"}, {"id": 303, "semana": "S03", "prio": "A", "disc": "LP", "tipo": "Diagnóstico", "assunto": "Classe de Palavras", "link": "https://www.tecconcursos.com.br/s/Q6URdH", "status": "pendente"}, {"id": 304, "semana": "S03", "prio": "A", "disc": "LP", "tipo": "Fixação", "assunto": "Classe de Palavras", "link": "https://www.tecconcursos.com.br/s/Q6URsL", "status": "pendente"}, {"id": 305, "semana": "S03", "prio": "A", "disc": "Dir. Adm", "tipo": "Diagnóstico", "assunto": "Improbidade Administrativa", "link": "https://www.tecconcursos.com.br/s/Q6SI2L", "status": "pendente"}, {"id": 306, "semana": "S03", "prio": "A", "disc": "Dir. Adm", "tipo": "Fixação", "assunto": "Improbidade Administrativa", "link": "https://www.tecconcursos.com.br/s/Q6SI2m", "status": "pendente"}, {"id": 307, "semana": "S03", "prio": "A", "disc": "Dir. Adm", "tipo": "Diagnóstico", "assunto": "Atos Administrativos", "link": "https://www.tecconcursos.com.br/s/Q6SI3f", "status": "pendente"}, {"id": 308, "semana": "S03", "prio": "A", "disc": "Dir. Adm", "tipo": "Fixação", "assunto": "Atos Administrativos", "link": "https://www.tecconcursos.com.br/s/Q6SI4E", "status": "pendente"}, {"id": 309, "semana": "S03", "prio": "A", "disc": "Dir. Const", "tipo": "Diagnóstico", "assunto": "Aplicabilidade das Normas", "link": "https://www.tecconcursos.com.br/s/Q6SVwi", "status": "pendente"}, {"id": 310, "semana": "S03", "prio": "A", "disc": "Dir. Const", "tipo": "Fixação", "assunto": "Aplicabilidade das Normas", "link": "https://www.tecconcursos.com.br/s/Q6SVwu", "status": "pendente"}, {"id": 311, "semana": "S03", "prio": "A", "disc": "AFO", "tipo": "Diagnóstico", "assunto": "Instrumentos Orçamentários na CF", "link": "https://www.tecconcursos.com.br/s/Q6TNyS", "status": "pendente"}, {"id": 312, "semana": "S03", "prio": "A", "disc": "AFO", "tipo": "Fixação", "assunto": "Instrumentos Orçamentários na CF", "link": "https://www.tecconcursos.com.br/s/Q6TNz8", "status": "pendente"}, {"id": 313, "semana": "S03", "prio": "A", "disc": "Auditoria", "tipo": "Diagnóstico", "assunto": "Entidades Fiscalizadoras Superiores (EFS)", "link": "https://www.tecconcursos.com.br/s/Q6TYQE", "status": "pendente"}, {"id": 314, "semana": "S03", "prio": "A", "disc": "Auditoria", "tipo": "Fixação", "assunto": "Entidades Fiscalizadoras Superiores (EFS)", "link": "https://www.tecconcursos.com.br/s/Q6TYel", "status": "pendente"}, {"id": 315, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Diagnóstico", "assunto": "Viabilidade Econômico e Financeiro", "link": "https://www.tecconcursos.com.br/s/Q6US5j", "status": "pendente"}, {"id": 316, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Fixação", "assunto": "Viabilidade Econômico e Financeiro", "link": "https://www.tecconcursos.com.br/s/Q6US5z", "status": "pendente"}, {"id": 317, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Diagnóstico", "assunto": "Avaliação de custos", "link": "https://www.tecconcursos.com.br/s/Q6USMp", "status": "pendente"}, {"id": 318, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Fixação", "assunto": "Avaliação de custos", "link": "https://www.tecconcursos.com.br/s/Q6USN3", "status": "pendente"}, {"id": 319, "semana": "S03", "prio": "A", "disc": "Eng — Edificações", "tipo": "Diagnóstico", "assunto": "Avaliação de imóveis", "link": "https://www.tecconcursos.com.br/s/Q6USXm", "status": "pendente"}, {"id": 320, "semana": "S03", "prio": "A", "disc": "Eng — Edificações", "tipo": "Fixação", "assunto": "Avaliação de imóveis", "link": "https://www.tecconcursos.com.br/s/Q6USYH", "status": "pendente"}, {"id": 321, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Diagnóstico", "assunto": "Levantamento de Serviços e Quantitativos", "link": "https://www.tecconcursos.com.br/s/Q6USf1", "status": "pendente"}, {"id": 322, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Fixação", "assunto": "Levantamento de Serviços e Quantitativos", "link": "https://www.tecconcursos.com.br/s/Q6USfe", "status": "pendente"}, {"id": 323, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Diagnóstico", "assunto": "Composições de Custos e Orçamentação", "link": "https://www.tecconcursos.com.br/s/Q6USka", "status": "pendente"}, {"id": 324, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Fixação", "assunto": "Composições de Custos e Orçamentação", "link": "https://www.tecconcursos.com.br/s/Q6USky", "status": "pendente"}, {"id": 325, "semana": "S03", "prio": "A", "disc": "Eng — Rodoviárias", "tipo": "Diagnóstico", "assunto": "SICRO", "link": "https://www.tecconcursos.com.br/s/Q6USzM", "status": "pendente"}, {"id": 326, "semana": "S03", "prio": "A", "disc": "Eng — Rodoviárias", "tipo": "Fixação", "assunto": "SICRO", "link": "https://www.tecconcursos.com.br/s/Q6UT0J", "status": "pendente"}, {"id": 327, "semana": "S03", "prio": "B", "disc": "LP", "tipo": "Fixação B", "assunto": "Sinônimos e Antônimos", "link": "https://www.tecconcursos.com.br/s/Q6TZQ1", "status": "pendente"}, {"id": 328, "semana": "S03", "prio": "B", "disc": "LP", "tipo": "Fixação B", "assunto": "Classe de Palavras", "link": "https://www.tecconcursos.com.br/s/Q6URsL", "status": "pendente"}, {"id": 329, "semana": "S03", "prio": "B", "disc": "Dir. Adm", "tipo": "Fixação B", "assunto": "Improbidade Administrativa", "link": "https://www.tecconcursos.com.br/s/Q6SI2m", "status": "pendente"}, {"id": 330, "semana": "S03", "prio": "B", "disc": "Dir. Adm", "tipo": "Fixação B", "assunto": "Atos Administrativos", "link": "https://www.tecconcursos.com.br/s/Q6SI4E", "status": "pendente"}, {"id": 331, "semana": "S03", "prio": "B", "disc": "Dir. Const", "tipo": "Fixação B", "assunto": "Princípios Fundamentais da CF", "link": "https://www.tecconcursos.com.br/s/Q6SV7G", "status": "pendente"}, {"id": 332, "semana": "S03", "prio": "B", "disc": "AFO", "tipo": "Fixação B", "assunto": "Orçamento Público Classificações", "link": "https://www.tecconcursos.com.br/s/Q6TO26", "status": "pendente"}, {"id": 333, "semana": "S03", "prio": "B", "disc": "AFO", "tipo": "Fixação B", "assunto": "Instrumentos Orçamentários na CF", "link": "https://www.tecconcursos.com.br/s/Q6TNz8", "status": "pendente"}, {"id": 334, "semana": "S03", "prio": "B", "disc": "Eng — Edificações", "tipo": "Fixação B", "assunto": "Perícias na Construção Civil", "link": "https://www.tecconcursos.com.br/s/Q6Ta1s", "status": "pendente"}, {"id": 335, "semana": "S03", "prio": "B", "disc": "Eng — Edificações", "tipo": "Fixação B", "assunto": "Avaliação de imóveis", "link": "https://www.tecconcursos.com.br/s/Q6USYH", "status": "pendente"}, {"id": 336, "semana": "S03", "prio": "B", "disc": "Eng — PNFL", "tipo": "Fixação B", "assunto": "Composições de Custos e Orçamentação", "link": "https://www.tecconcursos.com.br/s/Q6USky", "status": "pendente"}, {"id": 337, "semana": "S03", "prio": "B", "disc": "Eng — Rodoviárias", "tipo": "Fixação B", "assunto": "SICRO", "link": "https://www.tecconcursos.com.br/s/Q6UT0J", "status": "pendente"}, {"id": 338, "semana": "S03", "prio": "B", "disc": "Eng — PNFL", "tipo": "Fixação B", "assunto": "Fiscalização de Obras Públicas", "link": "https://www.tecconcursos.com.br/s/Q6TaH8", "status": "pendente"}, {"id": 339, "semana": "S03", "prio": "C", "disc": "Dir. Const", "tipo": "Fixação C", "assunto": "Princípios Fundamentais da CF", "link": "https://www.tecconcursos.com.br/s/Q6SV7G", "status": "pendente"}, {"id": 340, "semana": "S03", "prio": "C", "disc": "AFO", "tipo": "Fixação C", "assunto": "Orçamento Público Classificações", "link": "https://www.tecconcursos.com.br/s/Q6TO26", "status": "pendente"}, {"id": 341, "semana": "S03", "prio": "C", "disc": "AFO", "tipo": "Fixação C", "assunto": "Instrumentos Orçamentários na CF", "link": "https://www.tecconcursos.com.br/s/Q6TNz8", "status": "pendente"}, {"id": 342, "semana": "S03", "prio": "C", "disc": "LP", "tipo": "Fixação C", "assunto": "Pontuação", "link": "https://www.tecconcursos.com.br/s/Q6TZVV", "status": "pendente"}, {"id": 343, "semana": "S03", "prio": "C", "disc": "LP", "tipo": "Fixação C", "assunto": "Coerência e Coesão", "link": "https://www.tecconcursos.com.br/s/Q6TZmL", "status": "pendente"}, {"id": 344, "semana": "S03", "prio": "C", "disc": "LP", "tipo": "Fixação C", "assunto": "Classe de Palavras", "link": "https://www.tecconcursos.com.br/s/Q6URsL", "status": "pendente"}, {"id": 345, "semana": "S03", "prio": "C", "disc": "Dir. Adm", "tipo": "Fixação C", "assunto": "Improbidade Administrativa", "link": "https://www.tecconcursos.com.br/s/Q6SI2m", "status": "pendente"}, {"id": 346, "semana": "S03", "prio": "C", "disc": "Dir. Adm", "tipo": "Fixação C", "assunto": "Atos Administrativos", "link": "https://www.tecconcursos.com.br/s/Q6SI4E", "status": "pendente"}, {"id": 347, "semana": "S03", "prio": "C", "disc": "Eng — PNFL", "tipo": "Fixação C", "assunto": "Composições de Custos e Orçamentação", "link": "https://www.tecconcursos.com.br/s/Q6USky", "status": "pendente"}, {"id": 348, "semana": "S03", "prio": "C", "disc": "Eng — Edificações", "tipo": "Fixação C", "assunto": "Avaliação de imóveis", "link": "https://www.tecconcursos.com.br/s/Q6USYH", "status": "pendente"}];
-function load(){
-  try{
-    const raw = localStorage.getItem(LS_S);
-    sessoes = raw ? JSON.parse(raw) : SEED_S;
-    if(!sessoes.length) sessoes = SEED_S;
-  }catch(e){ sessoes=SEED_S; }
-  try{
-    const rawt = localStorage.getItem(LS_T);
-    tarefas = rawt ? JSON.parse(rawt) : SEED_T;
-    if(!tarefas.length) tarefas = SEED_T;
-  }catch(e){ tarefas=SEED_T; }
+
+// ── SUPABASE PERSISTENCE ────────────────────────────────────────────────────
+const LS_S = 'tcema_sessoes';
+const LS_T = 'tcema_tarefas';
+
+// sbHeaders e sbConfigured definidos acima
+
+// Salvar sessões
+async function saveSessoes(){
+  localStorage.setItem(LS_S, JSON.stringify(sessoes));
+  if(!sbConfigured()) return;
+  try {
+    // Upsert completo: delete e reinsere apenas as novas/alteradas
+    // Para simplicidade: upsert por id
+    await fetch(`${SB_URL}/rest/v1/sessoes`, {
+      method:'POST',
+      headers:{...sbHeaders(),'Prefer':'resolution=merge-duplicates'},
+      body: JSON.stringify(sessoes)
+    });
+  } catch(e){ console.warn('Supabase save sessoes falhou:', e); }
 }
-function saveSessoes(){ localStorage.setItem(LS_S, JSON.stringify(sessoes)); }
-function saveTarefas(){ localStorage.setItem(LS_T, JSON.stringify(tarefas)); }
+
+// Salvar tarefas
+async function saveTarefas(){
+  localStorage.setItem(LS_T, JSON.stringify(tarefas));
+  if(!sbConfigured()) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/tarefas`, {
+      method:'POST',
+      headers:{...sbHeaders(),'Prefer':'resolution=merge-duplicates'},
+      body: JSON.stringify(tarefas)
+    });
+  } catch(e){ console.warn('Supabase save tarefas falhou:', e); }
+}
+
+// Deletar sessão
+async function deleteSessaoRemote(id){
+  if(!sbConfigured()) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/sessoes?id=eq.${id}`,{
+      method:'DELETE', headers: sbHeaders()
+    });
+  } catch(e){}
+}
+
+// Deletar tarefa
+async function deleteTarefaRemote(id){
+  if(!sbConfigured()) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/tarefas?id=eq.${id}`,{
+      method:'DELETE', headers: sbHeaders()
+    });
+  } catch(e){}
+}
+
+// Carregar dados
+async function load(){
+  // 1. Tentar localStorage primeiro (para resposta imediata)
+  try{ const r=localStorage.getItem(LS_S); if(r) sessoes=JSON.parse(r); }catch(e){}
+  try{ const r=localStorage.getItem(LS_T); if(r) tarefas=JSON.parse(r); }catch(e){}
+
+  // 2. Se não tem nada local, usar seed
+  if(!sessoes.length) sessoes = SEED_S;
+  if(!tarefas.length) tarefas = SEED_T;
+
+  // 3. Se Supabase configurado, buscar dados remotos (sobrescreve local)
+  if(sbConfigured()){
+    document.getElementById('sb-status').textContent = '🔄 Sincronizando...';
+    try {
+      const [rs, rt] = await Promise.all([
+        fetch(`${SB_URL}/rest/v1/sessoes?order=id&limit=1000`, {headers: sbHeaders()}),
+        fetch(`${SB_URL}/rest/v1/tarefas?order=id&limit=1000`,  {headers: sbHeaders()})
+      ]);
+      if(rs.ok && rt.ok){
+        const ds = await rs.json();
+        const dt = await rt.json();
+        if(ds.length || dt.length){
+          sessoes = ds.length ? ds : SEED_S;
+          tarefas = dt.length ? dt : SEED_T;
+          localStorage.setItem(LS_S, JSON.stringify(sessoes));
+          localStorage.setItem(LS_T, JSON.stringify(tarefas));
+        } else {
+          // Banco vazio — fazer seed inicial
+          await saveSessoes();
+          await saveTarefas();
+        }
+        document.getElementById('sb-status').textContent = '🟢 Online';
+        setTimeout(()=>{ const el=document.getElementById('sb-status'); if(el) el.textContent=''; },3000);
+      }
+    } catch(e){
+      document.getElementById('sb-status').textContent = '🔴 Offline (local)';
+      console.warn('Supabase load falhou:', e);
+    }
+  } else {
+    document.getElementById('sb-status').textContent = '⚙️ Supabase não configurado';
+  }
+}
+
+// load e save definidos abaixo via Supabase
 
 function pct(a,q){ return q>0 ? Math.round(a/q*100) : 0; }
 
@@ -343,6 +485,10 @@ function renderAll(){
 }
 
 function renderMetrics(){
+  // Mostrar banner de configuração se Supabase não configurado
+  const banner = document.getElementById('sb-config-banner');
+  if(banner) banner.style.display = sbConfigured() ? 'none' : 'block';
+
   const total = sessoes.length;
   const exec  = sessoes.filter(s=>s.acertos!=null).length;
   const allP  = sessoes.filter(s=>s.acertos!=null&&s.qtd>0).map(s=>pct(s.acertos,s.qtd));
@@ -444,7 +590,12 @@ function renderHistorico(){
     </div>`;
   }).join('');
 }
-function deleteSessao(id){ sessoes=sessoes.filter(s=>s.id!==id); saveSessoes(); renderAll(); }
+function deleteSessao(id){
+  sessoes=sessoes.filter(s=>s.id!==id);
+  saveSessoes();
+  deleteSessaoRemote(id);
+  renderAll();
+}
 
 function atualizarPreview(){
   const qtd=parseInt(document.getElementById('f-qtd').value)||0;
@@ -480,7 +631,12 @@ function toggleTarefa(id){
   t.status=t.status==='feita'?'pendente':'feita';
   saveTarefas(); renderAll();
 }
-function deleteTarefa(id){ tarefas=tarefas.filter(t=>t.id!==id); saveTarefas(); renderAll(); }
+function deleteTarefa(id){
+  tarefas=tarefas.filter(t=>t.id!==id);
+  saveTarefas();
+  deleteTarefaRemote(id);
+  renderAll();
+}
 
 let prioFiltro = 'A';
 
@@ -900,7 +1056,45 @@ document.getElementById('f-acertos').addEventListener('input',atualizarPreview);
 document.getElementById('f-meta').addEventListener('input',atualizarPreview);
 document.getElementById('f-data').value=new Date().toISOString().slice(0,10);
 
-load(); renderAll();
+function salvarConfigSB(){
+  const url = document.getElementById('cfg-url').value.trim();
+  const key = document.getElementById('cfg-key').value.trim();
+  if(!url||!key){ alert('Preencha os dois campos'); return; }
+  // Salvar no localStorage para persistir entre sessões
+  localStorage.setItem('sb_url', url);
+  localStorage.setItem('sb_key', key);
+  // Atualizar variáveis (requer reload para atualizar SB_URL/SB_KEY do script)
+  alert('Configuração salva! Recarregue a página para conectar.');
+  location.reload();
+}
+
+// Carregar config salva do localStorage se existir
+(()=>{
+  const savedUrl = localStorage.getItem('sb_url');
+  const savedKey = localStorage.getItem('sb_key');
+  if(savedUrl && SB_URL === '') { window.SB_URL_RT = savedUrl; }
+  if(savedKey && SB_KEY === '') { window.SB_KEY_RT = savedKey; }
+})();
+
+function getSbUrl(){ return (typeof SB_URL_RT!=='undefined'&&SB_URL_RT) ? SB_URL_RT : SB_URL; }
+function getSbKey(){ return (typeof SB_KEY_RT!=='undefined'&&SB_KEY_RT) ? SB_KEY_RT : SB_KEY; }
+function sbConfigured(){ return !!(getSbUrl() && getSbKey()); }
+function sbHeaders(){
+  return {
+    'Content-Type':'application/json',
+    'apikey': getSbKey(),
+    'Authorization': 'Bearer '+getSbKey(),
+    'Prefer': 'return=representation'
+  };
+}
+
+async function syncAgora(){
+  document.getElementById('sb-status').textContent = '🔄 Sincronizando...';
+  await load();
+  renderAll();
+}
+
+(async()=>{ await load(); renderAll(); })();
 </script>
 </body>
 </html>
