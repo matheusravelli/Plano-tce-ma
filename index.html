@@ -587,10 +587,11 @@ async function load(){
   // 3. Se Supabase configurado, buscar dados remotos (sobrescreve local)
   if(sbConfigured()){
     document.getElementById('sb-status').textContent = '🔄 Sincronizando...';
+    const baseUrl = getSbUrl().replace(/\/+$/,'');
     try {
       const [rs, rt] = await Promise.all([
-        fetch(`${getSbUrl()}/rest/v1/sessoes?order=id&limit=1000`, {headers: sbHeaders()}),
-        fetch(`${getSbUrl()}/rest/v1/tarefas?order=id&limit=1000`,  {headers: sbHeaders()})
+        fetch(`${baseUrl}/rest/v1/sessoes?order=id&limit=1000`, {headers: sbHeaders()}),
+        fetch(`${baseUrl}/rest/v1/tarefas?order=id&limit=1000`,  {headers: sbHeaders()})
       ]);
       if(rs.ok && rt.ok){
         const ds = await rs.json();
@@ -850,6 +851,7 @@ function renderTarefas(){
 
   // Lista de tarefas filtrada
   const el = document.getElementById('lista-tarefas');
+  if(!el) return;  // view tarefas não existe mais
   let lista = [...tarefas].sort((a,b)=>a.semana.localeCompare(b.semana));
 
   if(prioFiltro==='feitas'){
@@ -1264,7 +1266,8 @@ async function testarConexao(){
       method: 'GET',
       headers: {
         'apikey': getSbKey(),
-        'Authorization': 'Bearer ' + getSbKey()
+        'Authorization': 'Bearer ' + getSbKey(),
+        'Content-Type': 'application/json'
       }
     });
 
@@ -1281,8 +1284,18 @@ async function testarConexao(){
       mostrarDiagnostico('erro', r.status, body + ' | URL: ' + urlCompleta);
     }
   } catch(e){
-    statusEl.textContent = '🔴 Falha';
-    mostrarDiagnostico('sem_conexao', null, e.message + ' | URL: ' + urlCompleta);
+    const msg = e.message || String(e);
+    const isCors = msg.toLowerCase().includes('cors') || msg.includes('null') || msg.includes('fetch');
+    statusEl.textContent = '🔴 Falha de rede';
+    mostrarDiagnostico('cors', null,
+      `URL: ${urlCompleta}<br>Erro: ${msg}<br><br>` +
+      (isCors
+        ? '⚠️ Possível bloqueio CORS ou chave incorreta. Verifique:<br>' +
+          '1. A anon/public key está correta (não a service_role)<br>' +
+          '2. As tabelas foram criadas no SQL Editor<br>' +
+          '3. O RLS está desabilitado nas tabelas'
+        : 'Verifique sua conexão com a internet.')
+    );
   }
 }
 
@@ -1291,10 +1304,11 @@ function mostrarDiagnostico(tipo, dado, detalhe){
   if(!el) return;
   const msgs = {
     'não_configurado': `<span style="color:var(--amber)">⚙️ Não configurado.</span> Preencha URL e chave no banner abaixo.`,
-    'tentando': `<span style="color:var(--text2)">🔄 Tentando conectar em:</span> <code style="font-size:11px;background:var(--bg3);padding:2px 6px;border-radius:4px">${detalhe||''}</code>`,
-    'ok': `<span style="color:var(--green)">🟢 Conectado!</span> ${dado} registros em sessoes. URL: <code style="font-size:11px">${detalhe||''}</code>`,
-    'erro': `<span style="color:var(--red)">🔴 Erro ${dado}.</span><br><code style="font-size:11px;background:var(--bg3);padding:4px 8px;border-radius:4px;display:block;margin-top:4px;word-break:break-all">${(detalhe||'').replace(/</g,'&lt;')}</code>`,
+    'tentando': `<span style="color:var(--text2)">🔄 Tentando:</span> <code style="font-size:11px;background:var(--bg3);padding:2px 6px;border-radius:4px">${detalhe||''}</code>`,
+    'ok': `<span style="color:var(--green)">🟢 Conectado!</span> ${dado} registros em sessoes.`,
+    'erro': `<span style="color:var(--red)">🔴 Erro ${dado}.</span><br><div style="font-size:11px;background:var(--bg3);padding:6px 8px;border-radius:4px;margin-top:6px;word-break:break-all">${(detalhe||'').replace(/</g,'&lt;')}</div>`,
     'sem_conexao': `<span style="color:var(--red)">🔴 Sem conexão.</span> ${detalhe||''}`,
+    'cors': `<span style="color:var(--red)">🔴 Falha de rede.</span><br><div style="font-size:11px;background:var(--bg3);padding:6px 8px;border-radius:4px;margin-top:6px;line-height:1.6">${(detalhe||'').replace(/</g,'&lt;').replace(/&lt;br&gt;/g,'<br>')}</div>`,
   };
   el.innerHTML = msgs[tipo] || `<span>${tipo}: ${detalhe||''}</span>`;
   el.style.display = 'block';
