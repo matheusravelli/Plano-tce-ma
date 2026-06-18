@@ -96,6 +96,7 @@
     <button class="nav-btn active" onclick="showView('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
     <button class="nav-btn" onclick="showView('registrar',this)"><i class="ti ti-plus"></i> Registrar</button>
     <button class="nav-btn" onclick="showView('tarefas',this)"><i class="ti ti-checklist"></i> Tarefas</button>
+    <button class="nav-btn" onclick="showView('importar',this)"><i class="ti ti-file-import"></i> Importar metas</button>
     <button class="nav-btn" onclick="showView('desempenho',this)"><i class="ti ti-chart-bar"></i> Desempenho</button>
   </div>
 
@@ -192,6 +193,47 @@
     <div class="card" id="lista-tarefas"><div class="empty">Nenhuma tarefa cadastrada</div></div>
   </div>
 
+  <!-- IMPORTAR -->
+  <div id="view-importar" class="view">
+    <div class="section-title">Importar metas do Guruja</div>
+    <div class="card">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Cole o texto das metas exatamente como você recebe do Guruja. O app detecta automaticamente disciplina, assunto, tipo, quantidade e link.</p>
+      <div style="margin-bottom:10px">
+        <label class="form-label">Semana</label>
+        <select id="imp-semana" style="width:120px">
+          <option>S01</option><option>S02</option><option>S03</option><option>S04</option>
+          <option>S05</option><option>S06</option><option>S07</option><option>S08</option>
+          <option>S09</option><option>S10</option>
+        </select>
+      </div>
+      <div style="margin-bottom:10px">
+        <label class="form-label">Prioridade padrão (pode ser alterada depois)</label>
+        <select id="imp-prio" style="width:160px">
+          <option value="A">[A] Alta</option>
+          <option value="B">[B] Média</option>
+          <option value="C">[C] Baixa</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px">
+        <label class="form-label">Texto das metas (cole aqui)</label>
+        <textarea id="imp-texto" rows="12" placeholder="[Língua Portuguesa][Interpretação de Textos][Diagnóstico]&#10;Atividade:&#10;• Estudar 10 questões de diagnóstico:&#10;https://www.tecconcursos.com.br/s/XXXXX&#10;&#10;[Engenharia Civil][SICRO][Fixação]&#10;..."></textarea>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="importarMetas()"><i class="ti ti-file-import"></i> Importar</button>
+        <button class="btn" onclick="document.getElementById('imp-texto').value=''">Limpar</button>
+        <span class="msg" id="imp-msg"></span>
+      </div>
+    </div>
+    <div id="imp-preview" style="display:none">
+      <div class="section-title">Preview — confirme antes de adicionar</div>
+      <div class="card" id="imp-lista"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-primary" onclick="confirmarImport()">Adicionar todas as tarefas</button>
+        <button class="btn" onclick="cancelarImport()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- DESEMPENHO -->
   <div id="view-desempenho" class="view">
     <div class="metric-grid" id="desemp-metrics"></div>
@@ -215,9 +257,19 @@ const LS_S = 'tcema_sessoes';
 const LS_T = 'tcema_tarefas';
 let sessoes = [], tarefas = [], chartSemanas = null, filtroT = 'todas';
 
+const SEED_S = [{"id": 1, "semana": "S01", "data": "2026-06-04", "disc": "LP", "assunto": "Interpretação de Textos", "tipo": "Diagnóstico", "qtd": 10, "acertos": 6, "meta": 72, "obs": "Mapear padrão de erro"}, {"id": 2, "semana": "S01", "data": "2026-06-04", "disc": "LP", "assunto": "Interpretação de Textos", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 75, "obs": "Pendente"}, {"id": 3, "semana": "S01", "data": "2026-06-04", "disc": "Eng — PNFL", "assunto": "Planej. e Controle de Obras", "tipo": "Diagnóstico", "qtd": 10, "acertos": 9, "meta": 70, "obs": ""}, {"id": 4, "semana": "S01", "data": "2026-06-04", "disc": "Eng — PNFL", "assunto": "PERT-CPM", "tipo": "Fixação", "qtd": 10, "acertos": 8, "meta": 88, "obs": ""}, {"id": 5, "semana": "S01", "data": "2026-06-05", "disc": "LP", "assunto": "Coerência e Coesão", "tipo": "Diagnóstico", "qtd": 10, "acertos": 7, "meta": 72, "obs": ""}, {"id": 6, "semana": "S01", "data": "2026-06-05", "disc": "LP", "assunto": "Coerência e Coesão", "tipo": "Fixação", "qtd": 10, "acertos": 8, "meta": 75, "obs": ""}, {"id": 7, "semana": "S01", "data": "2026-06-05", "disc": "Eng — PNFL", "assunto": "Cronograma Físico-Financeiro", "tipo": "Fixação", "qtd": 10, "acertos": 8, "meta": 75, "obs": ""}, {"id": 8, "semana": "S01", "data": "2026-06-05", "disc": "Eng — PNFL", "assunto": "Curva ABC", "tipo": "Fixação", "qtd": 10, "acertos": 10, "meta": 80, "obs": ""}, {"id": 9, "semana": "S01", "data": "2026-06-05", "disc": "Eng — PNFL", "assunto": "Curva S", "tipo": "Fixação", "qtd": 10, "acertos": 10, "meta": 80, "obs": ""}, {"id": 10, "semana": "S01", "data": "2026-06-05", "disc": "Eng — PNFL", "assunto": "GVA / Gantt / EAP", "tipo": "Fixação", "qtd": 10, "acertos": 8, "meta": 72, "obs": ""}, {"id": 11, "semana": "S01", "data": "2026-06-06", "disc": "LP", "assunto": "Pontuação", "tipo": "Diagnóstico", "qtd": 10, "acertos": 8, "meta": 68, "obs": "Revisar uso ponto e vírgula"}, {"id": 12, "semana": "S01", "data": "2026-06-06", "disc": "LP", "assunto": "Pontuação", "tipo": "Fixação", "qtd": 10, "acertos": 4, "meta": 72, "obs": "Revisar uso da vírgula — queda severa"}, {"id": 13, "semana": "S01", "data": "2026-06-06", "disc": "Eng — Edificações", "assunto": "Fundações", "tipo": "Diagnóstico", "qtd": 10, "acertos": 8, "meta": 68, "obs": ""}, {"id": 14, "semana": "S01", "data": "2026-06-06", "disc": "Eng — Edificações", "assunto": "Fundações", "tipo": "Fixação", "qtd": 10, "acertos": 7, "meta": 75, "obs": ""}, {"id": 15, "semana": "S01", "data": "2026-06-06", "disc": "Eng — Rodoviárias", "assunto": "Pavimentação", "tipo": "Diagnóstico", "qtd": 10, "acertos": 6, "meta": 75, "obs": ""}, {"id": 16, "semana": "S01", "data": "2026-06-06", "disc": "Eng — Rodoviárias", "assunto": "Pavimentação", "tipo": "Fixação", "qtd": 10, "acertos": 7, "meta": 82, "obs": ""}, {"id": 17, "semana": "S01", "data": "2026-06-06", "disc": "Eng — Rodoviárias", "assunto": "Terraplenagem", "tipo": "Diagnóstico", "qtd": 10, "acertos": 7, "meta": 72, "obs": "Atenção fórmula umidade e peso específico"}, {"id": 18, "semana": "S01", "data": "2026-06-07", "disc": "Eng — Rodoviárias", "assunto": "Terraplenagem", "tipo": "Fixação", "qtd": 10, "acertos": 10, "meta": 75, "obs": ""}, {"id": 19, "semana": "S01", "data": "2026-06-07", "disc": "Eng — Edificações", "assunto": "Estruturas de Concreto", "tipo": "Diagnóstico", "qtd": 10, "acertos": 10, "meta": 68, "obs": ""}, {"id": 20, "semana": "S01", "data": "2026-06-07", "disc": "Eng — Edificações", "assunto": "Estruturas de Concreto", "tipo": "Fixação", "qtd": 10, "acertos": 6, "meta": 72, "obs": ""}, {"id": 21, "semana": "S01", "data": "2026-06-07", "disc": "LP", "assunto": "Interpretação de Textos", "tipo": "Fixação B", "qtd": 10, "acertos": null, "meta": 75, "obs": "Pendente"}, {"id": 22, "semana": "S01", "data": "2026-06-07", "disc": "LP", "assunto": "Coerência e Coesão", "tipo": "Fixação B", "qtd": 10, "acertos": 7, "meta": 75, "obs": ""}, {"id": 23, "semana": "S01", "data": "2026-06-07", "disc": "LP", "assunto": "Pontuação", "tipo": "Fixação B", "qtd": 10, "acertos": 8, "meta": 72, "obs": ""}, {"id": 24, "semana": "S01", "data": "2026-06-07", "disc": "Eng — PNFL", "assunto": "Cronograma Físico-Financeiro", "tipo": "Fixação B", "qtd": 10, "acertos": 10, "meta": 75, "obs": ""}, {"id": 25, "semana": "S01", "data": "2026-06-07", "disc": "Eng — PNFL", "assunto": "PERT-CPM", "tipo": "Fixação B", "qtd": 10, "acertos": 9, "meta": 88, "obs": ""}, {"id": 26, "semana": "S01", "data": "2026-06-07", "disc": "Eng — PNFL", "assunto": "Curva ABC", "tipo": "Fixação B", "qtd": 10, "acertos": 10, "meta": 80, "obs": ""}, {"id": 27, "semana": "S01", "data": "2026-06-07", "disc": "Eng — PNFL", "assunto": "Curva S", "tipo": "Fixação B", "qtd": 3, "acertos": 3, "meta": 80, "obs": ""}, {"id": 28, "semana": "S01", "data": "2026-06-07", "disc": "Eng — PNFL", "assunto": "GVA / Gantt / EAP", "tipo": "Fixação B", "qtd": 7, "acertos": 4, "meta": 72, "obs": ""}, {"id": 29, "semana": "S01", "data": "2026-06-07", "disc": "Eng — Edificações", "assunto": "Fundações", "tipo": "Fixação B", "qtd": 10, "acertos": 7, "meta": 75, "obs": ""}, {"id": 30, "semana": "S01", "data": "2026-06-07", "disc": "Eng — Rodoviárias", "assunto": "Pavimentação", "tipo": "Fixação B", "qtd": 10, "acertos": 9, "meta": 82, "obs": ""}, {"id": 31, "semana": "S01", "data": "2026-06-07", "disc": "Eng — Rodoviárias", "assunto": "Terraplenagem", "tipo": "Fixação B", "qtd": 10, "acertos": 9, "meta": 75, "obs": ""}, {"id": 32, "semana": "S01", "data": "2026-06-07", "disc": "Eng — Edificações", "assunto": "Estruturas de Concreto", "tipo": "Fixação B", "qtd": 10, "acertos": 7, "meta": 72, "obs": ""}, {"id": 33, "semana": "S01", "data": "2026-06-08", "disc": "LP", "assunto": "Interpretação de Textos", "tipo": "Fixação C", "qtd": 10, "acertos": null, "meta": 75, "obs": "Pendente"}, {"id": 34, "semana": "S01", "data": "2026-06-08", "disc": "LP", "assunto": "Coerência e Coesão", "tipo": "Fixação C", "qtd": 10, "acertos": null, "meta": 75, "obs": "Pendente"}, {"id": 35, "semana": "S01", "data": "2026-06-08", "disc": "LP", "assunto": "Pontuação", "tipo": "Fixação C", "qtd": 10, "acertos": null, "meta": 72, "obs": "Pendente"}, {"id": 36, "semana": "S01", "data": "2026-06-08", "disc": "Eng — PNFL", "assunto": "Cronograma Físico-Financeiro", "tipo": "Fixação C", "qtd": 10, "acertos": 9, "meta": 75, "obs": ""}, {"id": 37, "semana": "S01", "data": "2026-06-08", "disc": "Eng — PNFL", "assunto": "PERT-CPM", "tipo": "Fixação C", "qtd": 10, "acertos": 9, "meta": 88, "obs": ""}, {"id": 38, "semana": "S01", "data": "2026-06-08", "disc": "Eng — PNFL", "assunto": "Curva ABC", "tipo": "Fixação C", "qtd": 2, "acertos": 2, "meta": 80, "obs": ""}, {"id": 39, "semana": "S01", "data": "2026-06-08", "disc": "Eng — Edificações", "assunto": "Fundações", "tipo": "Fixação C", "qtd": 10, "acertos": 9, "meta": 75, "obs": "Viga de rigidez"}, {"id": 40, "semana": "S01", "data": "2026-06-08", "disc": "Eng — Rodoviárias", "assunto": "Pavimentação", "tipo": "Fixação C", "qtd": 10, "acertos": 6, "meta": 82, "obs": ""}, {"id": 41, "semana": "S01", "data": "2026-06-08", "disc": "Eng — Rodoviárias", "assunto": "Terraplenagem", "tipo": "Fixação C", "qtd": 10, "acertos": 9, "meta": 75, "obs": ""}, {"id": 42, "semana": "S01", "data": "2026-06-08", "disc": "Eng — Edificações", "assunto": "Estruturas de Concreto", "tipo": "Fixação C", "qtd": 10, "acertos": 10, "meta": 72, "obs": ""}, {"id": 101, "semana": "S02", "data": "2026-06-09", "disc": "LP", "assunto": "Interpretação de Textos", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 75, "obs": "Reforço S01"}, {"id": 102, "semana": "S02", "data": "2026-06-09", "disc": "LP", "assunto": "Pontuação", "tipo": "Rev. Cirúrgica", "qtd": 10, "acertos": null, "meta": 75, "obs": "Foco vírgula"}, {"id": 103, "semana": "S02", "data": "2026-06-09", "disc": "Dir. Adm", "assunto": "Dir. Adm — Conceito e Fontes", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 104, "semana": "S02", "data": "2026-06-09", "disc": "Eng — PNFL", "assunto": "GVA / Gantt / EAP", "tipo": "Rev. Cirúrgica", "qtd": 10, "acertos": null, "meta": 75, "obs": "Foco CPI e SPI"}, {"id": 105, "semana": "S02", "data": "2026-06-10", "disc": "Dir. Adm", "assunto": "Dir. Adm — Conceito e Fontes", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 106, "semana": "S02", "data": "2026-06-10", "disc": "Dir. Adm", "assunto": "Dir. Adm — Conceito e Fontes", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 107, "semana": "S02", "data": "2026-06-10", "disc": "Dir. Const", "assunto": "Princípios Fundamentais da CF", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 108, "semana": "S02", "data": "2026-06-10", "disc": "Dir. Const", "assunto": "Princípios Fundamentais da CF", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 109, "semana": "S02", "data": "2026-06-11", "disc": "LP", "assunto": "Coerência e Coesão", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 80, "obs": "Reforço S01"}, {"id": 110, "semana": "S02", "data": "2026-06-11", "disc": "AFO", "assunto": "AFO — Orçamento Público Conceito", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 111, "semana": "S02", "data": "2026-06-11", "disc": "AFO", "assunto": "AFO — Orçamento Público Conceito", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 112, "semana": "S02", "data": "2026-06-11", "disc": "Eng — PNFL", "assunto": "GVA / Gantt / EAP", "tipo": "Rev. Cirúrgica", "qtd": 10, "acertos": null, "meta": 75, "obs": ""}, {"id": 113, "semana": "S02", "data": "2026-06-12", "disc": "AFO", "assunto": "AFO — Orçamento Público Classificações", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 114, "semana": "S02", "data": "2026-06-12", "disc": "AFO", "assunto": "AFO — Orçamento Público Classificações", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 70, "obs": ""}, {"id": 115, "semana": "S02", "data": "2026-06-12", "disc": "Ctrl Ext", "assunto": "Controle Externo — tipos e formas", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 75, "obs": ""}, {"id": 116, "semana": "S02", "data": "2026-06-12", "disc": "Ctrl Ext", "assunto": "Controle Externo — tipos e formas", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 75, "obs": ""}, {"id": 117, "semana": "S02", "data": "2026-06-12", "disc": "Eng — Rodoviárias", "assunto": "Pavimentação", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 85, "obs": "Identificar sub-tópico"}, {"id": 118, "semana": "S02", "data": "2026-06-13", "disc": "LP", "assunto": "Interpretação de Textos", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 75, "obs": ""}, {"id": 119, "semana": "S02", "data": "2026-06-13", "disc": "Auditoria", "assunto": "Auditoria — Conceitos Básicos", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 80, "obs": ""}, {"id": 120, "semana": "S02", "data": "2026-06-13", "disc": "Auditoria", "assunto": "Auditoria — Conceitos Básicos", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 80, "obs": ""}, {"id": 121, "semana": "S02", "data": "2026-06-13", "disc": "Auditoria", "assunto": "Auditoria — Tipos", "tipo": "Diagnóstico", "qtd": 10, "acertos": null, "meta": 80, "obs": ""}, {"id": 122, "semana": "S02", "data": "2026-06-13", "disc": "Auditoria", "assunto": "Auditoria — Tipos", "tipo": "Fixação", "qtd": 10, "acertos": null, "meta": 80, "obs": ""}];
+const SEED_T = [{"id": 301, "semana": "S03", "prio": "A", "disc": "LP", "tipo": "Diagnóstico", "assunto": "Denotação e Conotação", "link": "https://www.tecconcursos.com.br/s/Q6UR6C", "status": "pendente"}, {"id": 302, "semana": "S03", "prio": "A", "disc": "LP", "tipo": "Fixação", "assunto": "Denotação e Conotação", "link": "https://www.tecconcursos.com.br/s/Q6UR6s", "status": "pendente"}, {"id": 303, "semana": "S03", "prio": "A", "disc": "LP", "tipo": "Diagnóstico", "assunto": "Classe de Palavras", "link": "https://www.tecconcursos.com.br/s/Q6URdH", "status": "pendente"}, {"id": 304, "semana": "S03", "prio": "A", "disc": "LP", "tipo": "Fixação", "assunto": "Classe de Palavras", "link": "https://www.tecconcursos.com.br/s/Q6URsL", "status": "pendente"}, {"id": 305, "semana": "S03", "prio": "A", "disc": "Dir. Adm", "tipo": "Diagnóstico", "assunto": "Improbidade Administrativa", "link": "https://www.tecconcursos.com.br/s/Q6SI2L", "status": "pendente"}, {"id": 306, "semana": "S03", "prio": "A", "disc": "Dir. Adm", "tipo": "Fixação", "assunto": "Improbidade Administrativa", "link": "https://www.tecconcursos.com.br/s/Q6SI2m", "status": "pendente"}, {"id": 307, "semana": "S03", "prio": "A", "disc": "Dir. Adm", "tipo": "Diagnóstico", "assunto": "Atos Administrativos", "link": "https://www.tecconcursos.com.br/s/Q6SI3f", "status": "pendente"}, {"id": 308, "semana": "S03", "prio": "A", "disc": "Dir. Adm", "tipo": "Fixação", "assunto": "Atos Administrativos", "link": "https://www.tecconcursos.com.br/s/Q6SI4E", "status": "pendente"}, {"id": 309, "semana": "S03", "prio": "A", "disc": "Dir. Const", "tipo": "Diagnóstico", "assunto": "Aplicabilidade das Normas", "link": "https://www.tecconcursos.com.br/s/Q6SVwi", "status": "pendente"}, {"id": 310, "semana": "S03", "prio": "A", "disc": "Dir. Const", "tipo": "Fixação", "assunto": "Aplicabilidade das Normas", "link": "https://www.tecconcursos.com.br/s/Q6SVwu", "status": "pendente"}, {"id": 311, "semana": "S03", "prio": "A", "disc": "AFO", "tipo": "Diagnóstico", "assunto": "Instrumentos Orçamentários na CF", "link": "https://www.tecconcursos.com.br/s/Q6TNyS", "status": "pendente"}, {"id": 312, "semana": "S03", "prio": "A", "disc": "AFO", "tipo": "Fixação", "assunto": "Instrumentos Orçamentários na CF", "link": "https://www.tecconcursos.com.br/s/Q6TNz8", "status": "pendente"}, {"id": 313, "semana": "S03", "prio": "A", "disc": "Auditoria", "tipo": "Diagnóstico", "assunto": "Entidades Fiscalizadoras Superiores (EFS)", "link": "https://www.tecconcursos.com.br/s/Q6TYQE", "status": "pendente"}, {"id": 314, "semana": "S03", "prio": "A", "disc": "Auditoria", "tipo": "Fixação", "assunto": "Entidades Fiscalizadoras Superiores (EFS)", "link": "https://www.tecconcursos.com.br/s/Q6TYel", "status": "pendente"}, {"id": 315, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Diagnóstico", "assunto": "Viabilidade Econômico e Financeiro", "link": "https://www.tecconcursos.com.br/s/Q6US5j", "status": "pendente"}, {"id": 316, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Fixação", "assunto": "Viabilidade Econômico e Financeiro", "link": "https://www.tecconcursos.com.br/s/Q6US5z", "status": "pendente"}, {"id": 317, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Diagnóstico", "assunto": "Avaliação de custos", "link": "https://www.tecconcursos.com.br/s/Q6USMp", "status": "pendente"}, {"id": 318, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Fixação", "assunto": "Avaliação de custos", "link": "https://www.tecconcursos.com.br/s/Q6USN3", "status": "pendente"}, {"id": 319, "semana": "S03", "prio": "A", "disc": "Eng — Edificações", "tipo": "Diagnóstico", "assunto": "Avaliação de imóveis", "link": "https://www.tecconcursos.com.br/s/Q6USXm", "status": "pendente"}, {"id": 320, "semana": "S03", "prio": "A", "disc": "Eng — Edificações", "tipo": "Fixação", "assunto": "Avaliação de imóveis", "link": "https://www.tecconcursos.com.br/s/Q6USYH", "status": "pendente"}, {"id": 321, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Diagnóstico", "assunto": "Levantamento de Serviços e Quantitativos", "link": "https://www.tecconcursos.com.br/s/Q6USf1", "status": "pendente"}, {"id": 322, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Fixação", "assunto": "Levantamento de Serviços e Quantitativos", "link": "https://www.tecconcursos.com.br/s/Q6USfe", "status": "pendente"}, {"id": 323, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Diagnóstico", "assunto": "Composições de Custos e Orçamentação", "link": "https://www.tecconcursos.com.br/s/Q6USka", "status": "pendente"}, {"id": 324, "semana": "S03", "prio": "A", "disc": "Eng — PNFL", "tipo": "Fixação", "assunto": "Composições de Custos e Orçamentação", "link": "https://www.tecconcursos.com.br/s/Q6USky", "status": "pendente"}, {"id": 325, "semana": "S03", "prio": "A", "disc": "Eng — Rodoviárias", "tipo": "Diagnóstico", "assunto": "SICRO", "link": "https://www.tecconcursos.com.br/s/Q6USzM", "status": "pendente"}, {"id": 326, "semana": "S03", "prio": "A", "disc": "Eng — Rodoviárias", "tipo": "Fixação", "assunto": "SICRO", "link": "https://www.tecconcursos.com.br/s/Q6UT0J", "status": "pendente"}, {"id": 327, "semana": "S03", "prio": "B", "disc": "LP", "tipo": "Fixação B", "assunto": "Sinônimos e Antônimos", "link": "https://www.tecconcursos.com.br/s/Q6TZQ1", "status": "pendente"}, {"id": 328, "semana": "S03", "prio": "B", "disc": "LP", "tipo": "Fixação B", "assunto": "Classe de Palavras", "link": "https://www.tecconcursos.com.br/s/Q6URsL", "status": "pendente"}, {"id": 329, "semana": "S03", "prio": "B", "disc": "Dir. Adm", "tipo": "Fixação B", "assunto": "Improbidade Administrativa", "link": "https://www.tecconcursos.com.br/s/Q6SI2m", "status": "pendente"}, {"id": 330, "semana": "S03", "prio": "B", "disc": "Dir. Adm", "tipo": "Fixação B", "assunto": "Atos Administrativos", "link": "https://www.tecconcursos.com.br/s/Q6SI4E", "status": "pendente"}, {"id": 331, "semana": "S03", "prio": "B", "disc": "Dir. Const", "tipo": "Fixação B", "assunto": "Princípios Fundamentais da CF", "link": "https://www.tecconcursos.com.br/s/Q6SV7G", "status": "pendente"}, {"id": 332, "semana": "S03", "prio": "B", "disc": "AFO", "tipo": "Fixação B", "assunto": "Orçamento Público Classificações", "link": "https://www.tecconcursos.com.br/s/Q6TO26", "status": "pendente"}, {"id": 333, "semana": "S03", "prio": "B", "disc": "AFO", "tipo": "Fixação B", "assunto": "Instrumentos Orçamentários na CF", "link": "https://www.tecconcursos.com.br/s/Q6TNz8", "status": "pendente"}, {"id": 334, "semana": "S03", "prio": "B", "disc": "Eng — Edificações", "tipo": "Fixação B", "assunto": "Perícias na Construção Civil", "link": "https://www.tecconcursos.com.br/s/Q6Ta1s", "status": "pendente"}, {"id": 335, "semana": "S03", "prio": "B", "disc": "Eng — Edificações", "tipo": "Fixação B", "assunto": "Avaliação de imóveis", "link": "https://www.tecconcursos.com.br/s/Q6USYH", "status": "pendente"}, {"id": 336, "semana": "S03", "prio": "B", "disc": "Eng — PNFL", "tipo": "Fixação B", "assunto": "Composições de Custos e Orçamentação", "link": "https://www.tecconcursos.com.br/s/Q6USky", "status": "pendente"}, {"id": 337, "semana": "S03", "prio": "B", "disc": "Eng — Rodoviárias", "tipo": "Fixação B", "assunto": "SICRO", "link": "https://www.tecconcursos.com.br/s/Q6UT0J", "status": "pendente"}, {"id": 338, "semana": "S03", "prio": "B", "disc": "Eng — PNFL", "tipo": "Fixação B", "assunto": "Fiscalização de Obras Públicas", "link": "https://www.tecconcursos.com.br/s/Q6TaH8", "status": "pendente"}, {"id": 339, "semana": "S03", "prio": "C", "disc": "Dir. Const", "tipo": "Fixação C", "assunto": "Princípios Fundamentais da CF", "link": "https://www.tecconcursos.com.br/s/Q6SV7G", "status": "pendente"}, {"id": 340, "semana": "S03", "prio": "C", "disc": "AFO", "tipo": "Fixação C", "assunto": "Orçamento Público Classificações", "link": "https://www.tecconcursos.com.br/s/Q6TO26", "status": "pendente"}, {"id": 341, "semana": "S03", "prio": "C", "disc": "AFO", "tipo": "Fixação C", "assunto": "Instrumentos Orçamentários na CF", "link": "https://www.tecconcursos.com.br/s/Q6TNz8", "status": "pendente"}, {"id": 342, "semana": "S03", "prio": "C", "disc": "LP", "tipo": "Fixação C", "assunto": "Pontuação", "link": "https://www.tecconcursos.com.br/s/Q6TZVV", "status": "pendente"}, {"id": 343, "semana": "S03", "prio": "C", "disc": "LP", "tipo": "Fixação C", "assunto": "Coerência e Coesão", "link": "https://www.tecconcursos.com.br/s/Q6TZmL", "status": "pendente"}, {"id": 344, "semana": "S03", "prio": "C", "disc": "LP", "tipo": "Fixação C", "assunto": "Classe de Palavras", "link": "https://www.tecconcursos.com.br/s/Q6URsL", "status": "pendente"}, {"id": 345, "semana": "S03", "prio": "C", "disc": "Dir. Adm", "tipo": "Fixação C", "assunto": "Improbidade Administrativa", "link": "https://www.tecconcursos.com.br/s/Q6SI2m", "status": "pendente"}, {"id": 346, "semana": "S03", "prio": "C", "disc": "Dir. Adm", "tipo": "Fixação C", "assunto": "Atos Administrativos", "link": "https://www.tecconcursos.com.br/s/Q6SI4E", "status": "pendente"}, {"id": 347, "semana": "S03", "prio": "C", "disc": "Eng — PNFL", "tipo": "Fixação C", "assunto": "Composições de Custos e Orçamentação", "link": "https://www.tecconcursos.com.br/s/Q6USky", "status": "pendente"}, {"id": 348, "semana": "S03", "prio": "C", "disc": "Eng — Edificações", "tipo": "Fixação C", "assunto": "Avaliação de imóveis", "link": "https://www.tecconcursos.com.br/s/Q6USYH", "status": "pendente"}];
 function load(){
-  try{ sessoes = JSON.parse(localStorage.getItem(LS_S)||'[]'); }catch(e){ sessoes=[]; }
-  try{ tarefas = JSON.parse(localStorage.getItem(LS_T)||'[]'); }catch(e){ tarefas=[]; }
+  try{
+    const raw = localStorage.getItem(LS_S);
+    sessoes = raw ? JSON.parse(raw) : SEED_S;
+    if(!sessoes.length) sessoes = SEED_S;
+  }catch(e){ sessoes=SEED_S; }
+  try{
+    const rawt = localStorage.getItem(LS_T);
+    tarefas = rawt ? JSON.parse(rawt) : SEED_T;
+    if(!tarefas.length) tarefas = SEED_T;
+  }catch(e){ tarefas=SEED_T; }
 }
 function saveSessoes(){ localStorage.setItem(LS_S, JSON.stringify(sessoes)); }
 function saveTarefas(){ localStorage.setItem(LS_T, JSON.stringify(tarefas)); }
@@ -476,6 +528,99 @@ function renderDesempenho(){
       <span style="font-size:12px;font-weight:500;color:var(--red);margin-left:6px">${gap}pp</span>
     </div>`;
   }).join('');
+}
+
+const DISC_MAP = {
+  'língua portuguesa':'LP','direito administrativo':'Dir. Adm',
+  'direito constitucional':'Dir. Const',
+  'administração financeira e orçamentária':'AFO',
+  'administração financeira':'AFO',
+  'controle externo':'Ctrl Ext','auditoria':'Auditoria',
+  'engenharia civil':'Eng — PNFL',
+};
+
+let importBuffer = [];
+
+function importarMetas(){
+  const texto = document.getElementById('imp-texto').value.trim();
+  if(!texto){ document.getElementById('imp-msg').textContent='Cole o texto primeiro'; return; }
+  const semana = document.getElementById('imp-semana').value;
+  const prio   = document.getElementById('imp-prio').value;
+
+  // Separar blocos por linha [disc][assunto][tipo]
+  const blocos = texto.split(/(?=\[[^\]]+\]\[[^\]]+\]\[[^\]]+\])/);
+  const pat_header = /\[([^\]]+)\]\[([^\]]+)\]\[([^\]]+)\]/;
+  const pat_url    = /https:\/\/www\.tecconcursos\.com\.br\/s\/\S+/;
+  const pat_qtd    = /Estudar (\d+) questões/i;
+
+  importBuffer = [];
+  for(const bloco of blocos){
+    const mh = bloco.match(pat_header);
+    if(!mh) continue;
+    const disc_raw = mh[1].trim().toLowerCase();
+    const assunto  = mh[2].trim();
+    const tipo     = mh[3].trim();
+    const disc = Object.entries(DISC_MAP).find(([k])=>disc_raw.includes(k))?.[1] || mh[1].trim();
+    const mu = bloco.match(pat_url);
+    const mq = bloco.match(pat_qtd);
+    importBuffer.push({
+      id: Date.now()+importBuffer.length,
+      semana, prio, disc, assunto, tipo,
+      qtd: mq ? parseInt(mq[1]) : 10,
+      link: mu ? mu[0].trim() : '',
+      status: 'pendente'
+    });
+  }
+
+  if(!importBuffer.length){
+    document.getElementById('imp-msg').textContent='Nenhuma atividade encontrada. Verifique o formato.';
+    return;
+  }
+
+  // Mostrar preview
+  const pb={'A':'badge-bad','B':'badge-warn','C':'badge-new'};
+  document.getElementById('imp-lista').innerHTML = importBuffer.map((t,i)=>`
+    <div class="task-row">
+      <span class="badge ${pb[t.prio]||'badge-pend'}">[${t.prio}]</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500">${t.assunto} <span style="font-weight:400;color:var(--text2)">· ${t.tipo}</span></div>
+        <div style="font-size:11px;color:var(--text3)">${t.disc} · ${t.semana} · ${t.qtd}q ${t.link?'· <a href="'+t.link+'" target="_blank">🔗</a>':''}</div>
+      </div>
+      <button class="del-btn" onclick="importBuffer.splice(${i},1);importarMetas2()">✕</button>
+    </div>`).join('');
+  document.getElementById('imp-preview').style.display='block';
+  document.getElementById('imp-msg').textContent=importBuffer.length+' atividades detectadas';
+}
+
+function importarMetas2(){
+  const pb={'A':'badge-bad','B':'badge-warn','C':'badge-new'};
+  document.getElementById('imp-lista').innerHTML = importBuffer.map((t,i)=>`
+    <div class="task-row">
+      <span class="badge ${pb[t.prio]||'badge-pend'}">[${t.prio}]</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500">${t.assunto} <span style="font-weight:400;color:var(--text2)">· ${t.tipo}</span></div>
+        <div style="font-size:11px;color:var(--text3)">${t.disc} · ${t.semana} · ${t.qtd}q</div>
+      </div>
+      <button class="del-btn" onclick="importBuffer.splice(${i},1);importarMetas2()">✕</button>
+    </div>`).join('');
+  document.getElementById('imp-msg').textContent=importBuffer.length+' atividades';
+}
+
+function confirmarImport(){
+  tarefas.push(...importBuffer);
+  saveTarefas();
+  importBuffer=[];
+  document.getElementById('imp-preview').style.display='none';
+  document.getElementById('imp-texto').value='';
+  document.getElementById('imp-msg').textContent='✅ '+tarefas.length+' tarefas adicionadas';
+  setTimeout(()=>document.getElementById('imp-msg').textContent='',3000);
+  renderAll();
+}
+
+function cancelarImport(){
+  importBuffer=[];
+  document.getElementById('imp-preview').style.display='none';
+  document.getElementById('imp-msg').textContent='';
 }
 
 document.getElementById('f-qtd').addEventListener('input',atualizarPreview);
