@@ -996,9 +996,10 @@ async function load(){
     document.getElementById('sb-status').textContent = '🔄 Sincronizando...';
     const baseUrl = getSbUrl().replace(/\/+$/,'');
     try {
-      const [rs, rt] = await Promise.all([
+      const [rs, rt, re] = await Promise.all([
         fetch(`${baseUrl}/rest/v1/sessoes?order=id&limit=1000`, {headers: sbHeaders()}),
-        fetch(`${baseUrl}/rest/v1/tarefas?order=id&limit=1000`,  {headers: sbHeaders()})
+        fetch(`${baseUrl}/rest/v1/tarefas?order=id&limit=1000`,  {headers: sbHeaders()}),
+        fetch(`${baseUrl}/rest/v1/erros?order=id&limit=1000`,    {headers: sbHeaders()})
       ]);
       if(rs.ok && rt.ok){
         const ds = await rs.json();
@@ -1013,12 +1014,21 @@ async function load(){
           await saveSessoes();
           await saveTarefas();
         }
+        // Erros (tabela pode não existir ainda — sem crash)
+        if(re && re.ok){
+          const de = await re.json();
+          if(de.length){ erros = de; localStorage.setItem(LS_E, JSON.stringify(erros)); }
+        }
         document.getElementById('sb-status').textContent = '🟢 Online';
         setTimeout(()=>{ const el=document.getElementById('sb-status'); if(el) el.textContent=''; },3000);
+        // Re-renderizar com dados do Supabase
+        renderAll();
       }
     } catch(e){
       document.getElementById('sb-status').textContent = '🔴 Offline (local)';
       console.warn('Supabase load falhou:', e);
+      // Renderizar mesmo assim com dados locais
+      renderAll();
     }
   } else {
     document.getElementById('sb-status').textContent = '⚙️ Supabase não configurado';
