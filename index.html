@@ -141,6 +141,7 @@ alter table tarefas disable row level security;
     <button class="nav-btn" onclick="showView('importar',this)"><i class="ti ti-file-import"></i> Importar metas</button>
     <button class="nav-btn" onclick="showView('evolucao',this)"><i class="ti ti-trending-up"></i> Evolução</button>
     <button class="nav-btn" onclick="showView('reforco',this)"><i class="ti ti-refresh-alert"></i> Reforço</button>
+    <button class="nav-btn" onclick="showView('caderno',this)"><i class="ti ti-notebook"></i> Caderno de Erros</button>
     <button class="nav-btn" onclick="showView('desempenho',this)"><i class="ti ti-chart-bar"></i> Desempenho</button>
   </div>
 
@@ -331,6 +332,84 @@ alter table tarefas disable row level security;
     </div>
   </div>
 
+  <!-- CADERNO DE ERROS -->
+  <div id="view-caderno" class="view">
+
+    <!-- Métricas -->
+    <div class="metric-grid" id="cad-metrics"></div>
+
+    <!-- Filtros -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <div class="section-title" style="margin:0;flex:1">Erros registrados</div>
+      <div class="tabs" style="margin:0">
+        <button class="tab active" onclick="setCadFiltro('todos',this)">Todos</button>
+        <button class="tab" onclick="setCadFiltro('pendente',this)">Pendentes</button>
+        <button class="tab" onclick="setCadFiltro('revisado',this)">Revisados</button>
+        <button class="tab" onclick="setCadFiltro('superado',this)">Superados</button>
+      </div>
+      <select id="cad-disc-filtro" onchange="renderCaderno()" style="padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+        <option value="">Todas as disciplinas</option>
+        <option>LP</option><option>Dir. Adm</option><option>Dir. Const</option>
+        <option>AFO</option><option>Ctrl Ext</option><option>Auditoria</option>
+        <option>Eng — PNFL</option><option>Eng — Edificações</option>
+        <option>Eng — Hídricas</option><option>Eng — Rodoviárias</option>
+      </select>
+    </div>
+    <div id="cad-lista"></div>
+
+    <!-- Adicionar erro manualmente -->
+    <div style="margin-top:1.25rem">
+      <button class="btn btn-sm" onclick="toggleFormErro()" style="width:100%;text-align:left">
+        <i class="ti ti-plus"></i> Registrar erro manualmente
+      </button>
+      <div id="form-erro" style="display:none;margin-top:10px">
+        <div class="card">
+          <div class="form-grid">
+            <div>
+              <label class="form-label">Disciplina</label>
+              <select id="ce-disc">
+                <option>LP</option><option>Dir. Adm</option><option>Dir. Const</option>
+                <option>AFO</option><option>Ctrl Ext</option><option>Auditoria</option>
+                <option>Eng — PNFL</option><option>Eng — Edificações</option>
+                <option>Eng — Hídricas</option><option>Eng — Rodoviárias</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Assunto</label>
+              <input type="text" id="ce-assunto" placeholder="Ex: Pontuação">
+            </div>
+            <div>
+              <label class="form-label">Gravidade</label>
+              <select id="ce-gravidade">
+                <option value="pontual">🟡 Erro pontual</option>
+                <option value="conceitual">🟠 Dúvida conceitual</option>
+                <option value="lacuna">🔴 Lacuna total</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Semana</label>
+              <select id="ce-semana">
+                <option>S01</option><option>S02</option><option selected>S03</option>
+                <option>S04</option><option>S05</option><option>S06</option>
+                <option>S07</option><option>S08</option><option>S09</option><option>S10</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-bottom:10px">
+            <label class="form-label">Padrão de erro identificado</label>
+            <textarea id="ce-descricao" rows="3"
+              placeholder="Ex: Confunde PPP patrocinada com administrativa. Critério: quem paga a contraprestação."></textarea>
+          </div>
+          <div style="margin-bottom:10px">
+            <label class="form-label">O que revisar</label>
+            <input type="text" id="ce-acao" placeholder="Ex: Reler art. 2º Lei 11.079 e resolver 10q específicas">
+          </div>
+          <button class="btn btn-primary" onclick="addErro()">Salvar no caderno</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- DESEMPENHO -->
   <div id="view-desempenho" class="view">
     <div class="metric-grid" id="desemp-metrics"></div>
@@ -411,6 +490,26 @@ function registrarDaTarefa(id){
   sessoes.push(s);
   saveSessoes();
 
+  // Registrar no caderno de erros se gravidade foi selecionada
+  const gravidade = document.getElementById('rtf-gravidade-'+id)?.value;
+  const padrao    = document.getElementById('rtf-padrao-'+id)?.value?.trim();
+  if(gravidade){
+    const erro = {
+      id: Date.now()+1,
+      disc: t.disc,
+      assunto: t.assunto,
+      semana: t.semana,
+      data: new Date().toISOString().slice(0,10),
+      gravidade,
+      descricao: padrao || obs || '',
+      acao: '',
+      status: 'pendente',
+      sessao_id: s.id
+    };
+    erros.push(erro);
+    saveErros();
+  }
+
   // Marcar tarefa como feita
   t.status = 'feita';
   saveTarefas();
@@ -420,7 +519,7 @@ function registrarDaTarefa(id){
 
   // Feedback
   const msg = document.getElementById('reg-msg-'+id);
-  if(msg){ msg.textContent='✅ Registrado'; }
+  if(msg){ msg.textContent = gravidade ? '✅ Registrado + erro no caderno' : '✅ Registrado'; }
 }
 
 function renderRegistrar(){
@@ -511,6 +610,20 @@ function renderRegistrar(){
               <textarea id="rtf-obs-${t.id}" rows="2"
                 placeholder="Anotar onde errou, sub-tópico problemático..."></textarea>
             </div>
+            <div style="margin-bottom:10px;padding:10px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border)">
+              <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:8px">📓 Registrar no caderno de erros (opcional)</div>
+              <div style="display:flex;gap:8px;margin-bottom:6px">
+                <select id="rtf-gravidade-${t.id}" style="flex:1;padding:6px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+                  <option value="">Não registrar erro</option>
+                  <option value="pontual">🟡 Erro pontual</option>
+                  <option value="conceitual">🟠 Dúvida conceitual</option>
+                  <option value="lacuna">🔴 Lacuna total</option>
+                </select>
+              </div>
+              <input type="text" id="rtf-padrao-${t.id}"
+                placeholder="Padrão de erro identificado (opcional)"
+                style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+            </div>
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
               <button class="btn btn-primary" onclick="registrarDaTarefa(${t.id})">
                 <i class="ti ti-check"></i> Salvar e marcar como feita
@@ -535,6 +648,172 @@ function atualizarPreviewTarefa(id){
     const p = pct(ac,qtd);
     el.innerHTML = `<span style="font-size:18px;font-weight:500;margin-right:6px">${p}%</span>${statusBadge(p,meta)}`;
   }
+}
+
+// ── CADERNO DE ERROS ────────────────────────────────────────────────────────
+let erros = [];
+let cadFiltro = 'todos';
+const LS_E = 'tcema_erros';
+
+async function saveErros(){
+  localStorage.setItem(LS_E, JSON.stringify(erros));
+  if(!sbConfigured()) return;
+  try {
+    const baseUrl = getSbUrl().replace(/\/+$/,'');
+    await fetch(`${baseUrl}/rest/v1/erros`, {
+      method:'POST',
+      headers:{...sbHeaders(),'Prefer':'resolution=merge-duplicates'},
+      body: JSON.stringify(erros)
+    });
+  } catch(e){ console.warn('Supabase save erros:', e); }
+}
+
+function setCadFiltro(f, btn){
+  cadFiltro = f;
+  document.querySelectorAll('#view-caderno .tab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderCaderno();
+}
+
+function toggleFormErro(){
+  const el = document.getElementById('form-erro');
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+
+function addErro(){
+  const e = {
+    id: Date.now(),
+    disc:      document.getElementById('ce-disc').value,
+    assunto:   document.getElementById('ce-assunto').value.trim(),
+    semana:    document.getElementById('ce-semana').value,
+    data:      new Date().toISOString().slice(0,10),
+    gravidade: document.getElementById('ce-gravidade').value,
+    descricao: document.getElementById('ce-descricao').value.trim(),
+    acao:      document.getElementById('ce-acao').value.trim(),
+    status:    'pendente',
+    sessao_id: null
+  };
+  if(!e.assunto || !e.descricao){ alert('Preencha assunto e padrão de erro'); return; }
+  erros.push(e);
+  saveErros();
+  document.getElementById('ce-assunto').value='';
+  document.getElementById('ce-descricao').value='';
+  document.getElementById('ce-acao').value='';
+  document.getElementById('form-erro').style.display='none';
+  renderCaderno();
+}
+
+function atualizarStatusErro(id, novoStatus){
+  const e = erros.find(e=>e.id===id);
+  if(!e) return;
+  e.status = novoStatus;
+  if(novoStatus==='superado') e.data_superado = new Date().toISOString().slice(0,10);
+  saveErros();
+  renderCaderno();
+}
+
+function deletarErro(id){
+  erros = erros.filter(e=>e.id!==id);
+  saveErros();
+  renderCaderno();
+}
+
+const GRAV = {
+  'pontual':    { label:'🟡 Erro pontual',      bg:'#FEF9E7', fg:'#854F0B' },
+  'conceitual': { label:'🟠 Dúvida conceitual', bg:'#FFF0E0', fg:'#7D3800' },
+  'lacuna':     { label:'🔴 Lacuna total',       bg:'#FDEDEC', fg:'#A32D2D' },
+};
+const STATUS_LABEL = {
+  'pendente':'⏳ Pendente',
+  'revisado':'📖 Revisado',
+  'superado':'✅ Superado'
+};
+
+function renderCaderno(){
+  if(!document.getElementById('cad-lista')) return;
+
+  // Métricas
+  const total     = erros.length;
+  const pendentes = erros.filter(e=>e.status==='pendente').length;
+  const lacunas   = erros.filter(e=>e.gravidade==='lacuna'&&e.status!=='superado').length;
+  const superados = erros.filter(e=>e.status==='superado').length;
+
+  const mEl = document.getElementById('cad-metrics');
+  if(mEl) mEl.innerHTML = `
+    <div class="metric"><div class="metric-label">Total de erros</div><div class="metric-val">${total}</div></div>
+    <div class="metric"><div class="metric-label">Pendentes</div><div class="metric-val" style="color:var(--amber)">${pendentes}</div></div>
+    <div class="metric"><div class="metric-label">Lacunas totais</div><div class="metric-val" style="color:var(--red)">${lacunas}</div></div>
+    <div class="metric"><div class="metric-label">Superados</div><div class="metric-val" style="color:var(--green)">${superados}</div></div>`;
+
+  // Filtrar
+  const discFiltro = document.getElementById('cad-disc-filtro')?.value || '';
+  let lista = [...erros].sort((a,b)=>{
+    const ordem = {lacuna:0,conceitual:1,pontual:2};
+    return (ordem[a.gravidade]||3)-(ordem[b.gravidade]||3);
+  });
+  if(cadFiltro !== 'todos') lista = lista.filter(e=>e.status===cadFiltro);
+  if(discFiltro) lista = lista.filter(e=>e.disc===discFiltro);
+
+  const el = document.getElementById('cad-lista');
+  if(!lista.length){
+    el.innerHTML = `<div class="empty" style="padding:2rem">
+      ${cadFiltro==='superado' ? 'Nenhum erro superado ainda — bora lá!' :
+        cadFiltro==='pendente' ? 'Nenhum erro pendente 🎉' :
+        'Nenhum erro registrado ainda.<br><span style="font-size:12px">Registre erros ao concluir tarefas ou manualmente abaixo.</span>'}
+    </div>`;
+    return;
+  }
+
+  // Agrupar por disciplina
+  const porDisc = {};
+  lista.forEach(e=>{ if(!porDisc[e.disc]) porDisc[e.disc]=[]; porDisc[e.disc].push(e); });
+
+  el.innerHTML = Object.entries(porDisc).map(([disc, items])=>`
+    <div style="margin-bottom:1.25rem">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;display:flex;align-items:center;gap:8px">
+        ${disc}
+        <span style="font-size:11px;font-weight:400;color:var(--text3)">${items.length} erro${items.length>1?'s':''}</span>
+      </div>
+      ${items.map(e=>{
+        const g = GRAV[e.gravidade] || GRAV.pontual;
+        const diasAtras = Math.floor((Date.now()-new Date(e.data).getTime())/86400000);
+        const urgente = e.status==='pendente' && diasAtras>=7;
+        return `
+        <div style="border:1px solid ${urgente?'var(--red)':'var(--border)'};border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:8px;background:var(--bg)${urgente?';border-left:3px solid var(--red)':''}">
+          <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <!-- Cabeçalho -->
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+                <span style="font-size:13px;font-weight:500">${e.assunto}</span>
+                <span style="font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;background:${g.bg};color:${g.fg}">${g.label}</span>
+                <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:var(--bg2);color:var(--text2)">${STATUS_LABEL[e.status]||e.status}</span>
+                ${urgente?'<span style="font-size:11px;color:var(--red);font-weight:500">⚠️ Há '+diasAtras+'d sem revisar</span>':''}
+              </div>
+              <!-- Descrição -->
+              ${e.descricao?`<div style="font-size:13px;color:var(--text);margin-bottom:4px;line-height:1.5">${e.descricao}</div>`:''}
+              <!-- Ação -->
+              ${e.acao?`<div style="font-size:12px;color:var(--text2);font-style:italic">📌 ${e.acao}</div>`:''}
+              <!-- Meta -->
+              <div style="font-size:11px;color:var(--text3);margin-top:4px">${e.semana} · ${e.data}${e.data_superado?' · superado em '+e.data_superado:''}</div>
+            </div>
+            <!-- Ações -->
+            <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+              ${e.status==='pendente'?`
+                <button class="btn btn-sm" onclick="atualizarStatusErro(${e.id},'revisado')" style="font-size:11px">📖 Marcar revisado</button>
+                <button class="btn btn-sm" onclick="atualizarStatusErro(${e.id},'superado')" style="font-size:11px">✅ Superado</button>
+              `:e.status==='revisado'?`
+                <button class="btn btn-sm" onclick="atualizarStatusErro(${e.id},'superado')" style="font-size:11px">✅ Superado</button>
+                <button class="btn btn-sm" onclick="atualizarStatusErro(${e.id},'pendente')" style="font-size:11px;color:var(--text3)">↩ Reabrir</button>
+              `:`
+                <button class="btn btn-sm" onclick="atualizarStatusErro(${e.id},'pendente')" style="font-size:11px;color:var(--text3)">↩ Reabrir</button>
+              `}
+              <button class="del-btn" onclick="deletarErro(${e.id})" style="font-size:11px;color:var(--text3)">✕</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('');
 }
 
 // ── BACKUP / RESTORE ────────────────────────────────────────────────────────
@@ -706,6 +985,7 @@ async function load(){
   // 1. Tentar localStorage primeiro (para resposta imediata)
   try{ const r=localStorage.getItem(LS_S); if(r) sessoes=JSON.parse(r); }catch(e){}
   try{ const r=localStorage.getItem(LS_T); if(r) tarefas=JSON.parse(r); }catch(e){}
+  try{ const r=localStorage.getItem(LS_E); if(r) erros=JSON.parse(r); }catch(e){}
 
   // 2. Se não tem nada local, usar seed
   if(!sessoes.length) sessoes = SEED_S;
@@ -777,6 +1057,7 @@ function renderAll(){
   renderEvolucao();
   renderReforco();
   renderRegistrar();
+  renderCaderno();
 }
 
 function renderMetrics(){
