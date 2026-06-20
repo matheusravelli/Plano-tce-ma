@@ -1009,22 +1009,19 @@ function renderSemana(){
         ${tarefasDia.length===0
           ? `<div style="font-size:12px;color:var(--text3);padding:6px 0">Nenhuma tarefa alocada para este dia.</div>`
           : tarefasDia.map(t=>`
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);min-height:40px">
-            <div class="task-check ${t.status==='feita'?'done':''}" onclick="toggleTarefa(${t.id})" style="flex-shrink:0;margin-top:0">
-              ${t.status==='feita'?'<i class="ti ti-check" style="font-size:11px;color:white"></i>':''}
-            </div>
-            <div style="flex:1;min-width:0;overflow:hidden">
-              <div style="font-size:13px;font-weight:${t.status==='feita'?'400':'500'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${t.status==='feita'?'text-decoration:line-through;color:var(--text2)':''}">${t.assunto}</div>
+          <div style="display:grid;grid-template-columns:20px 1fr auto auto auto;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div class="task-check ${t.status==='feita'?'done':''}" onclick="toggleTarefa(${t.id})" style="cursor:pointer">
+              ${t.status==='feita'?'<i class="ti ti-check" style="font-size:11px;color:white"></i>':''}</div>
+            <div style="overflow:hidden">
+              <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${t.status==='feita'?'text-decoration:line-through;opacity:.5':''}">${t.assunto}</div>
               <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.disc} · ${t.tipo}${t.link?` · <a href="${t.link}" target="_blank" onclick="event.stopPropagation()" style="color:var(--blue)">🔗</a>`:''}</div>
             </div>
-            <span class="badge ${pb[t.prio]||'badge-pend'}" style="flex-shrink:0;font-size:10px">[${t.prio}]</span>
-            <select onchange="moverParaDia(${t.id},this.value);this.value=''" title="Mover para outro dia"
-              style="flex-shrink:0;font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text);width:44px">
+            <span class="badge ${pb[t.prio]||'badge-pend'}" style="font-size:10px;white-space:nowrap">[${t.prio}]</span>
+            <select onchange="moverParaDia(${t.id},this.value);this.value=''" title="Mover dia" style="font-size:11px;padding:2px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text);width:36px">
               <option value="">📅</option>
               ${DIAS.filter(d=>d!==dia).map(d=>`<option value="${d}">${d}</option>`).join('')}
             </select>
-            <button onclick="removerDoDia(${t.id})" title="Remover do plano"
-              style="flex-shrink:0;border:none;background:transparent;color:var(--text3);cursor:pointer;padding:0 2px;font-size:13px;line-height:1">✕</button>
+            <button onclick="removerDoDia(${t.id})" style="border:none;background:transparent;color:var(--text3);cursor:pointer;padding:0;font-size:13px;line-height:1">✕</button>
           </div>`).join('')
         }
 
