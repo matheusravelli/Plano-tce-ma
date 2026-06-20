@@ -137,6 +137,7 @@ alter table tarefas disable row level security;
 
   <div class="nav">
     <button class="nav-btn active" onclick="showView('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+    <button class="nav-btn" onclick="showView('semana',this)"><i class="ti ti-calendar-week"></i> Semana</button>
     <button class="nav-btn" onclick="showView('registrar',this)"><i class="ti ti-pencil-check"></i> Registrar</button>
     <button class="nav-btn" onclick="showView('importar',this)"><i class="ti ti-file-import"></i> Importar metas</button>
     <button class="nav-btn" onclick="showView('evolucao',this)"><i class="ti ti-trending-up"></i> Evolução</button>
@@ -199,6 +200,45 @@ alter table tarefas disable row level security;
     </div>
     <div class="section-title">Desempenho por disciplina</div>
     <div class="card" id="dash-desempenho"><div class="empty">Nenhum registro ainda</div></div>
+  </div>
+
+  <!-- SEMANA -->
+  <div id="view-semana" class="view">
+
+    <!-- Header semana atual -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap">
+      <div style="flex:1">
+        <div style="font-size:16px;font-weight:500" id="sem-titulo">Semana atual</div>
+        <div style="font-size:12px;color:var(--text2)" id="sem-subtitulo"></div>
+      </div>
+      <select id="sem-selector" onchange="renderSemana()" style="padding:6px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+        <option>S01</option><option>S02</option><option selected>S03</option>
+        <option>S04</option><option>S05</option><option>S06</option>
+        <option>S07</option><option>S08</option><option>S09</option><option>S10</option>
+      </select>
+      <button class="btn btn-sm" onclick="distribuirAuto()" title="Sugerir distribuição automática">
+        <i class="ti ti-wand"></i> Distribuir auto
+      </button>
+      <button class="btn btn-sm" onclick="limparDistribuicao()" title="Limpar distribuição">
+        <i class="ti ti-trash"></i> Limpar
+      </button>
+    </div>
+
+    <!-- Progresso geral da semana -->
+    <div class="card" style="padding:.75rem 1rem;margin-bottom:1rem">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div id="sem-prog-texto" style="font-size:13px;flex:1"></div>
+        <div style="width:200px">
+          <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
+            <div id="sem-prog-barra" style="height:6px;background:var(--green);border-radius:3px;transition:width .3s;width:0%"></div>
+          </div>
+        </div>
+        <div id="sem-prog-pct" style="font-size:14px;font-weight:500;min-width:36px;text-align:right"></div>
+      </div>
+    </div>
+
+    <!-- Cards por dia -->
+    <div id="sem-dias" style="display:flex;flex-direction:column;gap:10px"></div>
   </div>
 
   <!-- REGISTRAR -->
@@ -816,6 +856,222 @@ function renderCaderno(){
   `).join('');
 }
 
+// ── PLANO SEMANAL ───────────────────────────────────────────────────────────
+// Distribuição: { tarefa_id: { dia: 'Seg', ordem: 0 } }
+let planoSemanal = {};
+const LS_P = 'tcema_plano';
+
+function savePlano(){
+  localStorage.setItem(LS_P, JSON.stringify(planoSemanal));
+}
+
+const DIAS = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+const DIAS_LABEL = {
+  'Seg':'Segunda-feira','Ter':'Terça-feira','Qua':'Quarta-feira',
+  'Qui':'Quinta-feira','Sex':'Sexta-feira','Sáb':'Sábado','Dom':'Domingo'
+};
+const CARGA = { 'Seg':3,'Ter':3,'Qua':3,'Qui':3,'Sex':3,'Sáb':5,'Dom':4 };
+
+function getSemanaAtual(){
+  return document.getElementById('sem-selector')?.value || 'S03';
+}
+
+function distribuirAuto(){
+  const sem = getSemanaAtual();
+  const pendentes = tarefas.filter(t=>t.semana===sem && t.status==='pendente');
+  if(!pendentes.length){ alert('Nenhuma tarefa pendente nesta semana.'); return; }
+
+  // Limpar distribuição desta semana
+  Object.keys(planoSemanal).forEach(id=>{
+    if(tarefas.find(t=>t.id==id && t.semana===sem)){
+      delete planoSemanal[id];
+    }
+  });
+
+  // Ordenar: A primeiro, B depois, C por último
+  const sorted = [...pendentes].sort((a,b)=>{
+    const po = {A:0,B:1,C:2};
+    return (po[a.prio]||0)-(po[b.prio]||0);
+  });
+
+  // Distribuir uniformemente pelos 7 dias
+  // Prio A: seg-sex (dias úteis)
+  // Prio B: seg-sáb
+  // Prio C: preencher onde sobrar
+  const prioA = sorted.filter(t=>t.prio==='A');
+  const prioB = sorted.filter(t=>t.prio==='B');
+  const prioC = sorted.filter(t=>t.prio==='C');
+
+  // Slots por dia (baseado na carga)
+  const slots = {};
+  DIAS.forEach(d=>{ slots[d]=[]; });
+
+  function adicionarAoDia(tarefa, diasDisponiveis){
+    // Encontrar dia com menos tarefas dentro dos disponíveis
+    const melhor = diasDisponiveis.reduce((min, d)=>
+      slots[d].length < slots[min].length ? d : min
+    , diasDisponiveis[0]);
+    slots[melhor].push(tarefa.id);
+    planoSemanal[tarefa.id] = { dia: melhor, semana: sem };
+  }
+
+  const diasUteis = ['Seg','Ter','Qua','Qui','Sex'];
+  prioA.forEach(t=>adicionarAoDia(t, diasUteis));
+  prioB.forEach(t=>adicionarAoDia(t, [...diasUteis,'Sáb']));
+  prioC.forEach(t=>adicionarAoDia(t, DIAS));
+
+  savePlano();
+  renderSemana();
+}
+
+function limparDistribuicao(){
+  const sem = getSemanaAtual();
+  Object.keys(planoSemanal).forEach(id=>{
+    if(planoSemanal[id].semana===sem) delete planoSemanal[id];
+  });
+  savePlano();
+  renderSemana();
+}
+
+function moverParaDia(tarefaId, novoDia){
+  const sem = getSemanaAtual();
+  planoSemanal[tarefaId] = { dia: novoDia, semana: sem };
+  savePlano();
+  renderSemana();
+}
+
+function removerDoDia(tarefaId){
+  delete planoSemanal[tarefaId];
+  savePlano();
+  renderSemana();
+}
+
+function renderSemana(){
+  const semEl = document.getElementById('sem-selector');
+  if(!semEl) return;
+  const sem = semEl.value;
+
+  // Título
+  const titEl = document.getElementById('sem-titulo');
+  if(titEl) titEl.textContent = `${sem} — Plano da Semana`;
+
+  // Tarefas desta semana
+  const tarefasSem = tarefas.filter(t=>t.semana===sem);
+  const feitas     = tarefasSem.filter(t=>t.status==='feita').length;
+  const total      = tarefasSem.length;
+  const semDistrib = tarefasSem.filter(t=>t.status==='pendente' && !planoSemanal[t.id]);
+  const pctSem     = total ? Math.round(feitas/total*100) : 0;
+
+  // Progresso
+  const progTexto = document.getElementById('sem-prog-texto');
+  const progBarra = document.getElementById('sem-prog-barra');
+  const progPct   = document.getElementById('sem-prog-pct');
+  if(progTexto) progTexto.innerHTML = `<b>${feitas}</b> de <b>${total}</b> tarefas concluídas${semDistrib.length?' · <span style="color:var(--amber)">${semDistrib.length} sem dia definido</span>':''}`;
+  if(progBarra) progBarra.style.width = pctSem+'%';
+  if(progBarra) progBarra.style.background = pctSem===100?'var(--green)':pctSem>50?'var(--amber)':'var(--blue)';
+  if(progPct)   progPct.textContent = pctSem+'%';
+
+  // Subtítulo
+  const subEl = document.getElementById('sem-subtitulo');
+  if(subEl) subEl.textContent = `${total} tarefas · ${tarefasSem.filter(t=>t.prio==='A').length} prio A · ${tarefasSem.filter(t=>t.prio==='B').length} prio B · ${tarefasSem.filter(t=>t.prio==='C').length} prio C`;
+
+  const pb = {A:'badge-bad',B:'badge-warn',C:'badge-new'};
+  const diasEl = document.getElementById('sem-dias');
+  if(!diasEl) return;
+
+  // Construir cards por dia
+  diasEl.innerHTML = DIAS.map(dia=>{
+    const tarefasDia = tarefasSem.filter(t=>planoSemanal[t.id]?.dia===dia);
+    const feitasDia  = tarefasDia.filter(t=>t.status==='feita').length;
+    const totalDia   = tarefasDia.length;
+    const pctDia     = totalDia ? Math.round(feitasDia/totalDia*100) : 0;
+    const corDia     = pctDia===100?'var(--green)':pctDia>0?'var(--amber)':'var(--text3)';
+    const hoje       = new Date().toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');
+    const isHoje     = false; // simplificado
+
+    return `<div style="border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+      <!-- Header do dia -->
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);cursor:pointer"
+           onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <div style="min-width:90px;font-size:13px;font-weight:500">${DIAS_LABEL[dia]}</div>
+        <div style="font-size:11px;color:var(--text3)">${CARGA[dia]}h disponíveis</div>
+        <div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;max-width:120px">
+          <div style="height:5px;width:${pctDia}%;background:${corDia};border-radius:3px;transition:width .3s"></div>
+        </div>
+        <div style="font-size:12px;font-weight:500;color:${corDia};min-width:60px;text-align:right">
+          ${totalDia?`${feitasDia}/${totalDia} feitas`:'<span style="color:var(--text3)">vazio</span>'}
+        </div>
+        <div style="font-size:11px;color:var(--text3)">▼</div>
+      </div>
+
+      <!-- Corpo do dia -->
+      <div style="padding:8px 14px;${totalDia===0?'display:none':''}">
+        ${tarefasDia.length===0
+          ? `<div style="font-size:12px;color:var(--text3);padding:8px 0;text-align:center">Nenhuma tarefa · <button class="btn btn-sm" onclick="event.stopPropagation()" style="font-size:11px">+ Adicionar</button></div>`
+          : tarefasDia.map(t=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+            <!-- Checkbox -->
+            <div class="task-check ${t.status==='feita'?'done':''}" onclick="toggleTarefa(${t.id})" style="flex-shrink:0">
+              ${t.status==='feita'?'<i class="ti ti-check" style="font-size:11px;color:white"></i>':''}
+            </div>
+            <!-- Info -->
+            <div style="flex:1;min-width:0">
+              <div class="task-text ${t.status==='feita'?'done':''}" style="font-size:13px">${t.assunto}</div>
+              <div style="font-size:11px;color:var(--text3)">${t.disc} · ${t.tipo}
+                ${t.link?`· <a href="${t.link}" target="_blank" onclick="event.stopPropagation()">🔗</a>`:''}
+              </div>
+            </div>
+            <!-- Prio -->
+            <span class="badge ${pb[t.prio]||'badge-pend'}" style="flex-shrink:0">[${t.prio}]</span>
+            <!-- Mover para outro dia -->
+            <select onchange="moverParaDia(${t.id},this.value);this.value=''"
+              style="font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text);flex-shrink:0"
+              title="Mover para outro dia">
+              <option value="">📅</option>
+              ${DIAS.filter(d=>d!==dia).map(d=>`<option value="${d}">${d}</option>`).join('')}
+            </select>
+            <!-- Remover do dia -->
+            <button class="del-btn" onclick="removerDoDia(${t.id})" title="Remover do plano" style="flex-shrink:0">✕</button>
+          </div>`).join('')
+        }
+
+        <!-- Adicionar tarefa sem dia a este dia -->
+        ${semDistrib.length>0?`
+        <div style="margin-top:6px">
+          <select onchange="moverParaDia(parseInt(this.value),'${dia}');this.value=''"
+            style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text);width:100%">
+            <option value="">+ Adicionar tarefa pendente a ${dia}</option>
+            ${semDistrib.map(t=>`<option value="${t.id}">[${t.prio}] ${t.assunto} · ${t.disc}</option>`).join('')}
+          </select>
+        </div>`:``}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Tarefas sem dia definido
+  if(semDistrib.length){
+    diasEl.innerHTML += `
+    <div style="border:1px solid var(--amber);border-radius:var(--radius-lg);padding:10px 14px;background:var(--amber-bg,#FEF9E7)">
+      <div style="font-size:12px;font-weight:500;color:var(--amber);margin-bottom:6px">
+        ⚠️ ${semDistrib.length} tarefa${semDistrib.length>1?'s':''} sem dia definido
+      </div>
+      ${semDistrib.map(t=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+        <span class="badge ${pb[t.prio]||'badge-pend'}">[${t.prio}]</span>
+        <div style="flex:1;font-size:12px">${t.assunto} · <span style="color:var(--text3)">${t.disc}</span></div>
+        <select onchange="moverParaDia(${t.id},this.value);this.value=''"
+          style="font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)">
+          <option value="">Alocar para...</option>
+          ${DIAS.map(d=>`<option value="${d}">${d}</option>`).join('')}
+        </select>
+      </div>`).join('')}
+      <button class="btn btn-sm" onclick="distribuirAuto()" style="margin-top:8px;font-size:12px">
+        <i class="ti ti-wand"></i> Distribuir automaticamente
+      </button>
+    </div>`;
+  }
+}
+
 // ── BACKUP / RESTORE ────────────────────────────────────────────────────────
 function exportarDados(){
   const dados = {
@@ -986,6 +1242,7 @@ async function load(){
   try{ const r=localStorage.getItem(LS_S); if(r) sessoes=JSON.parse(r); }catch(e){}
   try{ const r=localStorage.getItem(LS_T); if(r) tarefas=JSON.parse(r); }catch(e){}
   try{ const r=localStorage.getItem(LS_E); if(r) erros=JSON.parse(r); }catch(e){}
+  try{ const r=localStorage.getItem(LS_P); if(r) planoSemanal=JSON.parse(r); }catch(e){}
 
   // 2. Se não tem nada local, usar seed
   if(!sessoes.length) sessoes = SEED_S;
@@ -1068,6 +1325,7 @@ function renderAll(){
   renderReforco();
   renderRegistrar();
   renderCaderno();
+  renderSemana();
 }
 
 function renderMetrics(){
