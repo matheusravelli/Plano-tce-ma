@@ -1289,7 +1289,11 @@ function renderRevisao(){
           <div style="height:3px;width:${pctD}%;background:${pctD===100?'var(--green)':'var(--blue)'};border-radius:2px"></div>
         </div>
       </button>`;
-    }).join('') + '</div>';
+    }).join('') +
+    '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">' +
+    '<button onclick="modalNovoTopico()" style="width:100%;text-align:left;padding:7px 10px;border-radius:var(--radius);border:1px dashed var(--border2);cursor:pointer;font-size:12px;font-family:inherit;background:transparent;color:var(--text2)">+ Novo tópico</button>' +
+    '</div>' +
+    '</div>';
 
   // ── Conteúdo ──────────────────────────────────────────────────────────────
   const disc = DADOS_REVISAO[revDisc];
