@@ -1307,7 +1307,9 @@ function renderRevisao(){
         return true;
       });
 
-    if(!filtered.length) continue;
+    // Só pular se filtro ativo E sem resultado (não pular tópicos naturalmente vazios)
+    const temFiltroAtivo = revFiltro!=='todos' || busca;
+    if(!filtered.length && temFiltroAtivo) continue;
 
     const revCount = filtered.filter(({id})=>revisaoProgress[id]).length;
     const topicFoco = revTopicFoco===topic;
@@ -1374,6 +1376,10 @@ function renderRevisao(){
             </button>
           </div>
         </div>
+      ${filtered.length===0 ? `
+        <div style="padding:12px;text-align:center;color:var(--text3);font-size:12px;font-style:italic">
+          Nenhum item ainda — clique em <b>+ Item</b> acima para adicionar
+        </div>` : ''}
       ${filtered.map(({item,id})=>{
         const done = !!revisaoProgress[id];
         const ts = TYPE_STYLE[item.type]||TYPE_STYLE.concept;
