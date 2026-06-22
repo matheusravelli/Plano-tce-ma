@@ -142,8 +142,7 @@ alter table tarefas disable row level security;
     <button class="nav-btn" onclick="showView('importar',this)"><i class="ti ti-file-import"></i> Importar metas</button>
     <button class="nav-btn" onclick="showView('evolucao',this)"><i class="ti ti-trending-up"></i> Evolução</button>
     <button class="nav-btn" onclick="showView('reforco',this)"><i class="ti ti-refresh-alert"></i> Reforço</button>
-    <button class="nav-btn" onclick="showView('caderno',this)"><i class="ti ti-notebook"></i> Caderno de Erros</button>
-    <button class="nav-btn" onclick="showView('revisao',this)"><i class="ti ti-books"></i> Revisão</button>
+    <button class="nav-btn" onclick="showView('estudo',this)"><i class="ti ti-books"></i> Estudo</button>
     <button class="nav-btn" onclick="showView('desempenho',this)"><i class="ti ti-chart-bar"></i> Desempenho</button>
   </div>
 
@@ -373,8 +372,59 @@ alter table tarefas disable row level security;
     </div>
   </div>
 
-  <!-- CADERNO DE ERROS -->
-  <div id="view-caderno" class="view">
+  <!-- ESTUDO: REVISÃO + CADERNO DE ERROS -->
+  <div id="view-estudo" class="view">
+    <!-- Sub-abas internas -->
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.25rem">
+      <button class="nav-btn active" id="estudo-tab-revisao"
+        onclick="setEstudoTab('revisao')"
+        style="font-size:13px;padding:8px 16px;border:none;border-bottom:2px solid var(--text);background:transparent;cursor:pointer;font-family:inherit;color:var(--text);font-weight:500">
+        📚 Revisão
+      </button>
+      <button class="nav-btn" id="estudo-tab-erros"
+        onclick="setEstudoTab('erros')"
+        style="font-size:13px;padding:8px 16px;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2);font-weight:400">
+        📓 Caderno de Erros
+      </button>
+    </div>
+
+    <!-- Painel Revisão -->
+    <div id="estudo-painel-revisao">
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap">
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:500">Caderno de Revisão — Engenharia Civil</div>
+        <div style="font-size:12px;color:var(--text2)" id="rev-stats"></div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm" onclick="abrirTodosTópicos()" style="font-size:11px">▼ Abrir todos</button>
+        <button class="btn btn-sm" onclick="fecharTodosTópicos()" style="font-size:11px">▲ Fechar todos</button>
+        <button class="btn btn-sm" onclick="exportarRevisao()" style="font-size:11px" title="Exportar JSON">💾 Exportar</button>
+      </div>
+      <input type="text" id="rev-busca" placeholder="Buscar em todos os tópicos..."
+        oninput="renderRevisao()"
+        style="width:200px;padding:6px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+      <div class="tabs" style="margin:0">
+        <button class="tab active" onclick="setRevFiltro('todos',this)">Todos</button>
+        <button class="tab" onclick="setRevFiltro('alert',this)">⚠️ Atenção</button>
+        <button class="tab" onclick="setRevFiltro('bizu',this)">💡 Bizu</button>
+        <button class="tab" onclick="setRevFiltro('norma',this)">📋 Norma</button>
+        <button class="tab" onclick="setRevFiltro('concept',this)">📘 Conceito</button>
+        <button class="tab" onclick="setRevFiltro('pendente',this)">Não revisados</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:220px 1fr;gap:12px;align-items:start">
+      <!-- Sidebar disciplinas -->
+      <div id="rev-sidebar" style="position:sticky;top:0"></div>
+      <!-- Conteúdo -->
+      <div id="rev-conteudo"></div>
+    </div>
+    </div>
+
+    <!-- Painel Erros -->
+    <div id="estudo-painel-erros" style="display:none">
+
 
     <!-- Métricas -->
     <div class="metric-grid" id="cad-metrics"></div>
@@ -449,33 +499,6 @@ alter table tarefas disable row level security;
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- REVISÃO -->
-  <div id="view-revisao" class="view">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap">
-      <div style="flex:1">
-        <div style="font-size:15px;font-weight:500">Caderno de Revisão — Engenharia Civil</div>
-        <div style="font-size:12px;color:var(--text2)" id="rev-stats"></div>
-      </div>
-      <input type="text" id="rev-busca" placeholder="Buscar em todos os tópicos..."
-        oninput="renderRevisao()"
-        style="width:220px;padding:6px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
-      <div class="tabs" style="margin:0">
-        <button class="tab active" onclick="setRevFiltro('todos',this)">Todos</button>
-        <button class="tab" onclick="setRevFiltro('alert',this)">⚠️ Atenção</button>
-        <button class="tab" onclick="setRevFiltro('bizu',this)">💡 Bizu</button>
-        <button class="tab" onclick="setRevFiltro('norma',this)">📋 Norma</button>
-        <button class="tab" onclick="setRevFiltro('concept',this)">📘 Conceito</button>
-        <button class="tab" onclick="setRevFiltro('pendente',this)">Não revisados</button>
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:220px 1fr;gap:12px;align-items:start">
-      <!-- Sidebar disciplinas -->
-      <div id="rev-sidebar" style="position:sticky;top:0"></div>
-      <!-- Conteúdo -->
-      <div id="rev-conteudo"></div>
     </div>
   </div>
 
@@ -1178,17 +1201,51 @@ function abrirRevisaoAssunto(discKey, topicName){
   // Navegar para aba revisão
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
-  document.getElementById('view-revisao').classList.add('active');
+  document.getElementById('view-estudo').classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(btn=>{
-    if(btn.textContent.includes('Revisão')) btn.classList.add('active');
+    if(btn.textContent.includes('Estudo')) btn.classList.add('active');
   });
-  renderRevisao();
+  setEstudoTab('revisao');
   setTimeout(()=>{
     const el = document.getElementById('rev-topic-'+CSS.escape(topicName));
     if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
   }, 100);
 }
 let revTopicFoco = null;
+let revTopicsAbertos = new Set(); // guarda quais tópicos estão abertos
+
+function toggleTopico(key){
+  if(revTopicsAbertos.has(key)) revTopicsAbertos.delete(key);
+  else revTopicsAbertos.add(key);
+  // Atualizar só aquele tópico sem re-renderizar tudo
+  const corpo = document.getElementById('rev-corpo-'+key);
+  const icone = document.getElementById('rev-icone-'+key);
+  if(corpo){
+    const aberto = revTopicsAbertos.has(key);
+    corpo.style.display = aberto ? 'block' : 'none';
+    if(icone) icone.textContent = aberto ? '▲' : '▼';
+  }
+}
+
+function abrirTodosTópicos(){
+  document.querySelectorAll('[id^="rev-corpo-"]').forEach(el=>{
+    const key = el.id.replace('rev-corpo-','');
+    revTopicsAbertos.add(key);
+    el.style.display='block';
+    const ic = document.getElementById('rev-icone-'+key);
+    if(ic) ic.textContent='▲';
+  });
+}
+
+function fecharTodosTópicos(){
+  revTopicsAbertos.clear();
+  document.querySelectorAll('[id^="rev-corpo-"]').forEach(el=>{
+    el.style.display='none';
+    const key = el.id.replace('rev-corpo-','');
+    const ic = document.getElementById('rev-icone-'+key);
+    if(ic) ic.textContent='▼';
+  });
+}
 
 function renderRevisao(){
   const sideEl = document.getElementById('rev-sidebar');
@@ -1253,32 +1310,67 @@ function renderRevisao(){
     const topicFoco = revTopicFoco===topic;
     const emReforco = [...assuntosReforco].some(a=>topic.toLowerCase().includes(a)||a.includes(topic.toLowerCase()));
 
+    const topicKey = (revDisc+'__'+topic).replace(/[^a-zA-Z0-9]/g,'_');
+    const aberto = revTopicsAbertos.has(topicKey) || topicFoco;
+    if(topicFoco) revTopicsAbertos.add(topicKey);
+
     html_out += `
-    <div id="rev-topic-${topic.replace(/[^a-zA-Z0-9]/g,'_')}" style="margin-bottom:1.5rem;scroll-margin-top:10px">
-      <!-- Header tópico -->
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;
-                  background:var(--bg2);border-radius:var(--radius);
-                  ${topicFoco?'border:1px solid var(--blue)':'border:1px solid var(--border)'}">
+    <div id="rev-topic-${topic.replace(/[^a-zA-Z0-9]/g,'_')}" style="margin-bottom:8px;scroll-margin-top:10px">
+      <!-- Header tópico clicável -->
+      <div onclick="toggleTopico('${topicKey}')"
+        style="display:flex;align-items:center;gap:8px;padding:10px 12px;
+               background:var(--bg2);border-radius:${aberto?'var(--radius) var(--radius) 0 0':'var(--radius)'};
+               ${topicFoco?'border:1px solid var(--blue)':'border:1px solid var(--border)'};
+               cursor:pointer;user-select:none;transition:border-radius .15s">
         <div style="flex:1">
           <div style="font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px">
             ${topic}
             ${emReforco?'<span style="font-size:10px;padding:2px 6px;border-radius:10px;background:var(--red-bg,#FDEDEC);color:var(--red)">⚠️ Reforço</span>':''}
+            ${(()=>{
+              // Verificar se há tarefas pendentes vinculadas a este tópico
+              const tarefasVinc = tarefas.filter(t=>t.status==='pendente'&&t.assunto&&topic&&
+                (t.assunto.toLowerCase().includes(topic.toLowerCase().slice(0,8))||
+                 topic.toLowerCase().includes(t.assunto.toLowerCase().slice(0,8))));
+              return tarefasVinc.length ?
+                `<span style="font-size:10px;padding:2px 6px;border-radius:10px;background:var(--blue-bg,#EBF5FB);color:var(--blue);cursor:pointer"
+                  onclick="event.stopPropagation();showView('registrar',null);setRegPrio('todas',document.getElementById('rtab-todas'))"
+                  title="Ver tarefas vinculadas">📋 ${tarefasVinc.length} tarefa${tarefasVinc.length>1?'s':''}</span>` : '';
+            })()}
           </div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px">${filtered.length} itens · ${revCount} revisados</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:1px">${filtered.length} itens · ${revCount} revisados</div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <div style="height:4px;width:80px;background:var(--bg3);border-radius:2px;overflow:hidden">
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="height:4px;width:60px;background:var(--bg3);border-radius:2px;overflow:hidden">
             <div style="height:4px;width:${filtered.length?Math.round(revCount/filtered.length*100):0}%;background:var(--green);border-radius:2px"></div>
           </div>
-          <button onclick="marcarTopicTodo('${revDisc}','${topic.replace(/'/g,"\'")}',${JSON.stringify(items.map((_,i)=>revDisc+'__'+topic+'__'+i))})"
-            style="font-size:11px;padding:3px 8px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;white-space:nowrap">
-            ✅ Marcar todos
-          </button>
+          <span id="rev-icone-${topicKey}" style="font-size:11px;color:var(--text3)">${aberto?'▲':'▼'}</span>
         </div>
       </div>
 
-      <!-- Itens do tópico -->
-      <div style="display:flex;flex-direction:column;gap:6px">
+      <!-- Itens do tópico (colapsável) -->
+      <div id="rev-corpo-${topicKey}"
+        style="display:${aberto?'block':'none'};border:1px solid var(--border);border-top:none;
+               border-radius:0 0 var(--radius) var(--radius);padding:10px 12px;
+               display:${aberto?'flex':'none'};flex-direction:column;gap:6px;background:var(--bg)">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:4px">
+          <div style="display:flex;gap:6px">
+            <button onclick="event.stopPropagation();modalNovoItem('${revDisc}','${topic.replace(/'/g,"\'")}')"
+              style="font-size:11px;padding:3px 8px;border:1px dashed var(--border2);border-radius:var(--radius);
+                     background:transparent;color:var(--text2);cursor:pointer;font-family:inherit">
+              + Item
+            </button>
+            <button onclick="event.stopPropagation();modalEditarTopico('${revDisc}','${topic.replace(/'/g,"\'")}')"
+              style="font-size:11px;padding:3px 8px;border:1px solid var(--border2);border-radius:var(--radius);
+                     background:transparent;color:var(--text2);cursor:pointer;font-family:inherit">
+              ✏️ Renomear
+            </button>
+            <button onclick="event.stopPropagation();marcarTopicTodo('${revDisc}','${topic.replace(/'/g,"\'")}',${JSON.stringify(items.map((_,i)=>revDisc+'__'+topic+'__'+i))})"
+              style="font-size:11px;padding:3px 8px;border:1px solid var(--border2);border-radius:var(--radius);
+                     background:transparent;color:var(--text2);cursor:pointer;font-family:inherit">
+              ✅ Todos
+            </button>
+          </div>
+        </div>
       ${filtered.map(({item,id})=>{
         const done = !!revisaoProgress[id];
         const ts = TYPE_STYLE[item.type]||TYPE_STYLE.concept;
@@ -1318,6 +1410,7 @@ function renderRevisao(){
           </div>
         </div>`;
       }).join('')}
+      </div>
       </div>
     </div>`;
   }
@@ -1363,6 +1456,90 @@ function salvarEdicaoItem(id, safeId){
   document.getElementById('rev-texto-'+safeId).textContent = novoTexto;
   document.getElementById('rev-texto-'+safeId).style.display='block';
   document.getElementById('rev-edit-'+safeId).style.display='none';
+}
+
+// ── MODAL DE EDIÇÃO DA REVISÃO ──────────────────────────────────────────────
+function modalNovoTopico(){
+  const nome = prompt('Nome do novo tópico:');
+  if(!nome||!nome.trim()) return;
+  if(!DADOS_REVISAO[revDisc].topics) DADOS_REVISAO[revDisc].topics = {};
+  if(DADOS_REVISAO[revDisc].topics[nome.trim()]){
+    alert('Tópico já existe.'); return;
+  }
+  DADOS_REVISAO[revDisc].topics[nome.trim()] = [];
+  salvarDadosRevisao();
+  revTopicsAbertos.add((revDisc+'__'+nome.trim()).replace(/[^a-zA-Z0-9]/g,'_'));
+  renderRevisao();
+}
+
+function modalEditarTopico(discKey, topicAtual){
+  const novo = prompt('Novo nome do tópico:', topicAtual);
+  if(!novo||!novo.trim()||novo.trim()===topicAtual) return;
+  const items = DADOS_REVISAO[discKey].topics[topicAtual];
+  delete DADOS_REVISAO[discKey].topics[topicAtual];
+  DADOS_REVISAO[discKey].topics[novo.trim()] = items;
+  salvarDadosRevisao();
+  renderRevisao();
+}
+
+function modalNovoItem(discKey, topic){
+  // Criar modal inline
+  const overlay = document.createElement('div');
+  overlay.id = 'rev-modal-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:1.5rem;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto">
+      <div style="font-size:15px;font-weight:500;margin-bottom:4px">+ Novo item</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:1rem">${topic}</div>
+      <div style="margin-bottom:10px">
+        <label class="form-label">Tipo</label>
+        <select id="modal-tipo" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit;font-size:13px">
+          <option value="concept">📘 Conceito</option>
+          <option value="alert">⚠️ Atenção</option>
+          <option value="bizu">💡 Bizu</option>
+          <option value="norma">📋 Norma/Lei</option>
+        </select>
+      </div>
+      <div style="margin-bottom:1rem">
+        <label class="form-label">Conteúdo</label>
+        <textarea id="modal-texto" rows="5" placeholder="Digite o conteúdo do item..."
+          style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit;font-size:13px;resize:vertical"></textarea>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="confirmarNovoItem('${discKey.replace(/'/g,"\'")}','${topic.replace(/'/g,"\'")}')"
+          class="btn btn-primary">Adicionar</button>
+        <button onclick="document.getElementById('rev-modal-overlay').remove()"
+          class="btn">Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('modal-texto').focus();
+}
+
+function confirmarNovoItem(discKey, topic){
+  const tipo  = document.getElementById('modal-tipo').value;
+  const texto = document.getElementById('modal-texto').value.trim();
+  if(!texto){ alert('Digite o conteúdo.'); return; }
+  if(!DADOS_REVISAO[discKey].topics[topic]) DADOS_REVISAO[discKey].topics[topic]=[];
+  DADOS_REVISAO[discKey].topics[topic].push({type:tipo, text:texto});
+  salvarDadosRevisao();
+  document.getElementById('rev-modal-overlay').remove();
+  // Garantir que o tópico fique aberto
+  const topicKey = (discKey+'__'+topic).replace(/[^a-zA-Z0-9]/g,'_');
+  revTopicsAbertos.add(topicKey);
+  renderRevisao();
+}
+
+function salvarDadosRevisao(){
+  localStorage.setItem('tcema_revisao_dados', JSON.stringify(DADOS_REVISAO));
+}
+
+function exportarRevisao(){
+  const blob = new Blob([JSON.stringify(DADOS_REVISAO,null,2)],{type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download='dados_revisao_engenharia.json'; a.click();
+  URL.revokeObjectURL(url);
 }
 
 function marcarTopicTodo(discKey, topic, ids){
@@ -1628,16 +1805,40 @@ function statusBadge(p, meta){
 }
 function barColor(p,meta){ return p>=meta?'#639922':p>=meta-8?'#EF9F27':'#E24B4A'; }
 
+let estudoTabAtiva = 'revisao';
+
+function setEstudoTab(tab){
+  estudoTabAtiva = tab;
+  const panRev = document.getElementById('estudo-painel-revisao');
+  const panErr = document.getElementById('estudo-painel-erros');
+  const tabRev = document.getElementById('estudo-tab-revisao');
+  const tabErr = document.getElementById('estudo-tab-erros');
+  if(!panRev||!panErr) return;
+
+  if(tab==='revisao'){
+    panRev.style.display='block'; panErr.style.display='none';
+    if(tabRev){ tabRev.style.borderBottomColor='var(--text)'; tabRev.style.color='var(--text)'; tabRev.style.fontWeight='500'; }
+    if(tabErr){ tabErr.style.borderBottomColor='transparent'; tabErr.style.color='var(--text2)'; tabErr.style.fontWeight='400'; }
+    setTimeout(renderRevisao, 50);
+  } else {
+    panRev.style.display='none'; panErr.style.display='block';
+    if(tabErr){ tabErr.style.borderBottomColor='var(--text)'; tabErr.style.color='var(--text)'; tabErr.style.fontWeight='500'; }
+    if(tabRev){ tabRev.style.borderBottomColor='transparent'; tabRev.style.color='var(--text2)'; tabRev.style.fontWeight='400'; }
+    setTimeout(renderCaderno, 50);
+  }
+}
+
 function showView(v, btn){
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
-  document.getElementById('view-'+v).classList.add('active');
+  // Mapear views antigas para a nova
+  const viewReal = (v==='caderno'||v==='revisao') ? 'estudo' : v;
+  document.getElementById('view-'+viewReal).classList.add('active');
   if(btn) btn.classList.add('active');
   renderAll();
-  // Garantir render específico após transição
-  if(v==='revisao') setTimeout(renderRevisao, 50);
   if(v==='semana')  setTimeout(renderSemana,  50);
-  if(v==='caderno') setTimeout(renderCaderno, 50);
+  if(v==='revisao'||v==='estudo') setTimeout(()=>setEstudoTab('revisao'), 50);
+  if(v==='caderno') setTimeout(()=>setEstudoTab('erros'), 50);
 }
 
 function renderAll(){
@@ -1651,9 +1852,13 @@ function renderAll(){
   renderEvolucao();
   renderReforco();
   renderRegistrar();
-  renderCaderno();
   renderSemana();
-  renderRevisao();
+  // Renderizar aba estudo só se estiver visível
+  const estudoView = document.getElementById('view-estudo');
+  if(estudoView && estudoView.classList.contains('active')){
+    if(estudoTabAtiva==='revisao') renderRevisao();
+    else renderCaderno();
+  }
 }
 
 function renderMetrics(){
@@ -2351,6 +2556,10 @@ async function syncAgora(){
   // Testar conexão silenciosamente ao abrir
   setTimeout(testarConexao, 500);
 })();
+<script>
+document.addEventListener('click', e=>{
+  if(e.target.id==='rev-modal-overlay') e.target.remove();
+});
 </script>
 </body>
 </html>
