@@ -1753,9 +1753,9 @@ async function load(){
     }
   }catch(e){}
 
-  // 2. Se não tem nada local, usar seed
-  if(!sessoes.length) sessoes = SEED_S;
-  if(!tarefas.length) tarefas = SEED_T;
+  // 2. Se não tem nada local E Supabase não configurado, usar seed
+  if(!sessoes.length && !sbConfigured()) sessoes = SEED_S;
+  if(!tarefas.length && !sbConfigured()) tarefas = SEED_T;
 
   // 3. Se Supabase configurado, buscar dados remotos (sobrescreve local)
   if(sbConfigured()){
@@ -1770,16 +1770,11 @@ async function load(){
       if(rs.ok && rt.ok){
         const ds = await rs.json();
         const dt = await rt.json();
-        if(ds.length || dt.length){
-          sessoes = ds.length ? ds : SEED_S;
-          tarefas = dt.length ? dt : SEED_T;
-          localStorage.setItem(LS_S, JSON.stringify(sessoes));
-          localStorage.setItem(LS_T, JSON.stringify(tarefas));
-        } else {
-          // Banco vazio — fazer seed inicial
-          await saveSessoes();
-          await saveTarefas();
-        }
+        // Sempre usar dados do Supabase quando conectado
+        sessoes = ds;
+        tarefas = dt;
+        localStorage.setItem(LS_S, JSON.stringify(sessoes));
+        localStorage.setItem(LS_T, JSON.stringify(tarefas));
         // Re-renderizar com dados do Supabase
         renderAll();
         // Erros (tabela pode não existir ainda — sem crash)
