@@ -1682,29 +1682,23 @@ const LS_T = 'tcema_tarefas';
 async function saveSessoes(){
   localStorage.setItem(LS_S, JSON.stringify(sessoes));
   if(!sbConfigured()) return;
-  try {
-    // Upsert completo: delete e reinsere apenas as novas/alteradas
-    // Para simplicidade: upsert por id
-    await fetch(`${getSbUrl()}/rest/v1/sessoes`, {
-      method:'POST',
-      headers:{...sbHeaders(),'Prefer':'resolution=merge-duplicates'},
-      body: JSON.stringify(sessoes)
-    });
+  try{
+    const baseUrl = getSbUrl().replace(/\/+$/,'');
+    for(let i=0; i<sessoes.length; i+=50){
+      const lote = sessoes.slice(i,i+50);
+      const r = await fetch(`${baseUrl}/rest/v1/sessoes`, {
+        method:'POST',
+        headers:{...sbHeaders(),'Prefer':'resolution=merge-duplicates'},
+        body: JSON.stringify(lote)
+      });
+      if(!r.ok){
+        const err = await r.text();
+        console.warn('Supabase saveSessoes erro:', r.status, err);
+      }
+    }
   } catch(e){ console.warn('Supabase save sessoes falhou:', e); }
 }
 
-// Salvar tarefas
-async function saveTarefas(){
-  localStorage.setItem(LS_T, JSON.stringify(tarefas));
-  if(!sbConfigured()) return;
-  try {
-    await fetch(`${getSbUrl()}/rest/v1/tarefas`, {
-      method:'POST',
-      headers:{...sbHeaders(),'Prefer':'resolution=merge-duplicates'},
-      body: JSON.stringify(tarefas)
-    });
-  } catch(e){ console.warn('Supabase save tarefas falhou:', e); }
-}
 
 // Deletar sessão
 async function deleteSessaoRemote(id){
@@ -1771,12 +1765,16 @@ async function load(){
       if(rs.ok && rt.ok){
         const ds = await rs.json();
         const dt = await rt.json();
-        // Sempre usar dados do Supabase quando conectado
-        sessoes = ds;
-        tarefas = dt;
-        localStorage.setItem(LS_S, JSON.stringify(sessoes));
-        localStorage.setItem(LS_T, JSON.stringify(tarefas));
-        // Re-renderizar com dados do Supabase
+        // Usar o conjunto com mais dados (evita sobrescrever com dados antigos)
+        if(ds.length >= sessoes.length) {
+          sessoes = ds;
+          localStorage.setItem(LS_S, JSON.stringify(sessoes));
+        }
+        if(dt.length >= tarefas.length) {
+          tarefas = dt;
+          localStorage.setItem(LS_T, JSON.stringify(tarefas));
+        }
+        // Re-renderizar com dados atualizados
         renderAll();
         // Erros (tabela pode não existir ainda — sem crash)
         if(re && re.ok){
