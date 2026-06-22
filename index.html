@@ -1700,6 +1700,32 @@ async function saveSessoes(){
 }
 
 
+// Salvar tarefas
+async function saveTarefas(){
+  localStorage.setItem(LS_T, JSON.stringify(tarefas));
+  if(!sbConfigured()) return;
+  try {
+    const baseUrl = getSbUrl().replace(/\/+$/,'');
+    // Enviar só campos que a tabela aceita
+    const limpas = tarefas.map(t=>({
+      id:t.id, semana:t.semana, prio:t.prio, disc:t.disc,
+      tipo:t.tipo, assunto:t.assunto, link:t.link||'',
+      status:t.status, obs:t.obs||''
+    }));
+    for(let i=0; i<limpas.length; i+=50){
+      const r = await fetch(`${baseUrl}/rest/v1/tarefas`, {
+        method:'POST',
+        headers:{...sbHeaders(),'Prefer':'resolution=merge-duplicates'},
+        body: JSON.stringify(limpas.slice(i,i+50))
+      });
+      if(!r.ok){
+        const err = await r.text();
+        console.warn('saveTarefas erro:', r.status, err);
+      }
+    }
+  } catch(e){ console.warn('saveTarefas falhou:', e); }
+}
+
 // Deletar sessão
 async function deleteSessaoRemote(id){
   if(!sbConfigured()) return;
