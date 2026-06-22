@@ -1780,6 +1780,8 @@ async function load(){
           await saveSessoes();
           await saveTarefas();
         }
+        // Re-renderizar com dados do Supabase
+        renderAll();
         // Erros (tabela pode não existir ainda — sem crash)
         if(re && re.ok){
           const de = await re.json();
@@ -1803,7 +1805,7 @@ async function load(){
 
 // load e save definidos abaixo via Supabase
 
-function pct(a,q){ return q>0 ? Math.round(a/q*100) : 0; }
+function pct(a,q){ if(a==null||q==null||q<=0) return 0; return Math.round(a/q*100); }
 
 function statusBadge(p, meta){
   if(p===null||p===undefined) return '<span class="badge badge-pend">—</span>';
@@ -1881,14 +1883,14 @@ function renderMetrics(){
   const media = allP.length ? Math.round(allP.reduce((a,b)=>a+b,0)/allP.length) : 0;
   const abaixo= sessoes.filter(s=>s.acertos!=null&&s.meta&&pct(s.acertos,s.qtd)<s.meta).length;
   const pendT = tarefas.filter(t=>t.status==='pendente').length;
-  const html = `
+  const html_m = `
     <div class="metric"><div class="metric-label">Sessões</div><div class="metric-val">${total}</div><div class="metric-sub">${exec} com % registrado</div></div>
     <div class="metric"><div class="metric-label">Média geral</div><div class="metric-val">${media}%</div><div class="metric-sub">todas as sessões</div></div>
     <div class="metric"><div class="metric-label">Abaixo da meta</div><div class="metric-val">${abaixo}</div><div class="metric-sub">precisam de reforço</div></div>
     <div class="metric"><div class="metric-label">Tarefas pendentes</div><div class="metric-val">${pendT}</div><div class="metric-sub">a concluir</div></div>`;
-  document.getElementById('metrics').innerHTML = html;
+  document.getElementById('metrics').innerHTML = html_m;
   const dm = document.getElementById('desemp-metrics');
-  if(dm) dm.innerHTML = html;
+  if(dm) dm.innerHTML = html_m;
 }
 
 function renderUltimasSessoes(){
