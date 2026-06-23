@@ -2362,6 +2362,8 @@ async function load(){
         tarefas = dt;
         localStorage.setItem(LS_S, JSON.stringify(sessoes));
         localStorage.setItem(LS_T, JSON.stringify(tarefas));
+        // Re-renderizar com dados atualizados do Supabase
+        renderAll();
         // Re-renderizar com dados atualizados
         renderAll();
         // Erros (tabela pode não existir ainda — sem crash)
