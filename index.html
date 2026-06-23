@@ -580,8 +580,11 @@ function expandirTarefa(id){
 }
 
 async function registrarDaTarefa(id){
+  if(window._regSaving && window._regSaving[id]) return;
+  if(!window._regSaving) window._regSaving = {};
+  window._regSaving[id] = true;
   const t = tarefas.find(t=>t.id===id);
-  if(!t) return;
+  if(!t){ delete window._regSaving[id]; return; }
 
   const qtd     = parseInt(document.getElementById('rtf-qtd-'+id).value)||0;
   const acertos = document.getElementById('rtf-acertos-'+id).value!==''
@@ -633,9 +636,9 @@ async function registrarDaTarefa(id){
   saveTarefas();
 
   tarefaExpandida = null;
+  delete window._regSaving[id];
   renderAll();
 
-  // Feedback
   const msg = document.getElementById('reg-msg-'+id);
   if(msg){ msg.textContent = gravidade ? '✅ Registrado + erro no caderno' : '✅ Registrado'; }
 }
@@ -1834,8 +1837,13 @@ function semAtualizarPreview(id){
 }
 
 async function semRegistrar(id){
+  // Proteção contra duplo clique / duplo registro
+  if(window._semRegSaving && window._semRegSaving[id]) return;
+  if(!window._semRegSaving) window._semRegSaving = {};
+  window._semRegSaving[id] = true;
+
   const t = tarefas.find(t=>t.id===id);
-  if(!t) return;
+  if(!t){ delete window._semRegSaving[id]; return; }
 
   const qtd     = parseInt(document.getElementById('sem-qtd-'+id)?.value)||0;
   const acertos = document.getElementById('sem-acertos-'+id)?.value!==''
@@ -1868,6 +1876,7 @@ async function semRegistrar(id){
 
   semFecharRegistro(id);
   semRegAberto = null;
+  delete window._semRegSaving[id];
   renderAll();
 }
 
