@@ -1023,45 +1023,90 @@ function redistribuirRestantes(){
   const semInicioStr = localStorage.getItem('sem_inicio_'+sem);
   if(!semInicioStr){ alert('Defina a data de início da semana primeiro.'); return; }
 
+  // Verificar se há pendentes de semanas anteriores
+  const semanasComPendentes = [...new Set(
+    tarefas.filter(t=>t.status==='pendente' && t.semana!==sem).map(t=>t.semana)
+  )].sort();
+
+  if(semanasComPendentes.length > 0){
+    const lista = semanasComPendentes.join(', ');
+    const total = tarefas.filter(t=>t.status==='pendente' && semanasComPendentes.includes(t.semana)).length;
+    const incluir = confirm(
+      `Encontrei ${total} tarefas pendentes de semanas anteriores (${lista}).
+
+` +
+      `Deseja incluí-las na redistribuição desta semana junto com as de ${sem}?`
+    );
+    if(incluir){
+      redistribuirMultiplas([...semanasComPendentes, sem], semInicioStr);
+    } else {
+      redistribuirMultiplas([sem], semInicioStr);
+    }
+  } else {
+    redistribuirMultiplas([sem], semInicioStr);
+  }
+}
+
+function redistribuirMultiplas(semanas, semInicioStr){
   const agora = new Date();
   const semInicio = new Date(semInicioStr);
   const diasOffset = {Seg:0,Ter:1,Qua:2,Qui:3,Sex:4,Sáb:5,Dom:6};
 
-  // Calcular dias restantes (hoje inclusive)
+  // Dias restantes desta semana (hoje inclusive)
   const diasRestantes = DIAS.filter(dia=>{
     const dataDia = new Date(semInicio);
     dataDia.setDate(semInicio.getDate() + diasOffset[dia]);
     return dataDia >= new Date(agora.getFullYear(),agora.getMonth(),agora.getDate());
   });
 
-  if(!diasRestantes.length){ alert('Nenhum dia restante nesta semana.'); return; }
+  if(!diasRestantes.length){
+    alert('Nenhum dia restante nesta semana.');
+    return;
+  }
 
-  // Pegar tarefas pendentes sem dia ou com dia já passado
-  const pendentes = tarefas.filter(t=>t.semana===sem && t.status==='pendente');
-  const paraRealocar = pendentes.filter(t=>{
-    const diaAtual = planoSemanal[t.id]?.dia;
-    if(!diaAtual) return true;
-    const dataDia = new Date(semInicio);
-    dataDia.setDate(semInicio.getDate() + diasOffset[diaAtual]);
-    return dataDia < new Date(agora.getFullYear(),agora.getMonth(),agora.getDate());
+  // Pegar todas as tarefas pendentes das semanas selecionadas
+  const pendentes = tarefas.filter(t=>
+    t.status==='pendente' && semanas.includes(t.semana)
+  );
+
+  if(!pendentes.length){
+    alert('Nenhuma tarefa pendente nas semanas selecionadas.');
+    return;
+  }
+
+  // Ordenar: Prio A primeiro, depois B, depois C
+  // Dentro de cada prio: semanas mais antigas primeiro
+  const sorted = [...pendentes].sort((a,b)=>{
+    const po = {A:0,B:1,C:2};
+    const prioDiff = (po[a.prio]||0)-(po[b.prio]||0);
+    if(prioDiff!==0) return prioDiff;
+    return a.semana.localeCompare(b.semana);
   });
 
-  if(!paraRealocar.length){ alert('Nenhuma tarefa para realocar.'); return; }
-
-  // Redistribuir por prioridade nos dias restantes
-  const sorted = [...paraRealocar].sort((a,b)=>({A:0,B:1,C:2}[a.prio]||0)-({A:0,B:1,C:2}[b.prio]||0));
+  // Distribuir equilibrado pelos dias restantes
   const slots = {};
   diasRestantes.forEach(d=>{ slots[d]=0; });
 
   sorted.forEach(t=>{
     const melhor = diasRestantes.reduce((min,d)=>slots[d]<slots[min]?d:min, diasRestantes[0]);
-    planoSemanal[t.id] = { dia: melhor, semana: sem };
+    planoSemanal[t.id] = { dia: melhor, semana: getSemanaAtual() };
     slots[melhor]++;
   });
 
   savePlano();
+
+  // Atualizar semana exibida para a atual
+  const semSel = document.getElementById('sem-selector');
+  if(semSel) semSel.value = getSemanaAtual();
+
   renderSemana();
-  alert(`✅ ${paraRealocar.length} tarefas redistribuídas em ${diasRestantes.length} dias restantes.`);
+
+  const msg = semanas.length > 1
+    ? `✅ ${sorted.length} tarefas (${semanas.join(' + ')}) distribuídas em ${diasRestantes.length} dias restantes.
+
+Dias: ${diasRestantes.join(', ')}`
+    : `✅ ${sorted.length} tarefas distribuídas em ${diasRestantes.length} dias restantes.`;
+  alert(msg);
 }
 
 function renderSemana(){
