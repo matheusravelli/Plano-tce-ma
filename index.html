@@ -670,6 +670,8 @@ function renderRegistrar(){
                 ${t.link?`· <a href="${t.link}" target="_blank" onclick="event.stopPropagation()">🔗</a>`:''}
               </div>
             </div>
+            <button onclick="event.stopPropagation();deleteTarefa(${t.id})" title="Excluir tarefa"
+              style="flex-shrink:0;border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:15px;padding:0 4px;line-height:1">✕</button>
             <div style="font-size:18px;color:var(--text3);flex-shrink:0">${expanded?'▲':'▼'}</div>
           </div>
 
