@@ -596,14 +596,14 @@ async function registrarDaTarefa(id){
   const s = {
     id: Date.now(),
     semana: t.semana,
-    data: new Date().toISOString().slice(0,10),
+    data: dataHoje(),
     disc: t.disc,
     assunto: t.assunto,
     tipo: t.tipo,
     qtd, acertos, meta,
     obs: obs||'',
     tempo_min: tempo||0,
-    tarefa_id: t.id
+    tarefa_id: Number(t.id)
   };
   sessoes.push(s);
   await saveSessoes();
@@ -617,7 +617,7 @@ async function registrarDaTarefa(id){
       disc: t.disc,
       assunto: t.assunto,
       semana: t.semana,
-      data: new Date().toISOString().slice(0,10),
+      data: dataHoje(),
       gravidade,
       descricao: padrao || obs || '',
       acao: '',
@@ -806,7 +806,7 @@ function addErro(){
     disc:      document.getElementById('ce-disc').value,
     assunto:   document.getElementById('ce-assunto').value.trim(),
     semana:    document.getElementById('ce-semana').value,
-    data:      new Date().toISOString().slice(0,10),
+    data:      dataHoje(),
     gravidade: document.getElementById('ce-gravidade').value,
     descricao: document.getElementById('ce-descricao').value.trim(),
     acao:      document.getElementById('ce-acao').value.trim(),
@@ -827,7 +827,7 @@ function atualizarStatusErro(id, novoStatus){
   const e = erros.find(e=>e.id===id);
   if(!e) return;
   e.status = novoStatus;
-  if(novoStatus==='superado') e.data_superado = new Date().toISOString().slice(0,10);
+  if(novoStatus==='superado') e.data_superado = dataHoje();
   saveErros();
   renderCaderno();
 }
@@ -1850,13 +1850,13 @@ async function semRegistrar(id){
   const s = {
     id: Date.now(),
     semana: t.semana,
-    data: new Date().toISOString().slice(0,10),
+    data: dataHoje(),
     disc: t.disc,
     assunto: t.assunto,
     tipo: t.tipo,
     qtd, acertos, meta,
     obs,
-    tempo_min: tempo,
+    tempo_min: parseInt(tempo)||0,
     tarefa_id: t.id
   };
   sessoes.push(s);
@@ -1908,8 +1908,8 @@ function renderDiario(){
   if(!el) return;
 
   const sem = document.getElementById('sem-selector')?.value || '';
-  const hoje = new Date().toISOString().slice(0,10);
-  const ontem = new Date(Date.now()-86400000).toISOString().slice(0,10);
+  const hoje = dataHoje();
+  const ontem = dataOntem();
 
   // ── Bloco especial de HOJE: tarefas planejadas + executadas ──────────────
   if(diarioFiltro==='hoje'){
@@ -2126,7 +2126,7 @@ function exportarDados(){
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href = url;
-  a.download = `tcema_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.download = `tcema_backup_${dataHoje()}.json`;
   a.click();
   URL.revokeObjectURL(url);
   document.getElementById('backup-msg').textContent = `✅ Backup exportado (${sessoes.length} sessões, ${tarefas.length} tarefas)`;
@@ -2379,6 +2379,16 @@ async function load(){
 
 function pct(a,q){ if(a==null||q==null||q<=0) return 0; return Math.round(a/q*100); }
 
+// Data local (evita problema de fuso UTC)
+function dataHoje(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function dataOntem(){
+  const d = new Date(Date.now()-86400000);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
 function statusBadge(p, meta){
   if(p===null||p===undefined) return '<span class="badge badge-pend">—</span>';
   if(p>=meta+6) return `<span class="badge badge-ok">⭐ ${p}%</span>`;
@@ -2541,7 +2551,7 @@ async function registrarSessao(){
   const s = {
     id:Date.now(),
     semana:document.getElementById('f-semana').value,
-    data:document.getElementById('f-data').value||new Date().toISOString().slice(0,10),
+    data:document.getElementById('f-data').value||dataHoje(),
     disc:document.getElementById('f-disc').value,
     assunto:document.getElementById('f-assunto').value.trim(),
     tipo:document.getElementById('f-tipo').value,
@@ -3050,7 +3060,7 @@ function gerarTarefaReforco(disc, assunto, meta, semana){
 document.getElementById('f-qtd').addEventListener('input',atualizarPreview);
 document.getElementById('f-acertos').addEventListener('input',atualizarPreview);
 document.getElementById('f-meta').addEventListener('input',atualizarPreview);
-document.getElementById('f-data').value=new Date().toISOString().slice(0,10);
+document.getElementById('f-data').value=dataHoje();
 
 // Carregar config do localStorage ao iniciar
 (()=>{
