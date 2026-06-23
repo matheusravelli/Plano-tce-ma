@@ -1223,19 +1223,70 @@ function renderSemana(){
         ${tarefasDia.length===0
           ? `<div style="font-size:12px;color:var(--text3);padding:6px 0">Nenhuma tarefa alocada para este dia.</div>`
           : tarefasDia.map(t=>`
-          <div style="display:grid;grid-template-columns:20px 1fr auto auto auto;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
-            <div class="task-check ${t.status==='feita'?'done':''}" onclick="toggleTarefa(${t.id})" style="cursor:pointer">
-              ${t.status==='feita'?'<i class="ti ti-check" style="font-size:11px;color:white"></i>':''}</div>
-            <div style="overflow:hidden">
-              <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${t.status==='feita'?'text-decoration:line-through;opacity:.5':''}">${t.assunto}</div>
-              <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.disc} · ${t.tipo}${t.link?` · <a href="${t.link}" target="_blank" onclick="event.stopPropagation()" style="color:var(--blue)">🔗</a>`:''}</div>
+          <!-- Linha principal da tarefa -->
+          <div id="sem-row-${t.id}" style="border-bottom:1px solid var(--border)">
+            <div style="display:grid;grid-template-columns:20px 1fr auto auto auto;align-items:center;gap:8px;padding:8px 0">
+              <div class="task-check ${t.status==='feita'?'done':''}"
+                onclick="semCheckClick(${t.id},'${t.status}')"
+                style="cursor:pointer">
+                ${t.status==='feita'?'<i class="ti ti-check" style="font-size:11px;color:white"></i>':''}</div>
+              <div style="overflow:hidden;cursor:${t.status==='feita'?'default':'pointer'}"
+                onclick="if('${t.status}'!=='feita') abrirRegistroSemana(${t.id})">
+                <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${t.status==='feita'?'text-decoration:line-through;opacity:.5':''}">${t.assunto}</div>
+                <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.disc} · ${t.tipo}${t.link?` · <a href="${t.link}" target="_blank" onclick="event.stopPropagation()" style="color:var(--blue)">🔗</a>`:''}</div>
+              </div>
+              <span class="badge ${pb[t.prio]||'badge-pend'}" style="font-size:10px;white-space:nowrap">[${t.prio}]</span>
+              <select onchange="moverParaDia(${t.id},this.value);this.value=''" title="Mover dia" style="font-size:11px;padding:2px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text);width:36px">
+                <option value="">📅</option>
+                ${DIAS.filter(d=>d!==dia).map(d=>`<option value="${d}">${d}</option>`).join('')}
+              </select>
+              <button onclick="removerDoDia(${t.id})" style="border:none;background:transparent;color:var(--text3);cursor:pointer;padding:0;font-size:13px;line-height:1">✕</button>
             </div>
-            <span class="badge ${pb[t.prio]||'badge-pend'}" style="font-size:10px;white-space:nowrap">[${t.prio}]</span>
-            <select onchange="moverParaDia(${t.id},this.value);this.value=''" title="Mover dia" style="font-size:11px;padding:2px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text);width:36px">
-              <option value="">📅</option>
-              ${DIAS.filter(d=>d!==dia).map(d=>`<option value="${d}">${d}</option>`).join('')}
-            </select>
-            <button onclick="removerDoDia(${t.id})" style="border:none;background:transparent;color:var(--text3);cursor:pointer;padding:0;font-size:13px;line-height:1">✕</button>
+            <!-- Formulário inline de registro (oculto por padrão) -->
+            <div id="sem-reg-${t.id}" style="display:none;padding:10px 12px;background:var(--bg2);border-radius:0 0 var(--radius) var(--radius);border-top:1px solid var(--border)">
+              <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:8px">Registrar desempenho</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+                <div>
+                  <label class="form-label">Questões</label>
+                  <input type="number" id="sem-qtd-${t.id}" value="${t.qtd||10}" min="1"
+                    style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"
+                    oninput="semAtualizarPreview(${t.id})">
+                </div>
+                <div>
+                  <label class="form-label">Acertos</label>
+                  <input type="number" id="sem-acertos-${t.id}" placeholder="ex: 8" min="0"
+                    style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"
+                    oninput="semAtualizarPreview(${t.id})">
+                </div>
+                <div>
+                  <label class="form-label">Meta (%)</label>
+                  <input type="number" id="sem-meta-${t.id}" value="${t.meta||75}" min="0" max="100"
+                    style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"
+                    oninput="semAtualizarPreview(${t.id})">
+                </div>
+                <div>
+                  <label class="form-label">Tempo (min)</label>
+                  <input type="number" id="sem-tempo-${t.id}" placeholder="ex: 45" min="0"
+                    style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+                </div>
+              </div>
+              <div style="margin-bottom:8px">
+                <label class="form-label">Obs / padrão de erro</label>
+                <input type="text" id="sem-obs-${t.id}" placeholder="Anotar onde errou..."
+                  style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <button onclick="semRegistrar(${t.id})"
+                  style="padding:5px 14px;border:none;border-radius:var(--radius);background:var(--text);color:var(--bg);font-size:12px;cursor:pointer;font-family:inherit;font-weight:500">
+                  ✅ Salvar e concluir
+                </button>
+                <button onclick="semFecharRegistro(${t.id})"
+                  style="padding:5px 12px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit">
+                  Cancelar
+                </button>
+                <div id="sem-preview-${t.id}" style="margin-left:auto;font-size:14px;font-weight:500"></div>
+              </div>
+            </div>
           </div>`).join('')
         }
 
@@ -1721,6 +1772,82 @@ function marcarTopicTodo(discKey, topic, ids){
   });
   saveRevisaoProgress();
   renderRevisao();
+}
+
+// ── REGISTRO INLINE NA SEMANA ───────────────────────────────────────────────
+let semRegAberto = null;
+
+function semCheckClick(id, status){
+  if(status==='feita') toggleTarefa(id);
+  else abrirRegistroSemana(id);
+}
+
+function abrirRegistroSemana(id){
+  // Fechar o anterior se existir
+  if(semRegAberto && semRegAberto!==id){
+    semFecharRegistro(semRegAberto);
+  }
+  semRegAberto = id;
+  const el = document.getElementById('sem-reg-'+id);
+  if(el){
+    el.style.display='block';
+    setTimeout(()=>{ document.getElementById('sem-acertos-'+id)?.focus(); },50);
+  }
+}
+
+function semFecharRegistro(id){
+  const el = document.getElementById('sem-reg-'+id);
+  if(el) el.style.display='none';
+  if(semRegAberto===id) semRegAberto=null;
+}
+
+function semAtualizarPreview(id){
+  const qtd  = parseInt(document.getElementById('sem-qtd-'+id)?.value)||0;
+  const ac   = parseInt(document.getElementById('sem-acertos-'+id)?.value)||0;
+  const meta = parseInt(document.getElementById('sem-meta-'+id)?.value)||75;
+  const prev = document.getElementById('sem-preview-'+id);
+  if(prev && qtd>0){
+    const p = pct(ac,qtd);
+    prev.innerHTML = `<span style="font-size:16px;margin-right:4px">${p}%</span>${statusBadge(p,meta)}`;
+  }
+}
+
+async function semRegistrar(id){
+  const t = tarefas.find(t=>t.id===id);
+  if(!t) return;
+
+  const qtd     = parseInt(document.getElementById('sem-qtd-'+id)?.value)||0;
+  const acertos = document.getElementById('sem-acertos-'+id)?.value!==''
+                  ? parseInt(document.getElementById('sem-acertos-'+id)?.value) : null;
+  const meta    = parseInt(document.getElementById('sem-meta-'+id)?.value)||75;
+  const tempo   = parseInt(document.getElementById('sem-tempo-'+id)?.value)||0;
+  const obs     = document.getElementById('sem-obs-'+id)?.value?.trim()||'';
+
+  if(!qtd){ alert('Informe a quantidade de questões'); return; }
+
+  // Criar sessão
+  const s = {
+    id: Date.now(),
+    semana: t.semana,
+    data: new Date().toISOString().slice(0,10),
+    disc: t.disc,
+    assunto: t.assunto,
+    tipo: t.tipo,
+    qtd, acertos, meta,
+    obs,
+    tempo_min: tempo,
+    tarefa_id: t.id
+  };
+  sessoes.push(s);
+  await saveSessoes();
+
+  // Marcar tarefa como feita
+  t.status = 'feita';
+  await saveTarefas();
+
+  semFecharRegistro(id);
+  semRegAberto = null;
+  renderAll();
 }
 
 // ── BACKUP / RESTORE ────────────────────────────────────────────────────────
