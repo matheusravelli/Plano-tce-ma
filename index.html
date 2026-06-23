@@ -1916,109 +1916,95 @@ function renderDiario(){
     const DIAS_IDX_NUM = {0:'Dom',1:'Seg',2:'Ter',3:'Qua',4:'Qui',5:'Sex',6:'Sáb'};
     const diaHoje = DIAS_IDX_NUM[new Date().getDay()];
 
-    // Tarefas planejadas para hoje (qualquer semana)
+    // Tarefas planejadas para hoje
     const planejadas = tarefas.filter(t=>planoSemanal[t.id]?.dia===diaHoje);
     const pendHoje   = planejadas.filter(t=>t.status==='pendente');
     const feitasHoje = planejadas.filter(t=>t.status==='feita');
 
-    // Sessões executadas hoje (sem filtro de acertos — inclui todas)
+    // Sessões de hoje
     const sessHoje = sessoes.filter(s=>s.data===hoje);
+    // Sessões fora do plano (sem tarefa vinculada ao plano de hoje)
+    const idsPlano = new Set(planejadas.map(t=>t.id));
+    const sessForaPlano = sessHoje.filter(s=>!s.tarefa_id||!idsPlano.has(Number(s.tarefa_id)));
 
-    // Métricas de hoje
+    // Métricas
     const sessComAcerto = sessHoje.filter(s=>s.acertos!=null&&s.qtd>0);
-    const totalQ  = sessComAcerto.reduce((a,s)=>a+(s.qtd||0),0);
-    const totalA  = sessComAcerto.reduce((a,s)=>a+(s.acertos||0),0);
-    const mediaH  = totalQ ? Math.round(totalA/totalQ*100) : 0;
-    const totalMin= sessHoje.reduce((a,s)=>a+(parseInt(s.tempo_min)||0),0);
-    const horasH  = totalMin>=60
+    const totalQ   = sessComAcerto.reduce((a,s)=>a+(s.qtd||0),0);
+    const totalA   = sessComAcerto.reduce((a,s)=>a+(s.acertos||0),0);
+    const mediaH   = totalQ ? Math.round(totalA/totalQ*100) : 0;
+    const totalMin = sessHoje.reduce((a,s)=>a+(parseInt(s.tempo_min)||0),0);
+    const horasH   = totalMin>=60
       ? Math.floor(totalMin/60)+'h'+(totalMin%60?String(totalMin%60).padStart(2,'0')+'min':'')
       : totalMin ? totalMin+'min' : '—';
+    const pb = {A:'badge-bad',B:'badge-warn',C:'badge-new'};
 
-    el.innerHTML = `
-      <!-- Métricas do dia -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem">
-        <div class="metric"><div class="metric-label">Planejadas</div><div class="metric-val">${planejadas.length}</div><div class="metric-sub">${feitasHoje.length} concluídas</div></div>
-        <div class="metric"><div class="metric-label">Sessões</div><div class="metric-val">${sessHoje.length}</div><div class="metric-sub">${totalQ} questões</div></div>
-        <div class="metric"><div class="metric-label">Média</div><div class="metric-val" style="color:${mediaH>=75?'var(--green)':mediaH>=65?'var(--amber)':'var(--red)'}">${mediaH||'—'}${mediaH?'%':''}</div></div>
-        <div class="metric"><div class="metric-label">Tempo</div><div class="metric-val">${horasH}</div></div>
-      </div>
-
-      <!-- Tarefas planejadas para hoje -->
-      ${pendHoje.length||feitasHoje.length ? `
-      <div class="card" style="margin-bottom:1rem;padding:.75rem 1rem">
-        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">
-          📅 Plano de hoje — ${diaHoje}
-        </div>
-        ${planejadas.map(t=>{
+    // Montar HTML das tarefas planejadas
+    let htmlPlanejadas = '';
+    if(planejadas.length){
+      htmlPlanejadas = '<div class="card" style="margin-bottom:1rem;padding:.75rem 1rem">' +
+        '<div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">📅 Plano de hoje — '+diaHoje+'</div>' +
+        planejadas.map(t=>{
           const feita = t.status==='feita';
-          const pb = {A:'badge-bad',B:'badge-warn',C:'badge-new'};
-          return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
-            <div class="task-check ${feita?'done':''}" onclick="semCheckClick(${t.id},'${t.status}')" style="cursor:pointer;flex-shrink:0">
-              ${feita?'<i class="ti ti-check" style="font-size:11px;color:white"></i>':''}
-            </div>
-            <div style="flex:1;min-width:0;cursor:${feita?'default':'pointer'}" onclick="if('${t.status}'!=='feita') abrirRegistroSemana(${t.id})">
-              <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${feita?'text-decoration:line-through;opacity:.5':''}">${t.assunto}</div>
-              <div style="font-size:11px;color:var(--text3)">${t.disc} · ${t.tipo} · ${t.semana}${t.link?` · <a href="${t.link}" target="_blank" onclick="event.stopPropagation()" style="color:var(--blue)">🔗</a>`:''}</div>
-            </div>
-            <span class="badge ${pb[t.prio]||'badge-pend'}" style="font-size:10px;flex-shrink:0">[${t.prio}]</span>
-          </div>
-          <!-- Formulário inline -->
-          <div id="sem-reg-${t.id}" style="display:none;padding:10px 12px;background:var(--bg2);border-radius:var(--radius);margin-bottom:4px;border:1px solid var(--border)">
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-              <div><label class="form-label">Questões</label>
-                <input type="number" id="sem-qtd-${t.id}" value="${t.qtd||10}" min="1"
-                  style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"
-                  oninput="semAtualizarPreview(${t.id})"></div>
-              <div><label class="form-label">Acertos</label>
-                <input type="number" id="sem-acertos-${t.id}" placeholder="ex: 8" min="0"
-                  style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"
-                  oninput="semAtualizarPreview(${t.id})"></div>
-              <div><label class="form-label">Meta (%)</label>
-                <input type="number" id="sem-meta-${t.id}" value="${t.meta||75}" min="0" max="100"
-                  style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"
-                  oninput="semAtualizarPreview(${t.id})"></div>
-              <div><label class="form-label">Tempo (min)</label>
-                <input type="number" id="sem-tempo-${t.id}" placeholder="ex: 45" min="0"
-                  style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"></div>
-            </div>
-            <div style="margin-bottom:8px">
-              <input type="text" id="sem-obs-${t.id}" placeholder="Obs / padrão de erro..."
-                style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <button onclick="semRegistrar(${t.id})"
-                style="padding:5px 14px;border:none;border-radius:var(--radius);background:var(--text);color:var(--bg);font-size:12px;cursor:pointer;font-family:inherit;font-weight:500">✅ Salvar</button>
-              <button onclick="semFecharRegistro(${t.id})"
-                style="padding:5px 12px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit">Cancelar</button>
-              <div id="sem-preview-${t.id}" style="margin-left:auto;font-size:14px;font-weight:500"></div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>` : ''}
+          return '<div id="sem-row-'+t.id+'" style="border-bottom:1px solid var(--border)">' +
+            '<div style="display:flex;align-items:center;gap:8px;padding:7px 0">' +
+            '<div class="task-check '+( feita?'done':'')+'" onclick="semCheckClick('+t.id+',\''+t.status+'\')" style="cursor:pointer;flex-shrink:0">' +
+            (feita?'<i class="ti ti-check" style="font-size:11px;color:white"></i>':'')+'</div>' +
+            '<div style="flex:1;min-width:0;cursor:'+( feita?'default':'pointer')+'" onclick="if(\''+t.status+'\'!==\'feita\') abrirRegistroSemana('+t.id+')">' +
+            '<div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+( feita?'text-decoration:line-through;opacity:.5':'')+'">'+t.assunto+'</div>' +
+            '<div style="font-size:11px;color:var(--text3)">'+t.disc+' · '+t.tipo+' · '+t.semana+(t.link?' · <a href="'+t.link+'" target="_blank" onclick="event.stopPropagation()" style="color:var(--blue)">🔗</a>':'')+'</div>' +
+            '</div>' +
+            '<span class="badge '+( pb[t.prio]||'badge-pend')+'" style="font-size:10px;flex-shrink:0">['+ t.prio+']</span>' +
+            '</div>' +
+            '<div id="sem-reg-'+t.id+'" style="display:none;padding:10px 12px;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:4px">' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px">' +
+            '<div><label class="form-label">Questões</label><input type="number" id="sem-qtd-'+t.id+'" value="'+( t.qtd||10)+'" min="1" style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)" oninput="semAtualizarPreview('+t.id+')"></div>' +
+            '<div><label class="form-label">Acertos</label><input type="number" id="sem-acertos-'+t.id+'" placeholder="ex: 8" min="0" style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)" oninput="semAtualizarPreview('+t.id+')"></div>' +
+            '<div><label class="form-label">Meta (%)</label><input type="number" id="sem-meta-'+t.id+'" value="'+( t.meta||75)+'" min="0" max="100" style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)" oninput="semAtualizarPreview('+t.id+')"></div>' +
+            '<div><label class="form-label">Tempo (min)</label><input type="number" id="sem-tempo-'+t.id+'" placeholder="ex: 45" min="0" style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"></div>' +
+            '</div>' +
+            '<div style="margin-bottom:8px"><input type="text" id="sem-obs-'+t.id+'" placeholder="Obs / padrão de erro..." style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"></div>' +
+            '<div style="display:flex;align-items:center;gap:8px">' +
+            '<button onclick="semRegistrar('+t.id+')" style="padding:5px 14px;border:none;border-radius:var(--radius);background:var(--text);color:var(--bg);font-size:12px;cursor:pointer;font-family:inherit;font-weight:500">✅ Salvar</button>' +
+            '<button onclick="semFecharRegistro('+t.id+')" style="padding:5px 12px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit">Cancelar</button>' +
+            '<div id="sem-preview-'+t.id+'" style="margin-left:auto;font-size:14px;font-weight:500"></div>' +
+            '</div></div></div>';
+        }).join('') + '</div>';
+    }
 
-      <!-- Sessões executadas hoje fora do plano -->
-      ${sessHoje.length ? `
-      <div class="section-title" style="margin-bottom:8px">✅ Executadas hoje</div>
-      <div class="card" style="padding:.75rem 1rem">
-        ${sessHoje.map(s=>{
+    // Montar HTML das sessões fora do plano
+    let htmlFora = '';
+    if(sessForaPlano.length){
+      htmlFora = '<div class="section-title" style="margin-bottom:8px">✅ Executadas hoje</div>' +
+        '<div class="card" style="padding:.75rem 1rem">' +
+        sessForaPlano.map(s=>{
           const p = s.acertos!=null ? pct(s.acertos,s.qtd) : null;
-          const tempoS = s.tempo_min ? '⏱ '+s.tempo_min+'min' : '';
-          return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
-            <div style="flex:1;min-width:0">
-              <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.assunto}</div>
-              <div style="font-size:11px;color:var(--text3)">${s.disc} · ${s.tipo}${s.acertos!=null?' · '+s.acertos+'/'+s.qtd+'q':''}${tempoS?' · '+tempoS:''}${s.obs?' · '+s.obs:''}</div>
-            </div>
-            ${p!==null ? statusBadge(p,s.meta||75) : '<span class="badge badge-pend">—</span>'}
-          </div>`;
-        }).join('')}
-      </div>` : ''}
+          const tMin = s.tempo_min ? '⏱ '+s.tempo_min+'min' : '';
+          return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">' +
+            '<div style="flex:1;min-width:0">' +
+            '<div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+s.assunto+'</div>' +
+            '<div style="font-size:11px;color:var(--text3)">'+s.disc+' · '+s.tipo+(s.acertos!=null?' · '+s.acertos+'/'+s.qtd+'q':'')+( tMin?' · '+tMin:'')+(s.obs?' · '+s.obs:'')+'</div>' +
+            '</div>' +
+            (p!==null?statusBadge(p,s.meta||75):'<span class="badge badge-pend">—</span>')+
+            '</div>';
+        }).join('') + '</div>';
+    }
 
-      ${!pendHoje.length && !feitasHoje.length && !sessHoje.length ? '<div class="empty" style="padding:2rem">Nenhuma atividade planejada para hoje ainda.</div>' : ''}
-    `;
+    const semVazio = !planejadas.length && !sessHoje.length;
+
+    el.innerHTML =
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem">' +
+      '<div class="metric"><div class="metric-label">Planejadas</div><div class="metric-val">'+planejadas.length+'</div><div class="metric-sub">'+feitasHoje.length+' concluídas</div></div>' +
+      '<div class="metric"><div class="metric-label">Sessões</div><div class="metric-val">'+sessHoje.length+'</div><div class="metric-sub">'+totalQ+' questões</div></div>' +
+      '<div class="metric"><div class="metric-label">Média</div><div class="metric-val" style="color:'+( mediaH>=75?'var(--green)':mediaH>=65?'var(--amber)':'var(--red)')+'">'+( mediaH||'—')+(mediaH?'%':'')+'</div></div>' +
+      '<div class="metric"><div class="metric-label">Tempo</div><div class="metric-val">'+horasH+'</div></div>' +
+      '</div>' +
+      htmlPlanejadas +
+      htmlFora +
+      (semVazio ? '<div class="empty" style="padding:2rem">Nenhuma atividade planejada para hoje ainda.</div>' : '');
     return;
   }
 
-  // ── Ontem e semana completa ───────────────────────────────────────────────
+  // ── Ontem e semana completa  // ── Ontem e semana completa ───────────────────────────────────────────────
   // Sem filtro de acertos — mostrar todas as sessões
   let sessoesFiltradas = [...sessoes];
   if(diarioFiltro==='semana') sessoesFiltradas = sessoesFiltradas.filter(s=>s.semana===sem);
