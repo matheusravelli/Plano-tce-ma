@@ -2237,8 +2237,9 @@ async function saveSessoes(){
   try{
     const baseUrl = getSbUrl().replace(/\/+$/,'');
     // Enviar só campos que existem na tabela
+    // Garantir campos uniformes — sem created_at, sem campos extras
     const limpas = sessoes.map(s=>({
-      id: s.id,
+      id: Number(s.id),
       semana: s.semana||'',
       data: s.data||'',
       disc: s.disc||'',
