@@ -241,8 +241,21 @@ alter table tarefas disable row level security;
       </div>
     </div>
 
-    <!-- Cards por dia -->
+    <!-- Cards por dia — Planejamento -->
     <div id="sem-dias" style="display:flex;flex-direction:column;gap:10px"></div>
+
+    <!-- Diário — sessões executadas -->
+    <div style="margin-top:1.5rem">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div class="section-title" style="margin:0;flex:1">📋 Diário de execução</div>
+        <div class="tabs" style="margin:0" id="diario-tabs">
+          <button class="tab active" onclick="setDiarioFiltro('semana',this)">Esta semana</button>
+          <button class="tab" onclick="setDiarioFiltro('hoje',this)">Hoje</button>
+          <button class="tab" onclick="setDiarioFiltro('ontem',this)">Ontem</button>
+        </div>
+      </div>
+      <div id="sem-diario"></div>
+    </div>
   </div>
 
   <!-- REGISTRAR -->
@@ -1303,6 +1316,9 @@ function renderSemana(){
     </div>`;
   }).join('');
 
+  // Renderizar diário
+  setTimeout(renderDiario, 50);
+
   // Tarefas sem dia definido
   if(semDistrib.length){
     diasEl.innerHTML += `
@@ -1850,6 +1866,113 @@ async function semRegistrar(id){
   renderAll();
 }
 
+// ── DIÁRIO DE EXECUÇÃO ──────────────────────────────────────────────────────
+let diarioFiltro = 'semana';
+
+function setDiarioFiltro(f, btn){
+  diarioFiltro = f;
+  document.querySelectorAll('#diario-tabs .tab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderDiario();
+}
+
+function renderDiario(){
+  const el = document.getElementById('sem-diario');
+  if(!el) return;
+
+  const sem = document.getElementById('sem-selector')?.value || '';
+  const hoje = new Date().toISOString().slice(0,10);
+  const ontem = new Date(Date.now()-86400000).toISOString().slice(0,10);
+
+  // Filtrar sessões
+  let sessoesFiltradas = [...sessoes].filter(s=>s.acertos!=null);
+  if(diarioFiltro==='semana') sessoesFiltradas = sessoesFiltradas.filter(s=>s.semana===sem);
+  else if(diarioFiltro==='hoje') sessoesFiltradas = sessoesFiltradas.filter(s=>s.data===hoje);
+  else if(diarioFiltro==='ontem') sessoesFiltradas = sessoesFiltradas.filter(s=>s.data===ontem);
+
+  if(!sessoesFiltradas.length){
+    el.innerHTML = `<div class="empty" style="padding:1.5rem">
+      ${diarioFiltro==='hoje'?'Nenhuma sessão registrada hoje ainda.':
+        diarioFiltro==='ontem'?'Nenhuma sessão registrada ontem.':
+        'Nenhuma sessão executada nesta semana ainda.'}
+    </div>`;
+    return;
+  }
+
+  // Agrupar por data
+  const porData = {};
+  sessoesFiltradas.forEach(s=>{
+    if(!porData[s.data]) porData[s.data]=[];
+    porData[s.data].push(s);
+  });
+
+  // Render por data (mais recente primeiro)
+  el.innerHTML = Object.entries(porData)
+    .sort((a,b)=>b[0].localeCompare(a[0]))
+    .map(([data, sessoesDia])=>{
+      // Métricas do dia
+      const totalQuestoes = sessoesDia.reduce((s,x)=>s+(x.qtd||0),0);
+      const totalAcertos  = sessoesDia.reduce((s,x)=>s+(x.acertos||0),0);
+      const mediaAcertos  = totalQuestoes ? Math.round(totalAcertos/totalQuestoes*100) : 0;
+      const totalMin      = sessoesDia.reduce((s,x)=>s+(parseInt(x.tempo_min)||0),0);
+      const horasStr      = totalMin>=60
+        ? Math.floor(totalMin/60)+'h'+(totalMin%60?String(totalMin%60).padStart(2,'0')+'min':'')
+        : totalMin ? totalMin+'min' : '—';
+      const abaixoMeta    = sessoesDia.filter(s=>s.meta&&pct(s.acertos,s.qtd)<s.meta).length;
+
+      // Formatar data
+      const dataObj = new Date(data+'T12:00:00');
+      const dataFmt = dataObj.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'});
+      const isHoje  = data===hoje;
+      const isOntem = data===ontem;
+      const labelData = isHoje?'Hoje':isOntem?'Ontem':dataFmt;
+
+      return `<div style="border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:10px;overflow:hidden">
+        <!-- Header do dia -->
+        <div style="padding:10px 14px;background:var(--bg2);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="font-size:13px;font-weight:600;flex:1">${labelData}</div>
+          <!-- Métricas rápidas -->
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <div style="text-align:center">
+              <div style="font-size:16px;font-weight:500">${sessoesDia.length}</div>
+              <div style="font-size:10px;color:var(--text3)">sessões</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:16px;font-weight:500">${totalQuestoes}</div>
+              <div style="font-size:10px;color:var(--text3)">questões</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:16px;font-weight:500;color:${mediaAcertos>=75?'var(--green)':mediaAcertos>=65?'var(--amber)':'var(--red)'}">${mediaAcertos}%</div>
+              <div style="font-size:10px;color:var(--text3)">média</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:16px;font-weight:500">${horasStr}</div>
+              <div style="font-size:10px;color:var(--text3)">tempo</div>
+            </div>
+            ${abaixoMeta?`<div style="text-align:center">
+              <div style="font-size:16px;font-weight:500;color:var(--red)">${abaixoMeta}</div>
+              <div style="font-size:10px;color:var(--text3)">abaixo meta</div>
+            </div>`:''}
+          </div>
+        </div>
+        <!-- Lista de sessões -->
+        <div style="padding:6px 14px">
+          ${sessoesDia.map(s=>{
+            const p = pct(s.acertos,s.qtd);
+            const tempoS = s.tempo_min ? `⏱ ${s.tempo_min}min` : '';
+            return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.assunto}</div>
+                <div style="font-size:11px;color:var(--text3)">${s.disc} · ${s.tipo} · ${s.acertos}/${s.qtd}q${tempoS?' · '+tempoS:''}${s.obs?' · <em>'+s.obs+'</em>':''}</div>
+              </div>
+              ${statusBadge(p,s.meta||75)}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }).join('');
+}
+
 // ── BACKUP / RESTORE ────────────────────────────────────────────────────────
 function exportarDados(){
   const dados = {
@@ -2172,6 +2295,7 @@ function renderAll(){
   renderReforco();
   renderRegistrar();
   renderSemana();
+  renderDiario();
   // Renderizar aba estudo só se estiver visível
   const estudoView = document.getElementById('view-estudo');
   if(estudoView && estudoView.classList.contains('active')){
