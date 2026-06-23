@@ -2343,18 +2343,11 @@ async function load(){
       if(rs.ok && rt.ok){
         const ds = await rs.json();
         const dt = await rt.json();
-        // Mesclar: unir Supabase + localStorage sem duplicar por id
-        const idsRemotoS = new Set(ds.map(s=>s.id));
-        const idsRemotoT = new Set(dt.map(t=>t.id));
-        const localExtraS = sessoes.filter(s=>!idsRemotoS.has(s.id));
-        const localExtraT = tarefas.filter(t=>!idsRemotoT.has(t.id));
-        sessoes = [...ds, ...localExtraS];
-        tarefas = [...dt, ...localExtraT];
+        // Supabase é a fonte de verdade — usar direto, sem merge
+        sessoes = ds;
+        tarefas = dt;
         localStorage.setItem(LS_S, JSON.stringify(sessoes));
         localStorage.setItem(LS_T, JSON.stringify(tarefas));
-        // Enviar para Supabase os registros que só existem local
-        if(localExtraS.length) saveSessoes();
-        if(localExtraT.length) saveTarefas();
         // Re-renderizar com dados atualizados
         renderAll();
         // Erros (tabela pode não existir ainda — sem crash)
