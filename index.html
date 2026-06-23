@@ -207,6 +207,11 @@ alter table tarefas disable row level security;
         <div style="font-size:16px;font-weight:500" id="sem-titulo">Semana atual</div>
         <div style="font-size:12px;color:var(--text2)" id="sem-subtitulo"></div>
       </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <label style="font-size:12px;color:var(--text2);white-space:nowrap">Início:</label>
+        <input type="date" id="sem-data-inicio" onchange="salvarDataInicio()"
+          style="padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);width:140px">
+      </div>
       <select id="sem-selector" onchange="renderSemana()" style="padding:6px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
         <option>S01</option><option>S02</option><option selected>S03</option>
         <option>S04</option><option>S05</option><option>S06</option>
@@ -217,6 +222,9 @@ alter table tarefas disable row level security;
       </button>
       <button class="btn btn-sm" onclick="limparDistribuicao()" title="Limpar distribuição">
         <i class="ti ti-trash"></i> Limpar
+      </button>
+      <button class="btn btn-sm" onclick="redistribuirRestantes()" title="Redistribuir nos dias restantes" id="btn-redistribuir" style="display:none">
+        <i class="ti ti-calendar-due"></i> Redistribuir restantes
       </button>
     </div>
 
@@ -1001,6 +1009,61 @@ function removerDoDia(tarefaId){
   renderSemana();
 }
 
+function salvarDataInicio(){
+  const sem = document.getElementById('sem-selector')?.value;
+  const data = document.getElementById('sem-data-inicio')?.value;
+  if(sem && data){
+    localStorage.setItem('sem_inicio_'+sem, data);
+    renderSemana();
+  }
+}
+
+function redistribuirRestantes(){
+  const sem = getSemanaAtual();
+  const semInicioStr = localStorage.getItem('sem_inicio_'+sem);
+  if(!semInicioStr){ alert('Defina a data de início da semana primeiro.'); return; }
+
+  const agora = new Date();
+  const semInicio = new Date(semInicioStr);
+  const diasOffset = {Seg:0,Ter:1,Qua:2,Qui:3,Sex:4,Sáb:5,Dom:6};
+
+  // Calcular dias restantes (hoje inclusive)
+  const diasRestantes = DIAS.filter(dia=>{
+    const dataDia = new Date(semInicio);
+    dataDia.setDate(semInicio.getDate() + diasOffset[dia]);
+    return dataDia >= new Date(agora.getFullYear(),agora.getMonth(),agora.getDate());
+  });
+
+  if(!diasRestantes.length){ alert('Nenhum dia restante nesta semana.'); return; }
+
+  // Pegar tarefas pendentes sem dia ou com dia já passado
+  const pendentes = tarefas.filter(t=>t.semana===sem && t.status==='pendente');
+  const paraRealocar = pendentes.filter(t=>{
+    const diaAtual = planoSemanal[t.id]?.dia;
+    if(!diaAtual) return true;
+    const dataDia = new Date(semInicio);
+    dataDia.setDate(semInicio.getDate() + diasOffset[diaAtual]);
+    return dataDia < new Date(agora.getFullYear(),agora.getMonth(),agora.getDate());
+  });
+
+  if(!paraRealocar.length){ alert('Nenhuma tarefa para realocar.'); return; }
+
+  // Redistribuir por prioridade nos dias restantes
+  const sorted = [...paraRealocar].sort((a,b)=>({A:0,B:1,C:2}[a.prio]||0)-({A:0,B:1,C:2}[b.prio]||0));
+  const slots = {};
+  diasRestantes.forEach(d=>{ slots[d]=0; });
+
+  sorted.forEach(t=>{
+    const melhor = diasRestantes.reduce((min,d)=>slots[d]<slots[min]?d:min, diasRestantes[0]);
+    planoSemanal[t.id] = { dia: melhor, semana: sem };
+    slots[melhor]++;
+  });
+
+  savePlano();
+  renderSemana();
+  alert(`✅ ${paraRealocar.length} tarefas redistribuídas em ${diasRestantes.length} dias restantes.`);
+}
+
 function renderSemana(){
   const semEl = document.getElementById('sem-selector');
   if(!semEl) return;
@@ -1009,6 +1072,15 @@ function renderSemana(){
   // Título
   const titEl = document.getElementById('sem-titulo');
   if(titEl) titEl.textContent = `${sem} — Plano da Semana`;
+
+  // Carregar data de início salva
+  const dataInicioEl = document.getElementById('sem-data-inicio');
+  const dataSalva = localStorage.getItem('sem_inicio_'+sem);
+  if(dataInicioEl) dataInicioEl.value = dataSalva || '';
+
+  // Mostrar/esconder botão redistribuir
+  const btnRedist = document.getElementById('btn-redistribuir');
+  if(btnRedist) btnRedist.style.display = dataSalva ? 'inline-flex' : 'none';
 
   // Tarefas desta semana
   const tarefasSem = tarefas.filter(t=>t.semana===sem);
@@ -1034,22 +1106,64 @@ function renderSemana(){
   const diasEl = document.getElementById('sem-dias');
   if(!diasEl) return;
 
+  // Detectar dia atual da semana
+  const agora = new Date();
+  const diaSemanaHoje = agora.getDay(); // 0=dom,1=seg,...,6=sab
+  // Mapear índice do dia para posição em DIAS
+  const DIAS_IDX = {Seg:1,Ter:2,Qua:3,Qui:4,Sex:5,Sáb:6,Dom:0};
+  const DIAS_IDX_NUM = {0:'Dom',1:'Seg',2:'Ter',3:'Qua',4:'Qui',5:'Sex',6:'Sáb'};
+  const diaHojeNome = DIAS_IDX_NUM[diaSemanaHoje];
+
+  // Verificar se semana selecionada é a semana atual
+  // Usar localStorage para mapear semana → data de início
+  const semanaAtual = sem; // ex: S04
+  const semInicioStr = localStorage.getItem('sem_inicio_'+semanaAtual);
+  let isSemanaNow = false;
+  let diasPassados = new Set();
+  let diasRestantes = [...DIAS];
+
+  if(semInicioStr){
+    // Calcular quais dias já passaram
+    const semInicio = new Date(semInicioStr);
+    DIAS.forEach(dia=>{
+      const diasOffset = {Seg:0,Ter:1,Qua:2,Qui:3,Sex:4,Sáb:5,Dom:6};
+      const dataDia = new Date(semInicio);
+      dataDia.setDate(semInicio.getDate() + diasOffset[dia]);
+      // Dia já passou (anterior a hoje, não conta hoje)
+      if(dataDia < new Date(agora.getFullYear(),agora.getMonth(),agora.getDate())){
+        diasPassados.add(dia);
+      }
+    });
+    isSemanaNow = true;
+    diasRestantes = DIAS.filter(d=>!diasPassados.has(d));
+  }
+
   // Construir cards por dia
   diasEl.innerHTML = DIAS.map(dia=>{
     const tarefasDia = tarefasSem.filter(t=>planoSemanal[t.id]?.dia===dia);
     const feitasDia  = tarefasDia.filter(t=>t.status==='feita').length;
     const totalDia   = tarefasDia.length;
     const pctDia     = totalDia ? Math.round(feitasDia/totalDia*100) : 0;
-    const corDia     = pctDia===100?'var(--green)':pctDia>0?'var(--amber)':'var(--text3)';
-    const hoje       = new Date().toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');
-    const isHoje     = false; // simplificado
+    const isHoje     = dia===diaHojeNome && isSemanaNow;
+    const isPassado  = diasPassados.has(dia) && isSemanaNow;
+    const corDia     = isPassado&&pctDia<100 ? 'var(--red)' :
+                       pctDia===100?'var(--green)':
+                       isHoje?'var(--blue)':
+                       pctDia>0?'var(--amber)':'var(--text3)';
 
-    return `<div style="border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+    const borderColor = isHoje ? 'var(--blue)' : isPassado&&pctDia<100 ? 'var(--red)' : 'var(--border)';
+    const bgHeader = isHoje ? 'var(--blue-bg,#EBF5FB)' : isPassado ? 'var(--bg3)' : 'var(--bg2)';
+    return `<div style="border:1px solid ${borderColor};border-radius:var(--radius-lg);overflow:hidden;opacity:${isPassado&&pctDia===0?'0.5':'1'}">
       <!-- Header do dia -->
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);cursor:pointer"
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${bgHeader};cursor:pointer"
            onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-        <div style="min-width:90px;font-size:13px;font-weight:500">${DIAS_LABEL[dia]}</div>
-        <div style="font-size:11px;color:var(--text3)">${CARGA[dia]}h disponíveis</div>
+        <div style="min-width:90px">
+          <div style="font-size:13px;font-weight:${isHoje?'700':'500'};color:${isHoje?'var(--blue)':'var(--text)'}">${DIAS_LABEL[dia]}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:1px">
+            ${isHoje?'📍 Hoje':isPassado?'✓ Encerrado':''}
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text3)">${CARGA[dia]}h</div>
         <div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;max-width:120px">
           <div style="height:5px;width:${pctDia}%;background:${corDia};border-radius:3px;transition:width .3s"></div>
         </div>
