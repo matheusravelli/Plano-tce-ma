@@ -2459,10 +2459,33 @@ function renderMetrics(){
   const pendT = tarefas.filter(t=>t.status==='pendente').length;
   const totalMin = sessoes.reduce((s,sess)=>s+(parseInt(sess.tempo_min)||0),0);
   const totalH = totalMin>=60 ? Math.floor(totalMin/60)+'h'+(totalMin%60?String(totalMin%60).padStart(2,'0')+'min':'') : totalMin ? totalMin+'min' : '—';
+  // Detalhe da conta da média (últimas 3 sessões com acerto)
+  const ultimasExec = sessoes.filter(s=>s.acertos!=null&&s.qtd>0).slice(-3);
+  const detalheMedia = ultimasExec.length
+    ? ultimasExec.map(s=>pct(s.acertos,s.qtd)+'%').join(' · ') + (allP.length>3?' · ...('+allP.length+'total)':'')
+    : 'nenhuma sessão';
+
   const html_m = `
-    <div class="metric"><div class="metric-label">Sessões</div><div class="metric-val">${total}</div><div class="metric-sub">${exec} com % registrado</div></div>
-    <div class="metric"><div class="metric-label">Média geral</div><div class="metric-val">${media}%</div><div class="metric-sub">todas as sessões</div></div>
-    <div class="metric"><div class="metric-label">Abaixo da meta</div><div class="metric-val">${abaixo}</div><div class="metric-sub">precisam de reforço</div></div>
+    <div class="metric">
+      <div class="metric-label">Sessões</div>
+      <div class="metric-val">${total}</div>
+      <div class="metric-sub">${exec} com acertos registrados</div>
+    </div>
+    <div class="metric" title="Conta: soma de todos os % ÷ número de sessões com acerto">
+      <div class="metric-label">Média geral</div>
+      <div class="metric-val">${media}%</div>
+      <div class="metric-sub" style="cursor:help" title="${detalheMedia}">
+        ${exec} sessões · ∑÷${exec}
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px;line-height:1.4">
+        Últimas: ${detalheMedia}
+      </div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Horas estudadas</div>
+      <div class="metric-val">${totalH}</div>
+      <div class="metric-sub">${abaixo} sessões abaixo da meta</div>
+    </div>
     <div class="metric"><div class="metric-label">Tarefas pendentes</div><div class="metric-val">${pendT}</div><div class="metric-sub">a concluir</div></div>`;
   document.getElementById('metrics').innerHTML = html_m;
   const dm = document.getElementById('desemp-metrics');
@@ -3151,4 +3174,3 @@ document.addEventListener('click', e=>{
 });
 </script>
 </body>
-      ${!pendHoje.length && !feitasHoje.length && !sessHoje.length ? '<div class="empty" style="padding:2rem">Nenhuma atividade planejada para hoje.</div>' : ''}
