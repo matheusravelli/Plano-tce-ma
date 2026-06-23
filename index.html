@@ -2236,12 +2236,26 @@ async function saveSessoes(){
   if(!sbConfigured()) return;
   try{
     const baseUrl = getSbUrl().replace(/\/+$/,'');
-    for(let i=0; i<sessoes.length; i+=50){
-      const lote = sessoes.slice(i,i+50);
+    // Enviar só campos que existem na tabela
+    const limpas = sessoes.map(s=>({
+      id: s.id,
+      semana: s.semana||'',
+      data: s.data||'',
+      disc: s.disc||'',
+      assunto: s.assunto||'',
+      tipo: s.tipo||'',
+      qtd: parseInt(s.qtd)||0,
+      acertos: s.acertos!=null ? parseInt(s.acertos) : null,
+      meta: parseInt(s.meta)||75,
+      obs: s.obs||'',
+      tempo_min: parseInt(s.tempo_min)||0,
+      tarefa_id: s.tarefa_id ? Number(s.tarefa_id) : null
+    }));
+    for(let i=0; i<limpas.length; i+=50){
       const r = await fetch(`${baseUrl}/rest/v1/sessoes`, {
         method:'POST',
         headers:{...sbHeaders(),'Prefer':'resolution=merge-duplicates'},
-        body: JSON.stringify(lote)
+        body: JSON.stringify(limpas.slice(i,i+50))
       });
       if(!r.ok){
         const err = await r.text();
