@@ -383,11 +383,41 @@ alter table tarefas disable row level security;
 
   <!-- REFORÇO -->
   <div id="view-reforco" class="view">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-      <div class="section-title" style="margin:0;flex:1">Reforço necessário</div>
-      <span style="font-size:12px;color:var(--text2)">Assuntos abaixo da meta nas últimas sessões</span>
+    <!-- Sub-abas Reforço -->
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
+      <button id="rf-tab-atual" onclick="setRfTab('atual')"
+        style="padding:7px 16px;font-size:13px;font-weight:500;border:none;border-bottom:2px solid var(--text);background:transparent;cursor:pointer;font-family:inherit;color:var(--text)">
+        📊 TCE-MA atual
+      </button>
+      <button id="rf-tab-hist" onclick="setRfTab('hist')"
+        style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
+        📚 Histórico MG+RN
+      </button>
     </div>
-    <div id="rf-lista"></div>
+
+    <!-- Painel atual -->
+    <div id="rf-painel-atual">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Assuntos abaixo da meta nas sessões do TCE-MA</div>
+      <div id="rf-lista"></div>
+    </div>
+
+    <!-- Painel histórico -->
+    <div id="rf-painel-hist" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <div style="font-size:12px;color:var(--text2);flex:1">Consolidado dos ciclos TCE-MG (set/25–jan/26) e TCE-RN (fev/26–abr/26)</div>
+        <div class="tabs" style="margin:0" id="rf-hist-tabs">
+          <button class="tab active" onclick="setRfHistFiltro('todos',this)">Todos</button>
+          <button class="tab" onclick="setRfHistFiltro('critico',this)">🔴 &lt;60%</button>
+          <button class="tab" onclick="setRfHistFiltro('alerta',this)">🟠 60–69%</button>
+          <button class="tab" onclick="setRfHistFiltro('atencao',this)">🟡 70–74%</button>
+        </div>
+        <select id="rf-hist-disc" onchange="renderRfHistorico()"
+          style="padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+          <option value="">Todas as disciplinas</option>
+        </select>
+      </div>
+      <div id="rf-hist-lista"></div>
+    </div>
     <div style="margin-top:1.5rem">
       <div class="section-title">Tarefas de reforço geradas</div>
       <div class="card" id="rf-tarefas-geradas"><div class="empty">Nenhuma tarefa de reforço gerada ainda</div></div>
@@ -1352,6 +1382,8 @@ function renderSemana(){
 }
 
 // ── REVISÃO ─────────────────────────────────────────────────────────────────
+const HISTORICO_MG_RN = [{"disc":"PNFL","assunto":"Viabilidade Econômico-Financeira","media":55,"q":15,"fonte":"MG"},{"disc":"PNFL","assunto":"Iluminação Pública","media":61,"q":18,"fonte":"RN"},{"disc":"Obras de Edificações","assunto":"Instalações Elétricas","media":48,"q":55,"fonte":"MG+RN"},{"disc":"Dir. Constitucional","assunto":"Funções Essenciais à Justiça (MP, OAB)","media":57,"q":35,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Condutos Forçados / Bombas","media":42,"q":55,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Instalações de Combate a Incêndio","media":60,"q":45,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Impermeabilização","media":63,"q":55,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Sistema de Coleta de Esgoto","media":63,"q":24,"fonte":"RN"},{"disc":"Obras de Edificações","assunto":"Estruturas de Concreto","media":65,"q":90,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"COSO e Controle Interno","media":65,"q":70,"fonte":"MG+RN"},{"disc":"Controle Externo","assunto":"Controle Administrativo","media":65,"q":90,"fonte":"MG+RN"},{"disc":"PNFL","assunto":"Canteiro de Obras / Segurança (NR-24)","media":65,"q":50,"fonte":"MG+RN"},{"disc":"PNFL","assunto":"PPPs - Lei 11.079/2004","media":65,"q":65,"fonte":"MG+RN"},{"disc":"Dir. Constitucional","assunto":"Remédios Constitucionais","media":64,"q":55,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Drenagem e OAE","media":64,"q":75,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Fundações","media":68,"q":40,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Patologias e Manutenção Rodoviária","media":68,"q":60,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"Amostragem em Auditoria","media":67,"q":50,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Turbinas e Geradores","media":67,"q":70,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Impactos Ambientais Rodoviários","media":67,"q":30,"fonte":"MG"},{"disc":"Controle Externo","assunto":"Improbidade Administrativa (Lei 8.429/92)","media":68,"q":75,"fonte":"MG+RN"},{"disc":"Dir. Constitucional","assunto":"Poder Executivo","media":68,"q":35,"fonte":"MG+RN"},{"disc":"Dir. Administrativo","assunto":"Atos Administrativos","media":67,"q":80,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"SICRO","media":60,"q":35,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Condutos Livres / Canais","media":60,"q":30,"fonte":"MG"},{"disc":"Obras Rodoviárias","assunto":"Sinalização","media":62,"q":25,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Revestimentos e Pinturas","media":65,"q":45,"fonte":"MG"},{"disc":"Obras de Edificações","assunto":"Cobertura","media":68,"q":35,"fonte":"MG"},{"disc":"Dir. Constitucional","assunto":"Direitos Sociais","media":66,"q":50,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Pavimentação","media":69,"q":130,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"ETE - Estação de Tratamento de Esgoto","media":69,"q":120,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Esquadrias","media":59,"q":34,"fonte":"MG"},{"disc":"PNFL","assunto":"GVA - Gerenciamento do Valor Agregado","media":72,"q":45,"fonte":"MG+RN"},{"disc":"PNFL","assunto":"Anteprojeto / Projeto Básico / Executivo","media":70,"q":25,"fonte":"RN"},{"disc":"PNFL","assunto":"Concessões - Lei 8.987/1995","media":70,"q":40,"fonte":"MG+RN"},{"disc":"PNFL","assunto":"Legislação Ambiental (CONAMA)","media":72,"q":65,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"Conceitos Básicos de Auditoria","media":72,"q":65,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"ISSAI 100 e Normas Internacionais","media":72,"q":50,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"Testes e Procedimentos de Auditoria","media":71,"q":55,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"Planejamento de Auditoria","media":74,"q":40,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"ETA - Estação de Tratamento de Água","media":72,"q":80,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Barragens","media":71,"q":85,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Irrigação e Drenagem","media":72,"q":50,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Drenagem Urbana / Macrodrenagem","media":74,"q":60,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Sondagens de Solo / Ensaios","media":72,"q":65,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Controle Tecnológico","media":72,"q":80,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Terraplenagem","media":74,"q":80,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Especificações de Materiais","media":73,"q":50,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Instalações Hidrossanitárias","media":70,"q":50,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Controle Tecnológico do Concreto","media":74,"q":45,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Engenharia de Avaliações (NBR 14653)","media":74,"q":55,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Estruturas Metálicas","media":71,"q":25,"fonte":"MG"},{"disc":"Dir. Constitucional","assunto":"Direitos Fundamentais","media":74,"q":60,"fonte":"MG+RN"},{"disc":"Dir. Constitucional","assunto":"Organização Político-Administrativa","media":70,"q":40,"fonte":"MG+RN"},{"disc":"Dir. Constitucional","assunto":"Poder Judiciário","media":72,"q":50,"fonte":"MG+RN"},{"disc":"Dir. Administrativo","assunto":"Nova Lei de Licitações (14.133/21)","media":74,"q":60,"fonte":"MG+RN"},{"disc":"Controle Externo","assunto":"Abrangência do Controle (art. 70 CF)","media":74,"q":30,"fonte":"MG"},{"disc":"Controle Externo","assunto":"LOTCE-RN e RITCE-RN","media":74,"q":46,"fonte":"RN"},{"disc":"AFO","assunto":"Receita e Despesa Pública","media":74,"q":75,"fonte":"MG+RN"},{"disc":"AFO","assunto":"LRF e Responsabilidade Fiscal","media":72,"q":55,"fonte":"MG+RN"},{"disc":"LP","assunto":"Coesão e Coerência Textual","media":74,"q":50,"fonte":"MG+RN"},{"disc":"LP","assunto":"Crase e Pontuação","media":70,"q":30,"fonte":"MG+RN"},{"disc":"LP","assunto":"Tipologia e Gênero Textual","media":72,"q":30,"fonte":"MG+RN"},{"disc":"LP","assunto":"Funções Sintáticas / Reescrita","media":70,"q":25,"fonte":"MG+RN"}];
+
 const DADOS_REVISAO = {"10_RODOVIAS_PAVIMENTACAO":{"name":"Rodovias e Pavimentação","emoji":"🛣️","topics":{"Terraplenagem":[],"Pavimentação":[],"Projeto (Obras rodoviárias)":[],"IS-207 - Estudos de traçado":[],"Pontes":[],"Obras de Artes Especiais (Pontes, passarelas e pontilhões)":[],"MEDINA":[],"Resíduos sólidos":[],"SICRO":[],"Resíduos":[],"Terraplanagem":[],"Obras de arte":[]}},"11_LICITACOES_CONTRATOS":{"name":"Licitações e Contratos","emoji":"📜","topics":{"Regime Diferenciado de Contratações Públicas - RDC":[],"Lei de licitações":[],"Fiscalização de contratos":[],"Parceria Público Privada":[],"Modalidades de licitação":[],"Fases da licitação - Julgamento, Habilitação e Encerramento (art. 55 a 71 da Lei n 14.133/2021)":[],"Contratação Direta, Inexigibilidade e Dispensa (arts. 72 a 75 da Lei n 14.133/2021)":[],"Fiscalização de obras":[],"Concessões":[],"NLLC":[],"Alienações":[]}},"12_ORCAMENTO_PLANEJAMENTO":{"name":"Orçamento e Planejamento","emoji":"💰","topics":{"Produtividade e Equipamentos":[],"Cronograma físico-financeiro":[],"Composições de Custos e Orçamentação":[],"Curva S":[],"Planejamento de obras":[],"Orçamento":[],"SINAPI":[],"Apropriação de serviços":[],"Gerenciamento do Valor Agregado":[],"Produtividade e equipamentos":[]}},"13_AVALIACAO_IMOVEIS_PERICIAS":{"name":"Avaliação de Imóveis e Perícias","emoji":"🏠","topics":{"Avaliações de imóveis":[],"NBR 13752 - Perícias de engenharia na construção civil":[],"Engenharia Legal":[],"Engenharia de avaliações":[]}},"14_LEGISLACAO_AMBIENTAL":{"name":"Legislação Ambiental","emoji":"🌿","topics":{"Lei nº 9.605/1998 (Lei dos Crimes Ambientais)":[],"Resolução CONAMA 377/2006":[],"Meio-ambiente":[]}},"15_ACESSIBILIDADE_SEGURANCA":{"name":"Acessibilidade e Segurança","emoji":"♿","topics":{"Topografia":[],"Norma de acessibilidade":[],"Acessibilidade (NBR 9050)":[],"Segurança no Trabalho":[]}},"1_GEOTECNIA_SOLOS":{"name":"Geotecnia e Mecânica dos Solos","emoji":"🪨","topics":{"Classificação dos solos":[],"Estudos geotécnicos":[],"Sondagem":[],"Sondagem de Solos":[],"Sondagem dos solos":[],"Solos":[],"Geotecnia":[],"Empuxos de terra":[],"Mecânica dos solos":[],"Ensaios de solo":[],"Origem e natureza do solo":[],"Características e propriedades dos solos":[],"Características dos materiais":[]}},"2_FUNDACOES":{"name":"Fundações","emoji":"🏗️","topics":{"Fundações - Revisado":[],"Fundações":[]}},"3_RESISTENCIA_MATERIAIS_ESTRUTURAS":{"name":"Resistência dos Materiais e Estruturas","emoji":"⚙️","topics":{"Principais estruturas hidráulicas":[],"Estruturas de madeira":[],"Dimensionamento de estruturas de concreto armado":[],"Estruturas metálicas":[],"Resistência dos Materiais":[],"Estruturas de concreto":[],"Flexão e flambagem":[],"Resistência dos materiais":[],"Execução e estruturas em concreto":[],"Grau de hiperasticidade":[],"Dimensionamento de Estruturas de Concreto Armado":[]}},"4_CONCRETO":{"name":"Tecnologia do Concreto","emoji":"🧱","topics":{"Sistema de abastecimento de água":[],"Concreto armado":[],"Concreto protendido":[],"Cimento":[],"Aço para concreto armado":[],"Controle Tecnológico do Concreto":[],"Características Mecânicas e Reológicas do Concreto":[],"Controle tecnológico do Concreto":[],"Controle de materiais":[],"Reação Álcali-Agregado (RAA)":[],"Controle tecnológico":[]}},"5_ESTRUTURAS_METALICAS_MADEIRA":{"name":"Estruturas Metálicas e de Madeira","emoji":"🔩","topics":{"Estrutura de madeira":[]}},"6_MATERIAIS_CONSTRUCAO":{"name":"Materiais de Construção","emoji":"🪵","topics":{"Especificações de materiais":[],"Materiais de construção":[],"Alvenaria":[],"Alvenaria estrutural":[],"Materiais":[],"Esquadrias":[],"Vidros":[]}},"7_EDIFICACOES":{"name":"Construção de Edificações","emoji":"🏢","topics":{"NR 18":[],"Cobertura":[],"Revestimentos (Paredes, Juntas, Argamassas)":[],"Piso e pavimentação":[],"Pinturas":[],"Impermeabilização":[],"Canteiro de Obras":[],"Pisos":[],"Revestimentos":[],"Pintura":[],"Manutenção e inspeção predial":[],"NR 18 - Canteiro de obras":[],"Canteiro de obras":[]}},"8_INSTALACOES_PREDIAIS":{"name":"Instalações Prediais","emoji":"🔌","topics":{"Instalações prediais - Esgoto":[],"Instalações elétricas":[],"Instalações prediais - Água fria":[],"Extintores de Incêndio":[],"Sistemas de Detecção e Alarme de Incêndio":[],"Hidrantes, mangotinhos e mangueiras":[],"Instalações prediais - Drenagem Pluvial":[],"Sprinkler":[],"Instalação de prevenção de combate a incêndio":[],"Instalações prediais - Drenagem pluvial":[],"NR 10 - Segurança em instalações elétricas":[],"Instalações prediais - Água quente":[],"Instalações hidros sanitárias":[],"Instalações prediais":[]}},"9_OBRAS_HIDRICAS_SANEAMENTO":{"name":"Obras Hídricas e Saneamento","emoji":"💧","topics":{"Drenagem (Obras Rodoviárias)":[],"Fossa Séptica":[],"Aproveitamento hidrelétrico":[],"Mecânica dos fluidos":[],"Sistema de coleta de esgoto":[],"Irrigação e Drenagem":[],"Estações elevatórias":[],"Obras portuárias":[],"Drenagem Pluvial":[],"IP4 - Instalações Portuárias Públicas de Pequeno Porte":[],"ETE - Estação de tratamento de esgoto":[],"Poços":[],"Projetos (Obras hídricas)":[],"ETA - Estação de tratamento de água":[],"Tratamento de esgoto":[],"Sistema de coleta de Esgoto (NBR 9648 e 9649)":[],"Precipitações":[],"Bomba - Sistema de recalques":[],"Drenagem":[],"Irrigação":[],"Lodos ativados":[],"Filtro anaeróbio":[],"Tratamento de efluentes":[]}}}
 const LS_REV = 'tcema_revisao';
 let revisaoProgress = {};
@@ -1430,7 +1462,7 @@ function encontrarRevisaoPorAssunto(assunto){
 }
 
 // Abrir revisão num assunto específico
-function abrirRevisaoAssunto(discKey, topicName){
+function abrirRevisaoAssunto(discKey, topicName, fromReforco=false){
   revDisc = discKey;
   revTopicFoco = topicName;
   revFiltro = 'todos';
@@ -2121,6 +2153,130 @@ function renderDiario(){
         })()}
       </div>`;
     }).join('');
+}
+
+// ── REFORÇO HISTÓRICO ────────────────────────────────────────────────────────
+let rfTabAtiva = 'atual';
+let rfHistFiltro = 'todos';
+
+function setRfTab(tab){
+  rfTabAtiva = tab;
+  const tabA = document.getElementById('rf-tab-atual');
+  const tabH = document.getElementById('rf-tab-hist');
+  const panA = document.getElementById('rf-painel-atual');
+  const panH = document.getElementById('rf-painel-hist');
+  if(!tabA||!tabH||!panA||!panH) return;
+
+  if(tab==='atual'){
+    panA.style.display='block'; panH.style.display='none';
+    tabA.style.borderBottomColor='var(--text)'; tabA.style.color='var(--text)'; tabA.style.fontWeight='500';
+    tabH.style.borderBottomColor='transparent'; tabH.style.color='var(--text2)'; tabH.style.fontWeight='400';
+  } else {
+    panA.style.display='none'; panH.style.display='block';
+    tabH.style.borderBottomColor='var(--text)'; tabH.style.color='var(--text)'; tabH.style.fontWeight='500';
+    tabA.style.borderBottomColor='transparent'; tabA.style.color='var(--text2)'; tabA.style.fontWeight='400';
+    renderRfHistorico();
+  }
+}
+
+function setRfHistFiltro(f, btn){
+  rfHistFiltro = f;
+  document.querySelectorAll('#rf-hist-tabs .tab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderRfHistorico();
+}
+
+function renderRfHistorico(){
+  const el = document.getElementById('rf-hist-lista');
+  if(!el) return;
+
+  // Popular dropdown de disciplinas se vazio
+  const sel = document.getElementById('rf-hist-disc');
+  if(sel && sel.options.length === 1){
+    const discs = [...new Set(HISTORICO_MG_RN.map(h=>h.disc))].sort();
+    discs.forEach(d=>{
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      sel.appendChild(opt);
+    });
+  }
+
+  const discFiltro = sel?.value || '';
+
+  let dados = [...HISTORICO_MG_RN];
+  if(rfHistFiltro==='critico') dados = dados.filter(h=>h.media<60);
+  else if(rfHistFiltro==='alerta') dados = dados.filter(h=>60<=h.media&&h.media<70);
+  else if(rfHistFiltro==='atencao') dados = dados.filter(h=>70<=h.media&&h.media<75);
+  if(discFiltro) dados = dados.filter(h=>h.disc===discFiltro);
+
+  dados.sort((a,b)=>a.media-b.media||a.disc.localeCompare(b.disc));
+
+  if(!dados.length){
+    el.innerHTML = '<div class="empty" style="padding:2rem">Nenhum assunto neste filtro.</div>';
+    return;
+  }
+
+  // Agrupar por disciplina
+  const porDisc = {};
+  dados.forEach(h=>{
+    if(!porDisc[h.disc]) porDisc[h.disc]=[];
+    porDisc[h.disc].push(h);
+  });
+
+  el.innerHTML = Object.entries(porDisc).map(([disc, items])=>{
+    return `<div style="margin-bottom:1rem">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;
+                  color:var(--text2);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border)">
+        ${disc} <span style="font-weight:400;color:var(--text3)">(${items.length})</span>
+      </div>
+      ${items.map(h=>{
+        const cor = h.media<60?'var(--red)':h.media<70?'var(--amber)':'var(--green)';
+        const bg  = h.media<60?'var(--red-bg,#FDEDEC)':h.media<70?'var(--amber-bg,#FEF9E7)':'var(--bg2)';
+        // Verificar se já tem tarefa gerada ou sessão recente no TCE-MA
+        const temSessao = sessoes.some(s=>
+          s.assunto.toLowerCase().includes(h.assunto.toLowerCase().slice(0,10)) ||
+          h.assunto.toLowerCase().includes(s.assunto.toLowerCase().slice(0,10))
+        );
+        // Link para revisão
+        const rev = encontrarRevisaoPorAssunto(h.assunto);
+        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
+                             border-radius:var(--radius);background:${bg};margin-bottom:4px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:500">${h.assunto}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">
+              ${h.q} questões · Fonte: ${h.fonte}
+              ${temSessao?'· <span style="color:var(--blue)">já estudado no TCE-MA</span>':''}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+            <div style="font-size:15px;font-weight:700;color:${cor};min-width:40px;text-align:right">${h.media}%</div>
+            ${rev?`<button onclick="abrirRevisaoAssunto('${rev.discKey}','${rev.topicName.replace(/'/g,"\'")}',true)"
+              style="font-size:11px;padding:3px 8px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;cursor:pointer;color:var(--text2);font-family:inherit">
+              📖 Rev
+            </button>`:''}
+            <button onclick="gerarTarefaHistorico('${disc.replace(/'/g,"\'")}','${h.assunto.replace(/'/g,"\'")}',75)"
+              style="font-size:11px;padding:3px 8px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;cursor:pointer;color:var(--text2);font-family:inherit">
+              + Tarefa
+            </button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+async function gerarTarefaHistorico(disc, assunto, meta){
+  const proxSem = proxSemana();
+  const jaExiste = tarefas.find(t=>t.assunto===assunto&&t.status==='pendente');
+  if(jaExiste){ alert('Já existe tarefa pendente para: '+assunto); return; }
+  const t = {
+    id: Date.now(), semana: proxSem, prio:'A',
+    disc, tipo:'Fixação', assunto, link:'', status:'pendente', meta, qtd:10
+  };
+  tarefas.push(t);
+  await saveTarefas();
+  alert('✅ Tarefa gerada para '+proxSem+': '+assunto);
+  renderAll();
 }
 
 // ── BACKUP / RESTORE ────────────────────────────────────────────────────────
