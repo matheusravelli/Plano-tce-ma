@@ -2809,6 +2809,105 @@ function toggleTarefa(id){
   t.status=t.status==='feita'?'pendente':'feita';
   saveTarefas(); renderAll();
 }
+function abrirEditarTarefa(id){
+  const t = tarefas.find(t=>t.id===id);
+  if(!t) return;
+
+  document.getElementById('modal-editar-tarefa')?.remove();
+
+  const discs = [...new Set(tarefas.map(t=>t.disc))].sort();
+  const discOpts = discs.map(d=>`<option value="${d}" ${d===t.disc?'selected':''}>${d}</option>`).join('');
+
+  const overlay = document.createElement('div');
+  overlay.id = 'modal-editar-tarefa';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:1.5rem;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
+      <div style="font-size:15px;font-weight:500;margin-bottom:1rem">✏️ Editar tarefa</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label class="form-label">Semana</label>
+          <select id="et-semana" style="width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit">
+            ${['S01','S02','S03','S04','S05','S06','S07','S08','S09','S10'].map(s=>`<option ${s===t.semana?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Prioridade</label>
+          <select id="et-prio" style="width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit">
+            <option ${t.prio==='A'?'selected':''}>A</option>
+            <option ${t.prio==='B'?'selected':''}>B</option>
+            <option ${t.prio==='C'?'selected':''}>C</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label class="form-label">Disciplina</label>
+        <select id="et-disc" onchange="document.getElementById('et-disc-nova').style.display=this.value==='__nova__'?'block':'none'"
+          style="width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit">
+          ${discOpts}
+          <option value="__nova__">+ Nova disciplina...</option>
+        </select>
+        <input type="text" id="et-disc-nova" placeholder="Nome da nova disciplina"
+          style="display:none;width:100%;margin-top:6px;padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+      </div>
+      <div style="margin-bottom:10px">
+        <label class="form-label">Assunto</label>
+        <input type="text" id="et-assunto" value="${t.assunto}"
+          style="width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label class="form-label">Tipo</label>
+          <select id="et-tipo" style="width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit">
+            ${['Diagnóstico','Fixação','Revisão','Extensivo'].map(tp=>`<option ${tp===t.tipo?'selected':''}>${tp}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Questões</label>
+          <input type="number" id="et-qtd" value="${t.qtd||10}" min="1"
+            style="width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+        </div>
+      </div>
+      <div style="margin-bottom:1rem">
+        <label class="form-label">Link (opcional)</label>
+        <input type="text" id="et-link" value="${t.link||''}"
+          style="width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="salvarEdicaoTarefa(${id})" class="btn btn-primary">Salvar</button>
+        <button onclick="document.getElementById('modal-editar-tarefa').remove()" class="btn">Cancelar</button>
+      </div>
+    </div>`;
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+async function salvarEdicaoTarefa(id){
+  const t = tarefas.find(t=>t.id===id);
+  if(!t) return;
+
+  const discSel = document.getElementById('et-disc').value;
+  const disc = discSel==='__nova__'
+    ? document.getElementById('et-disc-nova').value.trim()
+    : discSel;
+
+  if(!disc){ alert('Informe a disciplina'); return; }
+  const assunto = document.getElementById('et-assunto').value.trim();
+  if(!assunto){ alert('Informe o assunto'); return; }
+
+  t.semana  = document.getElementById('et-semana').value;
+  t.prio    = document.getElementById('et-prio').value;
+  t.disc    = disc;
+  t.assunto = assunto;
+  t.tipo    = document.getElementById('et-tipo').value;
+  t.qtd     = parseInt(document.getElementById('et-qtd').value)||10;
+  t.link    = document.getElementById('et-link').value.trim();
+
+  await saveTarefas();
+  document.getElementById('modal-editar-tarefa')?.remove();
+  renderAll();
+}
+
 function deleteTarefa(id){
   tarefas=tarefas.filter(t=>t.id!==id);
   saveTarefas();
