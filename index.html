@@ -222,7 +222,7 @@ alter table tarefas disable row level security;
       <button class="btn btn-sm" onclick="limparDistribuicao()"><i class="ti ti-trash"></i></button>
     </div>
 
-    <!-- Sub-abas: Diário / Plano -->
+    <!-- Sub-abas: Diário / Plano / Pendências -->
     <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
       <button id="sem-tab-diario" onclick="setSemTab('diario')"
         style="padding:7px 16px;font-size:13px;font-weight:500;border:none;border-bottom:2px solid var(--text);background:transparent;cursor:pointer;font-family:inherit;color:var(--text)">
@@ -231,6 +231,10 @@ alter table tarefas disable row level security;
       <button id="sem-tab-plano" onclick="setSemTab('plano')"
         style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
         📅 Plano da semana
+      </button>
+      <button id="sem-tab-pend" onclick="setSemTab('pend')"
+        style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
+        ⚠️ Pendências
       </button>
     </div>
 
@@ -260,6 +264,11 @@ alter table tarefas disable row level security;
     <!-- Painel Plano -->
     <div id="sem-painel-plano" style="display:none">
       <div id="sem-dias" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+
+    <!-- Painel Pendências -->
+    <div id="sem-painel-pend" style="display:none">
+      <div id="sem-pend-conteudo"></div>
     </div>
   </div>
 
@@ -1921,22 +1930,29 @@ let semTabAtiva = 'diario';
 
 function setSemTab(tab){
   semTabAtiva = tab;
-  const tabD = document.getElementById('sem-tab-diario');
-  const tabP = document.getElementById('sem-tab-plano');
-  const panD = document.getElementById('sem-painel-diario');
-  const panP = document.getElementById('sem-painel-plano');
-  if(!tabD||!tabP||!panD||!panP) return;
-  if(tab==='diario'){
-    panD.style.display='block'; panP.style.display='none';
-    tabD.style.borderBottomColor='var(--text)'; tabD.style.color='var(--text)'; tabD.style.fontWeight='500';
-    tabP.style.borderBottomColor='transparent'; tabP.style.color='var(--text2)'; tabP.style.fontWeight='400';
-    renderDiario();
-  } else {
-    panD.style.display='none'; panP.style.display='block';
-    tabP.style.borderBottomColor='var(--text)'; tabP.style.color='var(--text)'; tabP.style.fontWeight='500';
-    tabD.style.borderBottomColor='transparent'; tabD.style.color='var(--text2)'; tabD.style.fontWeight='400';
-    renderSemana();
-  }
+  const tabs = {
+    diario: document.getElementById('sem-tab-diario'),
+    plano:  document.getElementById('sem-tab-plano'),
+    pend:   document.getElementById('sem-tab-pend'),
+  };
+  const pains = {
+    diario: document.getElementById('sem-painel-diario'),
+    plano:  document.getElementById('sem-painel-plano'),
+    pend:   document.getElementById('sem-painel-pend'),
+  };
+
+  Object.keys(tabs).forEach(k=>{
+    if(!tabs[k]||!pains[k]) return;
+    const active = k===tab;
+    pains[k].style.display = active ? 'block' : 'none';
+    tabs[k].style.borderBottomColor = active ? 'var(--text)' : 'transparent';
+    tabs[k].style.color = active ? 'var(--text)' : 'var(--text2)';
+    tabs[k].style.fontWeight = active ? '500' : '400';
+  });
+
+  if(tab==='diario') renderDiario();
+  else if(tab==='plano') renderSemana();
+  else if(tab==='pend') renderPendencias();
 }
 
 function setDiarioFiltro(f, btn){
@@ -2281,6 +2297,106 @@ async function gerarTarefaHistorico(disc, assunto, meta){
   renderAll();
 }
 
+// ── PENDÊNCIAS GERAIS ────────────────────────────────────────────────────────
+function renderPendencias(){
+  const el = document.getElementById('sem-pend-conteudo');
+  if(!el) return;
+
+  // Todas as tarefas por semana
+  const semanas = [...new Set(tarefas.map(t=>t.semana))].sort();
+  const pb = {A:'badge-bad',B:'badge-warn',C:'badge-new'};
+
+  let html_out = '';
+
+  // Resumo geral no topo
+  const totalPend = tarefas.filter(t=>t.status==='pendente').length;
+  const totalFeitas = tarefas.filter(t=>t.status==='feita').length;
+  const total = tarefas.length;
+  const pctGeral = total ? Math.round(totalFeitas/total*100) : 0;
+
+  html_out += `
+    <div class="card" style="padding:.75rem 1rem;margin-bottom:1rem">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;font-size:13px">
+          <b>${totalFeitas}</b> de <b>${total}</b> tarefas concluídas em todas as semanas
+          ${totalPend>0?`· <span style="color:var(--amber)"><b>${totalPend}</b> pendentes</span>`:''}
+        </div>
+        <div style="width:200px">
+          <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
+            <div style="height:6px;width:${pctGeral}%;background:${pctGeral===100?'var(--green)':'var(--blue)'};border-radius:3px"></div>
+          </div>
+        </div>
+        <div style="font-size:14px;font-weight:500">${pctGeral}%</div>
+      </div>
+    </div>`;
+
+  // Card por semana
+  semanas.forEach(sem=>{
+    const tSem = tarefas.filter(t=>t.semana===sem);
+    const feitas = tSem.filter(t=>t.status==='feita');
+    const pendentes = tSem.filter(t=>t.status==='pendente');
+    const pct_sem = tSem.length ? Math.round(feitas.length/tSem.length*100) : 0;
+    const corSem = pct_sem===100?'var(--green)':pendentes.length>0?'var(--amber)':'var(--text3)';
+    const semAtual = document.getElementById('sem-selector')?.value;
+
+    html_out += `
+    <div style="border:1px solid ${sem===semAtual?'var(--blue)':'var(--border)'};border-radius:var(--radius-lg);margin-bottom:10px;overflow:hidden">
+      <!-- Header semana -->
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);cursor:pointer"
+           onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <div style="font-weight:600;font-size:13px;min-width:40px">${sem}</div>
+        ${sem===semAtual?'<span style="font-size:10px;padding:2px 6px;background:var(--blue);color:white;border-radius:10px">atual</span>':''}
+        <div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;max-width:150px">
+          <div style="height:5px;width:${pct_sem}%;background:${corSem};border-radius:3px"></div>
+        </div>
+        <div style="font-size:12px;color:${corSem};font-weight:500">${feitas.length}/${tSem.length}</div>
+        ${pendentes.length>0?`<span style="font-size:11px;color:var(--amber)">${pendentes.length} pendente${pendentes.length>1?'s':''}</span>`:'<span style="font-size:11px;color:var(--green)">✅ completo</span>'}
+        <div style="font-size:11px;color:var(--text3)">▼</div>
+      </div>
+
+      <!-- Lista de tarefas -->
+      <div style="${pendentes.length===0&&feitas.length<5?'display:none':''}">
+        <!-- Pendentes -->
+        ${pendentes.length>0?`
+        <div style="padding:8px 14px;border-top:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--amber);margin-bottom:6px">
+            ⏳ Pendentes (${pendentes.length})
+          </div>
+          ${pendentes.sort((a,b)=>a.prio.localeCompare(b.prio)).map(t=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+            <span class="badge ${pb[t.prio]||'badge-pend'}" style="font-size:10px;flex-shrink:0">[${t.prio}]</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.assunto}</div>
+              <div style="font-size:11px;color:var(--text3)">${t.disc} · ${t.tipo}</div>
+            </div>
+            ${t.link?`<a href="${t.link}" target="_blank" style="font-size:11px;color:var(--blue);flex-shrink:0">🔗</a>`:''}
+            <button onclick="semCheckClick(${t.id},'${t.status}')"
+              style="flex-shrink:0;border:none;background:transparent;cursor:pointer;font-size:13px;padding:0;color:var(--text3)">○</button>
+          </div>`).join('')}
+        </div>`:''}
+
+        <!-- Feitas -->
+        ${feitas.length>0?`
+        <div style="padding:8px 14px;border-top:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--green);margin-bottom:6px">
+            ✅ Concluídas (${feitas.length})
+          </div>
+          ${feitas.sort((a,b)=>a.prio.localeCompare(b.prio)).map(t=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);opacity:.6">
+            <span class="badge ${pb[t.prio]||'badge-pend'}" style="font-size:10px;flex-shrink:0">[${t.prio}]</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;text-decoration:line-through;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.assunto}</div>
+              <div style="font-size:11px;color:var(--text3)">${t.disc} · ${t.tipo}</div>
+            </div>
+          </div>`).join('')}
+        </div>`:''}
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML = html_out || '<div class="empty" style="padding:2rem">Nenhuma tarefa cadastrada.</div>';
+}
+
 // ── BACKUP / RESTORE ────────────────────────────────────────────────────────
 function exportarDados(){
   const dados = {
@@ -2611,7 +2727,7 @@ function showView(v, btn){
   renderAll();
   if(v==='semana')  setTimeout(renderSemana,  50);
   if(v==='revisao'||v==='estudo') setTimeout(()=>setEstudoTab('revisao'), 50);
-  if(v==='semana') setTimeout(()=>{ renderDiario(); renderSemana(); }, 50);
+  if(v==='semana') setTimeout(()=>{ renderDiario(); renderSemana(); renderPendencias(); }, 50);
   if(v==='caderno') setTimeout(()=>setEstudoTab('erros'), 50);
 }
 
