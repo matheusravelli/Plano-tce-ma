@@ -3349,9 +3349,51 @@ const DISC_MAP = {
   'direito constitucional':'Dir. Const',
   'administração financeira e orçamentária':'AFO',
   'administração financeira':'AFO',
-  'controle externo':'Ctrl Ext','auditoria':'Auditoria',
-  'engenharia civil':'Eng — PNFL',
+  'controle externo':'Controle Externo','auditoria':'Auditoria',
+  'engenharia civil':'Eng — PNFL', // fallback, será refinado por assunto
 };
+
+// Mapeamento de assunto → disciplina correta para Engenharia Civil
+const ENG_ASSUNTO_MAP = [
+  // Obras Hídricas
+  {keywords:['barragem','turbina','gerador','irrigação','drenagem urban','macrodrenagem','microdrenagem',
+             'abastecimento de água','coleta de esgoto','tratamento de esgoto','eta','ete','fossa',
+             'conduto forçado','conduto livre','canal','bomba','perda de carga','hidráulica',
+             'obras hídricas','saneamento','esgoto sanitário','água potável'],
+   disc:'Eng — Obras Hídricas'},
+  // Obras Rodoviárias
+  {keywords:['terraplenagem','pavimentação','pavimento','sicro','drenagem rodov','obra de arte',
+             'mecânica dos solos','solo','sondagem','ensaio','controle tecnológico',
+             'sinalização','patologia rodov','manutenção rodov','specif','agregado',
+             'betuminoso','asfalto','subleito','sub-base','impacto ambiental rodov'],
+   disc:'Eng — Rodoviárias'},
+  // Obras de Edificações
+  {keywords:['instalação predial','instalação elétrica','instalação hidro','instalação sanit',
+             'instalação incêndio','instalação pluvial','água fria','água quente','esgoto predial',
+             'sinapi','revestimento','impermeabilização','cobertura','estrutura de concreto',
+             'concreto armado','concreto protendido','estrutura metálica','fundação','alvenaria',
+             'esquadria','pintura','patologia edificação','manutenção predial','avaliação de imóvel',
+             'nbr 14653','canteiro de obras','projeto arquitetônico','edificação','construção civil'],
+   disc:'Eng — Edificações'},
+  // PNFL — o que sobra (planejamento, normas, fiscalização, legislação)
+  {keywords:['bdi','encargo social','pert-cpm','gva','gerenciamento do valor','cronograma','curva abc',
+             'curva s','composição de custo','orçamento','anteprojeto','projeto básico','projeto executivo',
+             'documentação técnica','acervo técnico','licitação de obra','contrato de obra',
+             'fiscalização de obra','acompanhamento','recebimento provisório','recebi definitivo',
+             'viabilidade econôm','iluminação pública','ppp','parceria público','concessão',
+             'conama','crime ambiental','licenciamento ambiental','nr-24','segurança trabalho',
+             'fiscal e gestor','planejamento de obra'],
+   disc:'Eng — PNFL'},
+];
+
+function classificarEngCivil(assunto){
+  if(!assunto) return 'Eng — PNFL';
+  const a = assunto.toLowerCase();
+  for(const mapa of ENG_ASSUNTO_MAP){
+    if(mapa.keywords.some(k=>a.includes(k))) return mapa.disc;
+  }
+  return 'Eng — PNFL'; // fallback
+}
 
 let importBuffer = [];
 
@@ -3374,7 +3416,9 @@ function importarMetas(){
     const disc_raw = mh[1].trim().toLowerCase();
     const assunto  = mh[2].trim();
     const tipo     = mh[3].trim();
-    const disc = Object.entries(DISC_MAP).find(([k])=>disc_raw.includes(k))?.[1] || mh[1].trim();
+    let disc = Object.entries(DISC_MAP).find(([k])=>disc_raw.includes(k))?.[1] || mh[1].trim();
+    // Refinar classificação para Engenharia Civil
+    if(disc_raw.includes('engenharia')) disc = classificarEngCivil(assunto);
     const mu = bloco.match(pat_url);
     const mq = bloco.match(pat_qtd);
     importBuffer.push({
