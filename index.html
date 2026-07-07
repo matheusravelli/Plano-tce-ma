@@ -278,6 +278,12 @@ alter table tarefas disable row level security;
     <!-- Filtros topo -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
       <div class="section-title" style="margin:0;flex:1">Tarefas da semana</div>
+      <select id="reg-status-filtro" onchange="renderRegistrar()"
+        style="padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+        <option value="pendente">Pendentes</option>
+        <option value="feita">Concluídas</option>
+        <option value="todas">Todas</option>
+      </select>
       <select id="reg-semana-filtro" onchange="renderRegistrar()" style="width:80px;padding:5px 8px;font-size:12px">
         <option value="">Todas</option>
         <option>S01</option><option>S02</option><option selected>S03</option>
