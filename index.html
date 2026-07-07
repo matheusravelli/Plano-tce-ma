@@ -2011,6 +2011,7 @@ function renderDiario(){
             '<div style="flex:1;min-width:0;cursor:'+( feita?'default':'pointer')+'" onclick="if(\''+t.status+'\'!==\'feita\') abrirRegistroSemana('+t.id+')">' +
             '<div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+( feita?'text-decoration:line-through;opacity:.5':'')+'">'+t.assunto+'</div>' +
             '<div style="font-size:11px;color:var(--text3)">'+t.disc+' · '+t.tipo+' · '+t.semana+(t.link?' · <a href="'+t.link+'" target="_blank" onclick="event.stopPropagation()" style="color:var(--blue)">🔗</a>':'')+'</div>' +
+            (!feita ? badgeAlerta(t) : '') +
             '</div>' +
             '<span class="badge '+( pb[t.prio]||'badge-pend')+'" style="font-size:10px;flex-shrink:0">['+ t.prio+']</span>' +
             '</div>' +
@@ -2363,15 +2364,18 @@ function renderPendencias(){
             ⏳ Pendentes (${pendentes.length})
           </div>
           ${pendentes.sort((a,b)=>a.prio.localeCompare(b.prio)).map(t=>`
-          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
-            <span class="badge ${pb[t.prio]||'badge-pend'}" style="font-size:10px;flex-shrink:0">[${t.prio}]</span>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.assunto}</div>
-              <div style="font-size:11px;color:var(--text3)">${t.disc} · ${t.tipo}</div>
+          <div style="padding:6px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="badge ${pb[t.prio]||'badge-pend'}" style="font-size:10px;flex-shrink:0">[${t.prio}]</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.assunto}</div>
+                <div style="font-size:11px;color:var(--text3)">${t.disc} · ${t.tipo}</div>
+              </div>
+              ${t.link?`<a href="${t.link}" target="_blank" style="font-size:11px;color:var(--blue);flex-shrink:0">🔗</a>`:''}
+              <button onclick="semCheckClick(${t.id},'${t.status}')"
+                style="flex-shrink:0;border:none;background:transparent;cursor:pointer;font-size:13px;padding:0;color:var(--text3)">○</button>
             </div>
-            ${t.link?`<a href="${t.link}" target="_blank" style="font-size:11px;color:var(--blue);flex-shrink:0">🔗</a>`:''}
-            <button onclick="semCheckClick(${t.id},'${t.status}')"
-              style="flex-shrink:0;border:none;background:transparent;cursor:pointer;font-size:13px;padding:0;color:var(--text3)">○</button>
+            ${badgeAlerta(t)}
           </div>`).join('')}
         </div>`:''}
 
@@ -2395,6 +2399,109 @@ function renderPendencias(){
   });
 
   el.innerHTML = html_out || '<div class="empty" style="padding:2rem">Nenhuma tarefa cadastrada.</div>';
+}
+
+// ── INTELIGÊNCIA — PONTOS CRÍTICOS ─────────────────────────────────────────
+
+// Busca no histórico MG+RN o desempenho de um assunto/disc
+function buscarHistorico(disc, assunto){
+  if(!assunto) return null;
+  const a = assunto.toLowerCase();
+  const d = disc ? disc.toLowerCase() : '';
+
+  // Busca direta por assunto
+  let match = HISTORICO_MG_RN.find(h=>
+    h.assunto.toLowerCase()===a ||
+    a.includes(h.assunto.toLowerCase().slice(0,12)) ||
+    h.assunto.toLowerCase().includes(a.slice(0,12))
+  );
+  if(match) return match;
+
+  // Busca por palavras-chave do assunto
+  const palavras = a.split(/\s+/).filter(p=>p.length>4);
+  match = HISTORICO_MG_RN.find(h=>{
+    const hl = h.assunto.toLowerCase();
+    return palavras.some(p=>hl.includes(p));
+  });
+  return match || null;
+}
+
+// Retorna o nível de alerta de uma tarefa
+function nivelAlerta(tarefa){
+  const hist = buscarHistorico(tarefa.disc, tarefa.assunto);
+  if(!hist) return null;
+
+  // Também checar desempenho atual no TCE-MA
+  const sessoesAssunto = sessoes.filter(s=>
+    s.assunto && tarefa.assunto &&
+    (s.assunto.toLowerCase().includes(tarefa.assunto.toLowerCase().slice(0,10)) ||
+     tarefa.assunto.toLowerCase().includes(s.assunto.toLowerCase().slice(0,10))) &&
+    s.acertos!=null && s.qtd>0
+  );
+  const mediaAtual = sessoesAssunto.length
+    ? Math.round(sessoesAssunto.reduce((s,x)=>s+pct(x.acertos,x.qtd),0)/sessoesAssunto.length)
+    : null;
+
+  // Usar a pior entre histórica e atual
+  const mediaFinal = mediaAtual !== null ? Math.min(hist.media, mediaAtual) : hist.media;
+
+  return {
+    mediaHist: hist.media,
+    mediaAtual,
+    mediaFinal,
+    fonte: hist.fonte,
+    nivel: mediaFinal < 60 ? 'critico' : mediaFinal < 70 ? 'alerta' : mediaFinal < 75 ? 'atencao' : 'ok'
+  };
+}
+
+// Gera sugestão de ação baseada no nível
+function sugestaoAcao(nivel, assunto){
+  const rev = encontrarRevisaoPorAssunto(assunto);
+  const acoes = {
+    critico: [
+      '📖 Rever o resumo antes de fazer questões',
+      '🎯 Focar nos conceitos básicos primeiro',
+      rev ? '📚 Material de revisão disponível — abrir antes de começar' : '📝 Criar anotações durante a resolução',
+    ],
+    alerta: [
+      '⚠️ Assunto com histórico fraco — dobrar atenção',
+      rev ? '📚 Consultar o material de revisão' : '📝 Anotar os erros no caderno',
+      '🔁 Fazer revisão após as questões',
+    ],
+    atencao: [
+      '📊 Desempenho abaixo da meta nos ciclos anteriores',
+      '✏️ Registrar padrões de erro',
+    ],
+  };
+  return (acoes[nivel] || [])[0] || '';
+}
+
+// Renderizar badge de alerta para usar em cards de tarefa
+function badgeAlerta(tarefa){
+  const info = nivelAlerta(tarefa);
+  if(!info || info.nivel==='ok') return '';
+
+  const cores = {
+    critico: {bg:'#FDEDEC',border:'#E74C3C',text:'#C0392B',label:'🔴 CRÍTICO'},
+    alerta:  {bg:'#FEF9E7',border:'#F39C12',text:'#B7770D',label:'🟠 ALERTA'},
+    atencao: {bg:'#FDFEFE',border:'#F0B27A',text:'#935116',label:'🟡 ATENÇÃO'},
+  };
+  const c = cores[info.nivel];
+  const dica = sugestaoAcao(info.nivel, tarefa.assunto);
+  const rev = encontrarRevisaoPorAssunto(tarefa.assunto);
+
+  return `<div style="margin-top:6px;padding:6px 10px;border-radius:var(--radius);
+                      border-left:3px solid ${c.border};background:${c.bg}">
+    <div style="font-size:11px;font-weight:700;color:${c.text};margin-bottom:2px">
+      ${c.label} — Histórico MG+RN: ${info.mediaHist}%${info.mediaAtual!==null?' · TCE-MA atual: '+info.mediaAtual+'%':''}
+    </div>
+    <div style="font-size:11px;color:${c.text}">${dica}</div>
+    ${rev?`<button onclick="abrirRevisaoAssunto('${rev.discKey}','${rev.topicName.replace(/'/g,"\'")}',true)"
+      style="margin-top:4px;font-size:11px;padding:2px 8px;border:1px solid ${c.border};
+             border-radius:var(--radius);background:transparent;color:${c.text};cursor:pointer;font-family:inherit">
+      📚 Abrir resumo
+    </button>`:''}
+  </div>`;
 }
 
 // ── BACKUP / RESTORE ────────────────────────────────────────────────────────
@@ -2735,6 +2842,7 @@ function renderAll(){
   renderMetrics();
   renderUltimasSessoes();
   renderDashTarefas();
+  renderDashCriticos();
   renderDashDesempenho();
   renderHistorico();
   renderTarefas();
@@ -2819,6 +2927,64 @@ function renderDashTarefas(){
     <div style="flex:1"><div style="font-size:13px">${t.assunto}</div>
     <div style="font-size:11px;color:var(--text2)">[${t.prio}] ${t.disc} · ${t.semana}</div></div>
   </div>`).join('');
+}
+
+function renderDashCriticos(){
+  const el = document.getElementById('dash-criticos');
+  if(!el) return;
+
+  const semAtual = document.getElementById('sem-selector')?.value ||
+    (tarefas.length ? [...new Set(tarefas.map(t=>t.semana))].sort().slice(-1)[0] : 'S04');
+
+  const tarefasSem = tarefas.filter(t=>t.semana===semAtual && t.status==='pendente');
+
+  // Filtrar só as com nível crítico ou alerta
+  const criticas = tarefasSem
+    .map(t=>({ t, info: nivelAlerta(t) }))
+    .filter(x=>x.info && (x.info.nivel==='critico'||x.info.nivel==='alerta'))
+    .sort((a,b)=>a.info.mediaFinal-b.info.mediaFinal);
+
+  // Remover duplicatas por assunto
+  const vistos = new Set();
+  const unicas = criticas.filter(x=>{
+    if(vistos.has(x.t.assunto)) return false;
+    vistos.add(x.t.assunto); return true;
+  });
+
+  if(!unicas.length){
+    el.innerHTML = '<div class="empty" style="padding:.75rem">Nenhum ponto crítico identificado nas tarefas desta semana.</div>';
+    return;
+  }
+
+  const cores = {
+    critico:{bg:'#FDEDEC',border:'#E74C3C',text:'#C0392B',label:'🔴'},
+    alerta: {bg:'#FEF9E7',border:'#F39C12',text:'#B7770D',label:'🟠'},
+  };
+
+  el.innerHTML = `
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px">
+      ${unicas.length} tarefa${unicas.length>1?'s':''} da ${semAtual} com histórico fraco nos ciclos anteriores
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${unicas.map(({t,info})=>{
+        const c = cores[info.nivel];
+        const rev = encontrarRevisaoPorAssunto(t.assunto);
+        const dica = sugestaoAcao(info.nivel, t.assunto);
+        return `<div style="padding:10px 12px;border-radius:var(--radius);border-left:3px solid ${c.border};background:${c.bg}">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:12px;font-weight:600;color:${c.text};flex:1">${c.label} ${t.assunto}</span>
+            <span style="font-size:11px;color:${c.text}">Hist: ${info.mediaHist}%${info.mediaAtual!==null?' · Atual: '+info.mediaAtual+'%':''}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px">${t.disc} · ${t.tipo}</div>
+          <div style="font-size:11px;color:${c.text}">${dica}</div>
+          ${rev?`<button onclick="abrirRevisaoAssunto('${rev.discKey}','${rev.topicName.replace(/'/g,"\'")}',true)"
+            style="margin-top:6px;font-size:11px;padding:3px 10px;border:1px solid ${c.border};
+                   border-radius:var(--radius);background:transparent;color:${c.text};cursor:pointer;font-family:inherit">
+            📚 Ver resumo
+          </button>`:''}
+        </div>`;
+      }).join('')}
+    </div>`;
 }
 
 function renderDashDesempenho(){
