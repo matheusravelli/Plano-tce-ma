@@ -688,7 +688,8 @@ function renderRegistrar(){
 
   const semFiltro = document.getElementById('reg-semana-filtro')?.value || '';
 
-  let lista = tarefas.filter(t=>t.status==='pendente');
+  const statusFiltro = document.getElementById('reg-status-filtro')?.value || 'pendente';
+  let lista = tarefas.filter(t=>statusFiltro==='todas' ? true : t.status===statusFiltro);
   if(semFiltro) lista = lista.filter(t=>t.semana===semFiltro);
   if(regPrioFiltro!=='todas') lista = lista.filter(t=>t.prio===regPrioFiltro);
   lista.sort((a,b)=>a.semana.localeCompare(b.semana)||a.prio.localeCompare(b.prio));
