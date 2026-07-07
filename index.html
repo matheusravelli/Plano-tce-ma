@@ -216,6 +216,9 @@ alter table tarefas disable row level security;
         <option>S01</option><option>S02</option><option>S03</option>
         <option selected>S04</option><option>S05</option><option>S06</option>
         <option>S07</option><option>S08</option><option>S09</option><option>S10</option>
+        <option>S11</option><option>S12</option><option>S13</option><option>S14</option>
+        <option>S15</option><option>S16</option><option>S17</option><option>S18</option>
+        <option>S19</option><option>S20</option>
       </select>
       <button class="btn btn-sm" onclick="distribuirAuto()"><i class="ti ti-wand"></i> Auto</button>
       <button class="btn btn-sm" onclick="redistribuirRestantes()" id="btn-redistribuir" style="display:none"><i class="ti ti-calendar-due"></i> Redistribuir</button>
@@ -286,9 +289,12 @@ alter table tarefas disable row level security;
       </select>
       <select id="reg-semana-filtro" onchange="renderRegistrar()" style="width:80px;padding:5px 8px;font-size:12px">
         <option value="">Todas</option>
-        <option>S01</option><option>S02</option><option selected>S03</option>
+        <option>S01</option><option>S02</option><option>S03</option>
         <option>S04</option><option>S05</option><option>S06</option>
         <option>S07</option><option>S08</option><option>S09</option><option>S10</option>
+        <option>S11</option><option>S12</option><option>S13</option><option>S14</option>
+        <option>S15</option><option>S16</option><option>S17</option><option>S18</option>
+        <option>S19</option><option>S20</option>
       </select>
       <div class="tabs" style="margin:0">
         <button class="tab active" id="rtab-A" onclick="setRegPrio('A',this)">Prio A</button>
@@ -3304,7 +3310,7 @@ function renderDesempenho(){
     </div>`;
   }).join('');
 
-  const semanas=['S01','S02','S03','S04','S05','S06','S07','S08','S09','S10'];
+  const semanas=['S01','S02','S03','S04','S05','S06','S07','S08','S09','S10','S11','S12','S13','S14','S15','S16','S17','S18','S19','S20'];
   const meds=semanas.map(sem=>{
     // Incluir a semana se tiver qualquer sessão registrada (mesmo com acertos null)
     const todas=sessoes.filter(s=>s.semana===sem);
@@ -3352,12 +3358,23 @@ function renderDesempenho(){
 }
 
 const DISC_MAP = {
-  'língua portuguesa':'LP','direito administrativo':'Dir. Adm',
+  // Conhecimentos Gerais — TCE-MA Cargo 13
+  'língua portuguesa':'LP',
+  'direito administrativo':'Dir. Adm',
   'direito constitucional':'Dir. Const',
   'administração financeira e orçamentária':'AFO',
   'administração financeira':'AFO',
-  'controle externo':'Controle Externo','auditoria':'Auditoria',
-  'engenharia civil':'Eng — PNFL', // fallback, será refinado por assunto
+  'controle externo':'Controle Externo',
+  'auditoria':'Auditoria',
+  'raciocínio lógico':'Raciocínio Lógico',
+  'informática':'Informática',
+  'competências digitais':'Informática',
+  'legislação':'Legislação TCE-MA',
+  'história':'História e Geo MA',
+  'geografia':'História e Geo MA',
+  'direitos humanos':'Direitos Humanos',
+  // Conhecimentos Específicos — Engenharia Civil
+  'engenharia civil':'Eng — PNFL', // fallback, refinado por assunto abaixo
 };
 
 // Mapeamento de assunto → disciplina correta para Engenharia Civil
@@ -3694,6 +3711,22 @@ function salvarConfigSB(){
   testarConexao();
 }
 
+function atualizarContador(){
+  const el = document.getElementById('contador-prova');
+  if(!el) return;
+  const prova = new Date('2026-11-29');
+  const hoje = new Date();
+  hoje.setHours(0,0,0,0);
+  const dias = Math.ceil((prova - hoje) / 86400000);
+  if(dias > 0){
+    el.textContent = '📅 ' + dias + ' dias para a prova · 29/11/2026';
+    el.style.background = dias <= 30 ? 'var(--red-bg,#FDEDEC)' : dias <= 60 ? 'var(--amber-bg,#FEF9E7)' : 'var(--bg3)';
+    el.style.color = dias <= 30 ? 'var(--red)' : dias <= 60 ? 'var(--amber)' : 'var(--text2)';
+  } else {
+    el.textContent = '🎯 Dia da prova!';
+  }
+}
+
 async function testarConexao(){
   const statusEl = document.getElementById('sb-status');
   if(!sbConfigured()){
@@ -3789,6 +3822,7 @@ async function syncAgora(){
   renderAll();
   // Testar conexão silenciosamente ao abrir
   setTimeout(testarConexao, 500);
+  atualizarContador();
 })();
 
 document.addEventListener('click', e=>{
