@@ -288,6 +288,10 @@ alter table tarefas disable row level security;
         <option value="feita">Concluídas</option>
         <option value="todas">Todas</option>
       </select>
+      <select id="reg-disc-filtro" onchange="renderRegistrar()"
+        style="padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);max-width:180px">
+        <option value="">Todas as disciplinas</option>
+      </select>
       <select id="reg-semana-filtro" onchange="renderRegistrar()" style="width:80px;padding:5px 8px;font-size:12px">
         <option value="">Todas</option>
         <option>S01</option><option>S02</option><option>S03</option>
@@ -723,8 +727,23 @@ function renderRegistrar(){
   const semFiltro = document.getElementById('reg-semana-filtro')?.value || '';
 
   const statusFiltro = document.getElementById('reg-status-filtro')?.value || 'pendente';
+  const discFiltro  = document.getElementById('reg-disc-filtro')?.value || '';
+
+  // Popular dropdown de disciplinas com as que existem nas tarefas
+  const selDisc = document.getElementById('reg-disc-filtro');
+  if(selDisc && selDisc.options.length<=1){
+    const discs = [...new Set(tarefas.map(t=>t.disc).filter(Boolean))].sort();
+    discs.forEach(d=>{
+      const opt = document.createElement('option');
+      opt.value=d; opt.textContent=d;
+      if(d===discFiltro) opt.selected=true;
+      selDisc.appendChild(opt);
+    });
+  }
+
   let lista = tarefas.filter(t=>statusFiltro==='todas' ? true : t.status===statusFiltro);
-  if(semFiltro) lista = lista.filter(t=>t.semana===semFiltro);
+  if(semFiltro)  lista = lista.filter(t=>t.semana===semFiltro);
+  if(discFiltro) lista = lista.filter(t=>t.disc===discFiltro);
   if(regPrioFiltro!=='todas') lista = lista.filter(t=>t.prio===regPrioFiltro);
   lista.sort((a,b)=>a.semana.localeCompare(b.semana)||a.prio.localeCompare(b.prio));
 
