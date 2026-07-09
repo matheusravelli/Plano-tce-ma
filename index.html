@@ -3347,7 +3347,7 @@ function abrirModalRegistro(tarefaId=null){
 
       <!-- Botões -->
       <div style="display:flex;gap:8px;align-items:center">
-        <button onclick="confirmarModalRegistro(${tarefaId||'null'})"
+        <button id="mr-btn-salvar" onclick="this.disabled=true;this.textContent='Salvando...';confirmarModalRegistro(${tarefaId||'null'})"
           style="flex:1;padding:10px;border:none;border-radius:var(--radius);background:var(--text);color:var(--bg);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
           ✅ Salvar sessão
         </button>
@@ -3376,6 +3376,10 @@ function mrAtualizarPreview(){
 }
 
 async function confirmarModalRegistro(tarefaId){
+  // Proteção contra duplo clique
+  if(window._modalRegSaving) return;
+  window._modalRegSaving = true;
+  setTimeout(()=>{ window._modalRegSaving = false; }, 3000);
   const qtd  = parseInt(document.getElementById('mr-qtd')?.value)||0;
   const acEl = document.getElementById('mr-acertos')?.value;
   const acertos = acEl!==''&&acEl!==undefined ? parseInt(acEl) : null;
