@@ -1558,6 +1558,8 @@ Dias: ${diasRestantes.join(', ')}`
 }
 
 function renderSemana(){
+  const _semView = document.getElementById('view-semana');
+  if(!_semView || !_semView.classList.contains('active')) return;
   const sem = document.getElementById('sem-selector')?.value || 'S06';
   const statusF = document.getElementById('sem-status-filtro')?.value || 'pendente';
   const discF   = document.getElementById('sem-disc-filtro')?.value   || '';
@@ -3892,7 +3894,7 @@ function showView(v, btn){
   document.getElementById('view-'+viewReal).classList.add('active');
   if(btn) btn.classList.add('active');
   renderAll();
-  if(v==='semana')  setTimeout(renderSemana,  50);
+  if(v==='semana')  setTimeout(renderSemana, 100);
   if(v==='revisao'||v==='estudo') setTimeout(()=>setEstudoTab('revisao'), 50);
   if(v==='edital') setTimeout(renderEdital, 50);
   if(v==='semana') setTimeout(()=>{ renderDiario(); renderSemana(); renderPendencias(); }, 50);
@@ -3915,7 +3917,7 @@ function renderAll(){
   renderEvolucao();
   renderReforco();
   renderRegistrar();
-  renderSemana();
+  // renderSemana chamada pelo showView
   renderDiario();
   // Renderizar aba estudo só se estiver visível
   const estudoView = document.getElementById('view-estudo');
