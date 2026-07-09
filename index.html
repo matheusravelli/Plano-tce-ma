@@ -679,8 +679,16 @@ alter table tarefas disable row level security;
     </div>
     <!-- Sub-abas Edital -->
     <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem;margin-top:10px">
-      <button id="edital-tab-topicos" onclick="setEditalTab('topicos')"
+      <button id="edital-tab-info" onclick="setEditalTab('info')"
         style="padding:7px 16px;font-size:13px;font-weight:500;border:none;border-bottom:2px solid var(--text);background:transparent;cursor:pointer;font-family:inherit;color:var(--text)">
+        📌 Informações
+      </button>
+      <button id="edital-tab-simulador" onclick="setEditalTab('simulador')"
+        style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
+        🎯 Simulador de nota
+      </button>
+      <button id="edital-tab-topicos" onclick="setEditalTab('topicos')"
+        style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
         📋 Tópicos
       </button>
       <button id="edital-tab-importar" onclick="setEditalTab('importar')"
@@ -689,12 +697,223 @@ alter table tarefas disable row level security;
       </button>
     </div>
 
+    <!-- Painel Info -->
+    <div id="edital-painel-info">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem">
+        <!-- Card principal -->
+        <div class="card" style="padding:1rem;grid-column:1/-1">
+          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Cargo 13</div>
+              <div style="font-size:16px;font-weight:700">Auditor Estadual de Controle Externo — Engenharia</div>
+              <div style="font-size:13px;color:var(--text2);margin-top:2px">TCE-MA 2026 · CEBRASPE · Edital nº 1 de 07/07/2026</div>
+            </div>
+            <div style="margin-left:auto;text-align:right">
+              <div style="font-size:24px;font-weight:700;color:var(--green)">R$ 20.112,20</div>
+              <div style="font-size:12px;color:var(--text3)">Remuneração</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Datas -->
+        <div class="card" style="padding:1rem">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:10px">📅 Datas importantes</div>
+          ${[
+            ['Inscrições abertas','17/07 a 21/08/2026'],
+            ['Taxa de inscrição','R$ 300,00'],
+            ['Provas objetivas (manhã)','29/11/2026 — 5 horas'],
+            ['Prova discursiva (tarde)','29/11/2026 — 4 horas'],
+            ['Site','cebraspe.org.br/concursos/tce_ma_26'],
+          ].map(([k,v])=>`
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <span style="color:var(--text2)">${k}</span>
+            <span style="font-weight:500;text-align:right;max-width:180px">${v}</span>
+          </div>`).join('')}
+        </div>
+
+        <!-- Vagas -->
+        <div class="card" style="padding:1rem">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:10px">🎯 Vagas e aprovação</div>
+          ${[
+            ['Vagas totais','3 (2 AC + 1 PP)'],
+            ['Eliminação objetivas','< 64 pontos no total'],
+            ['Chamados para discursiva','Até 50× o nº de vagas'],
+            ['Eliminação discursiva','< 20 pts na peça técnica'],
+            ['Nota final','Objetivas + Discursiva'],
+          ].map(([k,v])=>`
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <span style="color:var(--text2)">${k}</span>
+            <span style="font-weight:500;text-align:right;max-width:180px">${v}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- Estrutura da prova -->
+      <div class="card" style="padding:1rem;margin-bottom:1rem">
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:12px">📝 Estrutura da prova</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead>
+              <tr style="background:var(--bg3)">
+                <th style="padding:8px;text-align:left;border:1px solid var(--border)">Prova</th>
+                <th style="padding:8px;text-align:center;border:1px solid var(--border)">Questões</th>
+                <th style="padding:8px;text-align:center;border:1px solid var(--border)">Peso/Q</th>
+                <th style="padding:8px;text-align:center;border:1px solid var(--border)">Pontos</th>
+                <th style="padding:8px;text-align:left;border:1px solid var(--border)">Observação</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:8px;border:1px solid var(--border)"><b>P1</b> — Conhecimentos Gerais</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border)">40</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border)">1,00</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border);font-weight:600">40</td>
+                <td style="padding:8px;border:1px solid var(--border)">LP, Info, RL, Dir.Adm, Dir.Const, Controle, Leg.TCE-MA, Hist.MA, Dir.Humanos</td>
+              </tr>
+              <tr style="background:var(--bg2)">
+                <td style="padding:8px;border:1px solid var(--border)"><b>P2</b> — Conhecimentos Específicos</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border)">60</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border);color:var(--blue);font-weight:600">2,00</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border);font-weight:600">120</td>
+                <td style="padding:8px;border:1px solid var(--border)">PNFL, Edificações, Obras Hídricas, Obras Rodoviárias, Auditoria</td>
+              </tr>
+              <tr>
+                <td style="padding:8px;border:1px solid var(--border)"><b>P3</b> — Discursiva (Peça Técnica)</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border)">1</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border)">—</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border);font-weight:600">20</td>
+                <td style="padding:8px;border:1px solid var(--border)">Peça de natureza técnica · até 60 linhas · <span style="color:var(--red);font-weight:600">eliminatório se < 10 pts</span></td>
+              </tr>
+              <tr style="background:var(--bg2)">
+                <td style="padding:8px;border:1px solid var(--border)"><b>P3</b> — Discursiva (Q1)</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border)">1</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border)">—</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border);font-weight:600">10</td>
+                <td style="padding:8px;border:1px solid var(--border)">Questão discursiva de especialidade · até 30 linhas</td>
+              </tr>
+              <tr>
+                <td style="padding:8px;border:1px solid var(--border)"><b>P3</b> — Discursiva (Q2)</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border)">1</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border)">—</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border);font-weight:600">10</td>
+                <td style="padding:8px;border:1px solid var(--border)">Questão discursiva de especialidade · até 30 linhas</td>
+              </tr>
+              <tr style="background:var(--bg3)">
+                <td style="padding:8px;border:1px solid var(--border);font-weight:700">TOTAL</td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border);font-weight:700">100 q + 3 disc</td>
+                <td style="padding:8px;border:1px solid var(--border)"></td>
+                <td style="padding:8px;text-align:center;border:1px solid var(--border);font-weight:700;font-size:14px">200</td>
+                <td style="padding:8px;border:1px solid var(--border)">Objetivas: 160 pts · Discursiva: 40 pts</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Alertas importantes -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="padding:12px;border-radius:var(--radius);border-left:3px solid var(--red);background:var(--red-bg,#FDEDEC)">
+          <div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:6px">⚠️ Pontos de eliminação</div>
+          <div style="font-size:12px;line-height:1.6">
+            • < 64 pts no total das objetivas → eliminado<br>
+            • < 10 pts na peça técnica (P3) → eliminado<br>
+            • Não entrega a folha de respostas → anulado<br>
+            • Marcação identificadora na discursiva → anulado
+          </div>
+        </div>
+        <div style="padding:12px;border-radius:var(--radius);border-left:3px solid var(--blue);background:var(--blue-bg,#EBF5FB)">
+          <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:6px">💡 Estratégia de prova</div>
+          <div style="font-size:12px;line-height:1.6">
+            • P2 vale <b>2× mais</b> que P1 — foque em Engenharia<br>
+            • Peça técnica é eliminatória — treine muito<br>
+            • 40 acertos em P1 + 30 em P2 = 100 pts (aprovado)<br>
+            • Discursiva só corrigida se aprovado nas objetivas
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Painel Simulador -->
+    <div id="edital-painel-simulador" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <!-- Inputs -->
+        <div>
+          <div class="card" style="padding:1rem;margin-bottom:12px">
+            <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">P1 — Conhecimentos Gerais (40 q × 1 pt)</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <label style="font-size:12px;flex:1">Acertos em P1</label>
+              <input type="number" id="sim-p1" value="30" min="0" max="40" oninput="calcularSimulador()"
+                style="width:70px;padding:5px 8px;font-size:14px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+              <span style="font-size:12px;color:var(--text3)">/40</span>
+            </div>
+            <input type="range" id="sim-p1-range" min="0" max="40" value="30" oninput="document.getElementById('sim-p1').value=this.value;calcularSimulador()"
+              style="width:100%;accent-color:var(--blue)">
+          </div>
+
+          <div class="card" style="padding:1rem;margin-bottom:12px">
+            <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">P2 — Conhecimentos Específicos (60 q × 2 pts)</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <label style="font-size:12px;flex:1">Acertos em P2</label>
+              <input type="number" id="sim-p2" value="40" min="0" max="60" oninput="calcularSimulador()"
+                style="width:70px;padding:5px 8px;font-size:14px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+              <span style="font-size:12px;color:var(--text3)">/60</span>
+            </div>
+            <input type="range" id="sim-p2-range" min="0" max="60" value="40" oninput="document.getElementById('sim-p2').value=this.value;calcularSimulador()"
+              style="width:100%;accent-color:var(--blue)">
+          </div>
+
+          <div class="card" style="padding:1rem">
+            <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">P3 — Discursiva (40 pts total)</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <label style="font-size:12px;flex:1">Peça técnica</label>
+              <input type="number" id="sim-peca" value="14" min="0" max="20" oninput="calcularSimulador()"
+                style="width:70px;padding:5px 8px;font-size:13px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+              <span style="font-size:12px;color:var(--text3)">/20</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <label style="font-size:12px;flex:1">Questão discursiva 1</label>
+              <input type="number" id="sim-q1" value="7" min="0" max="10" oninput="calcularSimulador()"
+                style="width:70px;padding:5px 8px;font-size:13px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+              <span style="font-size:12px;color:var(--text3)">/10</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <label style="font-size:12px;flex:1">Questão discursiva 2</label>
+              <input type="number" id="sim-q2" value="7" min="0" max="10" oninput="calcularSimulador()"
+                style="width:70px;padding:5px 8px;font-size:13px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+              <span style="font-size:12px;color:var(--text3)">/10</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resultado -->
+        <div>
+          <div class="card" style="padding:1rem;margin-bottom:12px" id="sim-resultado">
+            <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">📊 Resultado simulado</div>
+            <div id="sim-output">Preencha os campos ao lado</div>
+          </div>
+          <div class="card" style="padding:1rem" id="sim-meta-card">
+            <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">🎯 Quanto preciso acertar?</div>
+            <div style="font-size:12px;line-height:1.8">
+              <b>Mínimo para não ser eliminado:</b><br>
+              • P1 + P2 ≥ 64 pts<br>
+              • Peça técnica ≥ 10 pts<br><br>
+              <b>Para ser competitivo (top 3):</b><br>
+              • P1: ≥ 28/40 (70%)<br>
+              • P2: ≥ 48/60 (80%)<br>
+              • P3: ≥ 28/40 (70%)<br>
+              • <b>Total: ≥ 160/200 (80%)</b>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Painel Tópicos -->
-    <div id="edital-painel-topicos">
+    <div id="edital-painel-topicos" style="display:none">
       <div id="edital-conteudo"></div>
     </div>
 
-    <!-- Painel Importar (conteúdo da antiga aba Importar metas) -->
+    <!-- Painel Importar -->
     <div id="edital-painel-importar" style="display:none">
       <div id="edital-importar-wrap"></div>
     </div>
