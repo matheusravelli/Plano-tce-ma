@@ -1604,13 +1604,6 @@ function renderSemana(){
   const dataSalva = calSem ? calSem.inicio : localStorage.getItem('sem_inicio_'+sem);
   if(dataInicioEl && calSem) dataInicioEl.value = calSem.inicio;
 
-  // Subtítulo com datas da semana
-  const subEl = document.getElementById('sem-subtitulo');
-  if(subEl && calSem){
-    const diasAteProva = Math.ceil((new Date('2026-11-29') - new Date(calSem.inicio)) / 86400000);
-    subEl.textContent = calSem.label + ' · ' + total + ' tarefas · ' + diasAteProva + ' dias para a prova';
-  }
-
   // Mostrar botão redistribuir
   const btnRedist = document.getElementById('btn-redistribuir');
   if(btnRedist) btnRedist.style.display = 'inline-flex';
@@ -1619,6 +1612,13 @@ function renderSemana(){
   const tarefasSem = tarefas.filter(t=>t.semana===sem);
   const feitas     = tarefasSem.filter(t=>t.status==='feita').length;
   const total      = tarefasSem.length;
+
+  // Subtítulo com datas da semana (após declarar total)
+  const subEl = document.getElementById('sem-subtitulo');
+  if(subEl && calSem){
+    const diasAteProva = Math.ceil((new Date('2026-11-29') - new Date(calSem.inicio)) / 86400000);
+    subEl.textContent = calSem.label + ' · ' + total + ' tarefas · ' + diasAteProva + ' dias para a prova';
+  }
   const semDistrib = tarefasSem.filter(t=>t.status==='pendente' && !planoSemanal[t.id]);
   const pctSem     = total ? Math.round(feitas/total*100) : 0;
 
