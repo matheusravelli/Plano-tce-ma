@@ -182,7 +182,6 @@ alter table tarefas disable row level security;
       </div>
     </div>
 
-    <div class="metric-grid" id="metrics"></div>
     <div class="two-col">
       <div>
         <div class="section-title">Últimas sessões</div>
@@ -212,12 +211,32 @@ alter table tarefas disable row level security;
           style="padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);width:140px">
       </div>
       <select id="sem-selector" onchange="renderSemana()" style="padding:6px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
-        <option>S01</option><option>S02</option><option>S03</option>
-        <option selected>S04</option><option>S05</option><option>S06</option>
-        <option>S07</option><option>S08</option><option>S09</option><option>S10</option>
-        <option>S11</option><option>S12</option><option>S13</option><option>S14</option>
-        <option>S15</option><option>S16</option><option>S17</option><option>S18</option>
-        <option>S19</option><option>S20</option>
+        <option>S01</option>
+        <option>S02</option>
+        <option>S03</option>
+        <option>S04</option>
+        <option>S05</option>
+        <option  selected>S06</option>
+        <option>S07</option>
+        <option>S08</option>
+        <option>S09</option>
+        <option>S10</option>
+        <option>S11</option>
+        <option>S12</option>
+        <option>S13</option>
+        <option>S14</option>
+        <option>S15</option>
+        <option>S16</option>
+        <option>S17</option>
+        <option>S18</option>
+        <option>S19</option>
+        <option>S20</option>
+        <option>S21</option>
+        <option>S22</option>
+        <option>S23</option>
+        <option>S24</option>
+        <option>S25</option>
+        <option>S26</option>
       </select>
       <button class="btn btn-sm" onclick="distribuirAuto()"><i class="ti ti-wand"></i> Auto</button>
       <button class="btn btn-sm" onclick="redistribuirRestantes()" id="btn-redistribuir" style="display:none"><i class="ti ti-calendar-due"></i> Redistribuir</button>
@@ -290,14 +309,34 @@ alter table tarefas disable row level security;
         style="padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);max-width:180px">
         <option value="">Todas as disciplinas</option>
       </select>
-      <select id="reg-semana-filtro" onchange="renderRegistrar()" style="width:80px;padding:5px 8px;font-size:12px">
+      <select id="reg-semana-filtro" onchange="renderRegistrar()" style="width:80px;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
         <option value="">Todas</option>
-        <option>S01</option><option>S02</option><option>S03</option>
-        <option>S04</option><option>S05</option><option>S06</option>
-        <option>S07</option><option>S08</option><option>S09</option><option>S10</option>
-        <option>S11</option><option>S12</option><option>S13</option><option>S14</option>
-        <option>S15</option><option>S16</option><option>S17</option><option>S18</option>
-        <option>S19</option><option>S20</option>
+        <option>S01</option>
+        <option>S02</option>
+        <option>S03</option>
+        <option>S04</option>
+        <option>S05</option>
+        <option>S06</option>
+        <option>S07</option>
+        <option>S08</option>
+        <option>S09</option>
+        <option>S10</option>
+        <option>S11</option>
+        <option>S12</option>
+        <option>S13</option>
+        <option>S14</option>
+        <option>S15</option>
+        <option>S16</option>
+        <option>S17</option>
+        <option>S18</option>
+        <option>S19</option>
+        <option>S20</option>
+        <option>S21</option>
+        <option>S22</option>
+        <option>S23</option>
+        <option>S24</option>
+        <option>S25</option>
+        <option>S26</option>
       </select>
       <div class="tabs" style="margin:0">
         <button class="tab active" id="rtab-A" onclick="setRegPrio('A',this)">Prio A</button>
@@ -365,10 +404,33 @@ alter table tarefas disable row level security;
       <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Cole o texto das metas exatamente como você recebe do Guruja. O app detecta automaticamente disciplina, assunto, tipo, quantidade e link.</p>
       <div style="margin-bottom:10px">
         <label class="form-label">Semana</label>
-        <select id="imp-semana" style="width:120px">
-          <option>S01</option><option>S02</option><option>S03</option><option>S04</option>
-          <option>S05</option><option>S06</option><option>S07</option><option>S08</option>
-          <option>S09</option><option>S10</option>
+        <select id="imp-semana" style="width:80px;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+          <option>S01</option>
+          <option>S02</option>
+          <option>S03</option>
+          <option>S04</option>
+          <option>S05</option>
+          <option  selected>S06</option>
+          <option>S07</option>
+          <option>S08</option>
+          <option>S09</option>
+          <option>S10</option>
+          <option>S11</option>
+          <option>S12</option>
+          <option>S13</option>
+          <option>S14</option>
+          <option>S15</option>
+          <option>S16</option>
+          <option>S17</option>
+          <option>S18</option>
+          <option>S19</option>
+          <option>S20</option>
+          <option>S21</option>
+          <option>S22</option>
+          <option>S23</option>
+          <option>S24</option>
+          <option>S25</option>
+          <option>S26</option>
         </select>
       </div>
       <div style="margin-bottom:10px">
@@ -1271,14 +1333,22 @@ function renderSemana(){
   const titEl = document.getElementById('sem-titulo');
   if(titEl) titEl.textContent = `${sem} — Plano da Semana`;
 
-  // Carregar data de início salva
+  // Usar calendário fixo em vez de data manual
+  const calSem = CALENDARIO_SEMANAS[sem];
   const dataInicioEl = document.getElementById('sem-data-inicio');
-  const dataSalva = localStorage.getItem('sem_inicio_'+sem);
-  if(dataInicioEl) dataInicioEl.value = dataSalva || '';
+  const dataSalva = calSem ? calSem.inicio : localStorage.getItem('sem_inicio_'+sem);
+  if(dataInicioEl && calSem) dataInicioEl.value = calSem.inicio;
 
-  // Mostrar/esconder botão redistribuir
+  // Subtítulo com datas da semana
+  const subEl = document.getElementById('sem-subtitulo');
+  if(subEl && calSem){
+    const diasAteProva = Math.ceil((new Date('2026-11-29') - new Date(calSem.inicio)) / 86400000);
+    subEl.textContent = calSem.label + ' · ' + total + ' tarefas · ' + diasAteProva + ' dias para a prova';
+  }
+
+  // Mostrar botão redistribuir
   const btnRedist = document.getElementById('btn-redistribuir');
-  if(btnRedist) btnRedist.style.display = dataSalva ? 'inline-flex' : 'none';
+  if(btnRedist) btnRedist.style.display = 'inline-flex';
 
   // Tarefas desta semana
   const tarefasSem = tarefas.filter(t=>t.semana===sem);
@@ -1297,8 +1367,7 @@ function renderSemana(){
   if(progPct)   progPct.textContent = pctSem+'%';
 
   // Subtítulo
-  const subEl = document.getElementById('sem-subtitulo');
-  if(subEl) subEl.textContent = `${total} tarefas · ${tarefasSem.filter(t=>t.prio==='A').length} prio A · ${tarefasSem.filter(t=>t.prio==='B').length} prio B · ${tarefasSem.filter(t=>t.prio==='C').length} prio C`;
+  // subtítulo já atualizado pelo calendário fixo acima
 
   const pb = {A:'badge-bad',B:'badge-warn',C:'badge-new'};
   const diasEl = document.getElementById('sem-dias');
@@ -1484,6 +1553,7 @@ function renderSemana(){
 }
 
 // ── REVISÃO ─────────────────────────────────────────────────────────────────
+const CALENDARIO_SEMANAS = {"S01":{"inicio":"2026-06-01","fim":"2026-06-07","label":"01/06 a 07/06"},"S02":{"inicio":"2026-06-08","fim":"2026-06-14","label":"08/06 a 14/06"},"S03":{"inicio":"2026-06-15","fim":"2026-06-21","label":"15/06 a 21/06"},"S04":{"inicio":"2026-06-22","fim":"2026-06-28","label":"22/06 a 28/06"},"S05":{"inicio":"2026-06-29","fim":"2026-07-05","label":"29/06 a 05/07"},"S06":{"inicio":"2026-07-06","fim":"2026-07-12","label":"06/07 a 12/07"},"S07":{"inicio":"2026-07-13","fim":"2026-07-19","label":"13/07 a 19/07"},"S08":{"inicio":"2026-07-20","fim":"2026-07-26","label":"20/07 a 26/07"},"S09":{"inicio":"2026-07-27","fim":"2026-08-02","label":"27/07 a 02/08"},"S10":{"inicio":"2026-08-03","fim":"2026-08-09","label":"03/08 a 09/08"},"S11":{"inicio":"2026-08-10","fim":"2026-08-16","label":"10/08 a 16/08"},"S12":{"inicio":"2026-08-17","fim":"2026-08-23","label":"17/08 a 23/08"},"S13":{"inicio":"2026-08-24","fim":"2026-08-30","label":"24/08 a 30/08"},"S14":{"inicio":"2026-08-31","fim":"2026-09-06","label":"31/08 a 06/09"},"S15":{"inicio":"2026-09-07","fim":"2026-09-13","label":"07/09 a 13/09"},"S16":{"inicio":"2026-09-14","fim":"2026-09-20","label":"14/09 a 20/09"},"S17":{"inicio":"2026-09-21","fim":"2026-09-27","label":"21/09 a 27/09"},"S18":{"inicio":"2026-09-28","fim":"2026-10-04","label":"28/09 a 04/10"},"S19":{"inicio":"2026-10-05","fim":"2026-10-11","label":"05/10 a 11/10"},"S20":{"inicio":"2026-10-12","fim":"2026-10-18","label":"12/10 a 18/10"},"S21":{"inicio":"2026-10-19","fim":"2026-10-25","label":"19/10 a 25/10"},"S22":{"inicio":"2026-10-26","fim":"2026-11-01","label":"26/10 a 01/11"},"S23":{"inicio":"2026-11-02","fim":"2026-11-08","label":"02/11 a 08/11"},"S24":{"inicio":"2026-11-09","fim":"2026-11-15","label":"09/11 a 15/11"},"S25":{"inicio":"2026-11-16","fim":"2026-11-22","label":"16/11 a 22/11"},"S26":{"inicio":"2026-11-23","fim":"2026-11-29","label":"23/11 a 29/11"}};
 const EDITAL_CARGO13 = {"LP":{"nome":"Língua Portuguesa","topicos":["Compreensão e interpretação de textos","Reconhecimento de tipos e gêneros textuais","Domínio da ortografia oficial","Coesão textual — elementos de referenciação e conectores","Emprego de tempos e modos verbais","Emprego das classes de palavras","Relações de coordenação entre orações e termos","Relações de subordinação entre orações e termos","Emprego dos sinais de pontuação","Concordância verbal e nominal","Regência verbal e nominal","Emprego do sinal indicativo de crase","Colocação dos pronomes átonos","Reescrita de frases e parágrafos","Significação das palavras (sinonímia, antonímia, denotação, conotação)"]},"Informática":{"nome":"Informática / Competências Digitais","topicos":["Cultura digital, cidadania e letramento digital (Lei 14.533/2023)","Pensamento computacional aplicado ao serviço público","Sistemas operacionais: Microsoft Windows","Editores de texto, planilhas e apresentações (Microsoft Office)","Redes de computadores: LAN, WAN, Internet, protocolos","Ferramentas de comunicação: e-mail, Teams, Meet","Segurança da informação: backup, vírus, firewall, phishing","LGPD — Lei 13.709/2018","Armazenamento em nuvem (OneDrive, Google Drive)","Assinatura digital e Marco Civil da Internet (Lei 12.965/2014)","Governo digital: plataforma Gov.br","SEI e Processo Eletrônico Nacional (PEN)","IA, big data e IoT no setor público","Ética e responsabilidade digital no serviço público"]},"Raciocínio Lógico":{"nome":"Raciocínio Lógico","topicos":["Estruturas lógicas","Lógica de argumentação: analogias, inferências, deduções","Lógica sentencial: proposições simples e compostas","Tabelas-verdade e equivalências","Leis de De Morgan","Diagramas lógicos","Lógica de primeira ordem","Princípios de contagem e probabilidade","Operações com conjuntos","Raciocínio aritmético, geométrico e matricial"]},"Dir. Adm":{"nome":"Direito Administrativo","topicos":["Organização administrativa: centralização, descentralização","Administração direta e indireta","Ato administrativo: conceito, requisitos, atributos, classificação","Agentes públicos: conceito, espécies, cargo, emprego e função","Poderes administrativos: hierárquico, disciplinar, regulamentar, polícia","Uso e abuso do poder","Licitação: princípios, modalidades, tipos, procedimento","Lei 14.133/2021 e Decreto 11.462/2023","Contratação direta: dispensa e inexigibilidade","Contratos administrativos: conceito, características, vigência, alteração","Convênios e consórcios públicos (Lei 11.107/2005)","Controle da administração pública","Responsabilidade civil do Estado","Desapropriação","Acesso à informação (Lei 12.527/2011) e LGPD"]},"Dir. Const":{"nome":"Direito Constitucional","topicos":["Princípios fundamentais da CF/88","Aplicabilidade das normas constitucionais","Direitos e deveres individuais e coletivos","Direitos sociais","Direitos de nacionalidade e direitos políticos","Organização político-administrativa: União, estados, DF, municípios","Administração pública: disposições gerais e servidores","Poder Executivo: atribuições e responsabilidades","Poder Legislativo: estrutura, funcionamento, processo legislativo","Fiscalização contábil, financeira e orçamentária","Poder Judiciário: disposições gerais e órgãos","Funções essenciais à justiça: MP, Advocacia Pública, Defensoria","Constituição do Estado do Maranhão"]},"Controle Externo":{"nome":"Controle Externo","topicos":["Conceito, tipos e formas de controle","Controle interno e externo","Controle parlamentar","Controle pelos Tribunais de Contas","Controle administrativo","Lei 8.429/1992 — Improbidade Administrativa","Contencioso administrativo e jurisdição una","Controle jurisdicional da administração","Controle da atividade financeira do Estado","TCU, TCEs e TCMs","TCE-MA na Constituição do Estado do Maranhão"]},"Legislação TCE-MA":{"nome":"Legislação Específica TCE-MA","topicos":["Regimento Interno do TCE-MA","Lei 8.258/2005 — Lei Orgânica do TCE-MA","Lei 9.936/2013 — Organização Administrativa","IN 50/2017 e suas alterações","IN 82/2025"]},"História e Geo MA":{"nome":"História e Geografia do Maranhão","topicos":["França Equinocial: expedição de Daniel de La Touche","Fundação de São Luís e Batalha de Guaxenduba","Invasão e expulsão dos holandeses","Estado do Maranhão e Grão-Pará — Revolta de Bequimão","Período Imperial: adesão e Batalha do Jenipapo","A Balaiada: caracterização e causas","Período Republicano e Revolução de 1930","O Vitorinismo e a Greve de 1951","Principais fatos políticos e sociais — segunda metade do séc. XX","Localização, superfície e limites do Maranhão","Áreas de Proteção Ambiental e Parques Nacionais","Clima, geomorfologia e recursos minerais","Relevo: planaltos, planícies e baixadas","Rios: bacias limítrofes e genuinamente maranhenses","Vegetação: floresta, cerrado e cocais","Geografia da população: urbanização e movimentos populacionais","Agricultura, pecuária e extrativismo","Setor industrial e terciário; malha viária, portos e aeroportos","Cultura maranhense"]},"Direitos Humanos":{"nome":"Noções de Direitos Humanos","topicos":["Teoria geral dos direitos fundamentais","Direitos humanos e direitos fundamentais","Declaração Universal dos Direitos Humanos","Agenda 2030 da ONU","Estatuto da Pessoa com Deficiência (Lei 13.146/2015)","Acessibilidade (Lei 10.098/2000)","Prioridade de atendimento a pessoas com deficiência (Lei 10.048/2000)","Estatuto da Igualdade Racial (Lei 12.288/2010)"]},"Auditoria":{"nome":"Auditoria do Setor Público","topicos":["Conceito, finalidade, objetivo, abrangência","Auditoria interna e externa: papéis","Instrumentos de fiscalização: auditoria, levantamento, monitoramento, acompanhamento, inspeção","Auditoria de conformidade","Auditoria operacional","Auditoria financeira","Normas INTOSAI: ISSAIs 100, 200, 300 e 400","Normas Brasileiras de Auditoria do Setor Público (NBASP)","Planejamento: escopo, materialidade, risco, relevância","Amostragem estatística em auditoria","Matriz de planejamento","Execução: programas, papéis de trabalho, testes e procedimentos","Técnicas: exame documental, inspeção física, entrevista, circularização","Evidências e caracterização de achados","Matriz de achados e matriz de responsabilização","Comunicação dos resultados: relatórios de auditoria","Monitoramento"]},"Eng — PNFL":{"nome":"PNFL — Planejamento, Normas, Fiscalização e Legislação","topicos":["Planejamento de projetos e obras: programação e controle","Viabilidade técnica, físico-financeira e econômica","Análise e interpretação de documentação técnica","Análise e compatibilização de projetos","Segurança e higiene do trabalho","Fiscalização de obras: ensaios, medições, reajustamento, fatura","Documentação da obra: diários, ARTs, legalização","Recebimento provisório e definitivo","Iluminação pública","Energias renováveis (solar, eólica, hidrelétrica)","Sustentabilidade na construção civil","Cidades inteligentes","BDI — Benefícios e Despesas Indiretas","Encargos sociais","Avaliação de custos e quantitativos; orçamento analítico e sintético","Composição analítica de serviços","Cronograma físico-financeiro","PERT-CPM e GVA / Gantt / EAP","Curva ABC e Curva S","Licitação de obras (Lei 14.133/2021): conceito, modalidades, procedimentos","Acervo técnico","Anteprojeto, projeto básico e projeto executivo","Contratos administrativos de obras: formalização, execução, rescisão","Lei 15.190/2025 — Legislação Ambiental","Lei 9.605/1998 — Crimes ambientais","CONAMA 1/1986 e 237/1997 — Licenciamento ambiental","Lei 8.987/1995 — Concessões","Lei 11.079/2004 — PPPs"]},"Eng — Edificações":{"nome":"Obras de Edificações","topicos":["Projetos e especificações de materiais e serviços","Programação e acompanhamento de obras","Canteiro de obras","Fundações diretas e indiretas","Alvenaria","Estruturas de concreto armado e protendido","Estruturas metálicas e coberturas","Impermeabilização","Cobertura","Esquadrias","Pisos e revestimentos","Pinturas","Instalações elétricas prediais","Instalações hidrossanitárias","Instalações de prevenção a incêndio","Controle de qualidade de materiais (cimento, aço, madeira, cerâmica)","SINAPI: conceitos e aplicação","Engenharia de avaliações (NBR 14.653)","Gestão na produção: projeto, materiais, manutenção","Patologia e recuperação de edificações","Manutenção predial"]},"Eng — Obras Hídricas":{"nome":"Obras Hídricas","topicos":["Barragens, soleiras, órgãos extravasores","Tomadas de água, canais, condutos sob pressão, túneis, bueiros","Aproveitamento hidrelétrico: turbinas, geradores, estruturas","Irrigação e drenagem: conceito, condicionantes, operação e manutenção","Abastecimento de água: captação, adução, ETA, recalque, reservação, distribuição","Coleta e tratamento de esgoto (ETE): lagoas, fossas sépticas","Obras de defesa contra inundação e macrodrenagem","Condutos forçados e bombas hidráulicas","Condutos livres e canais","Sistema de coleta de esgoto","Drenagem urbana","Aspectos construtivos, operação e manutenção"]},"Eng — Rodoviárias":{"nome":"Obras Rodoviárias","topicos":["Estudos geotécnicos: análise de sondagens","Especificações de materiais: características físicas","Ensaios técnicos de solo, betuminosos e agregados","Terraplenagem: cortes, aterros, bota-fora","Pavimentação: subleito, sub-base, base e revestimento asfáltico","Drenagem e obras de arte especiais","Principais equipamentos utilizados","SICRO: metodologia, produtividade e equipamentos","Acompanhamento e apropriação de serviços","Execução: terraplenagem, pavimentação, drenagem e sinalização","Impactos ambientais e medidas mitigadoras","Fiscalização: medições, reajustamento, documentação técnica","Controle de materiais: cimento, agregados, betuminosos","Controle de execução de obras e serviços","Patologias, recuperação e manutenção rodoviária","Sinalização rodoviária"]}};
 
 const HISTORICO_MG_RN = [{"disc":"PNFL","assunto":"Viabilidade Econômico-Financeira","media":55,"q":15,"fonte":"MG"},{"disc":"PNFL","assunto":"Iluminação Pública","media":61,"q":18,"fonte":"RN"},{"disc":"Obras de Edificações","assunto":"Instalações Elétricas","media":48,"q":55,"fonte":"MG+RN"},{"disc":"Dir. Constitucional","assunto":"Funções Essenciais à Justiça (MP, OAB)","media":57,"q":35,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Condutos Forçados / Bombas","media":42,"q":55,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Instalações de Combate a Incêndio","media":60,"q":45,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Impermeabilização","media":63,"q":55,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Sistema de Coleta de Esgoto","media":63,"q":24,"fonte":"RN"},{"disc":"Obras de Edificações","assunto":"Estruturas de Concreto","media":65,"q":90,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"COSO e Controle Interno","media":65,"q":70,"fonte":"MG+RN"},{"disc":"Controle Externo","assunto":"Controle Administrativo","media":65,"q":90,"fonte":"MG+RN"},{"disc":"PNFL","assunto":"Canteiro de Obras / Segurança (NR-24)","media":65,"q":50,"fonte":"MG+RN"},{"disc":"PNFL","assunto":"PPPs - Lei 11.079/2004","media":65,"q":65,"fonte":"MG+RN"},{"disc":"Dir. Constitucional","assunto":"Remédios Constitucionais","media":64,"q":55,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Drenagem e OAE","media":64,"q":75,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Fundações","media":68,"q":40,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Patologias e Manutenção Rodoviária","media":68,"q":60,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"Amostragem em Auditoria","media":67,"q":50,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Turbinas e Geradores","media":67,"q":70,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Impactos Ambientais Rodoviários","media":67,"q":30,"fonte":"MG"},{"disc":"Controle Externo","assunto":"Improbidade Administrativa (Lei 8.429/92)","media":68,"q":75,"fonte":"MG+RN"},{"disc":"Dir. Constitucional","assunto":"Poder Executivo","media":68,"q":35,"fonte":"MG+RN"},{"disc":"Dir. Administrativo","assunto":"Atos Administrativos","media":67,"q":80,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"SICRO","media":60,"q":35,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Condutos Livres / Canais","media":60,"q":30,"fonte":"MG"},{"disc":"Obras Rodoviárias","assunto":"Sinalização","media":62,"q":25,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Revestimentos e Pinturas","media":65,"q":45,"fonte":"MG"},{"disc":"Obras de Edificações","assunto":"Cobertura","media":68,"q":35,"fonte":"MG"},{"disc":"Dir. Constitucional","assunto":"Direitos Sociais","media":66,"q":50,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Pavimentação","media":69,"q":130,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"ETE - Estação de Tratamento de Esgoto","media":69,"q":120,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Esquadrias","media":59,"q":34,"fonte":"MG"},{"disc":"PNFL","assunto":"GVA - Gerenciamento do Valor Agregado","media":72,"q":45,"fonte":"MG+RN"},{"disc":"PNFL","assunto":"Anteprojeto / Projeto Básico / Executivo","media":70,"q":25,"fonte":"RN"},{"disc":"PNFL","assunto":"Concessões - Lei 8.987/1995","media":70,"q":40,"fonte":"MG+RN"},{"disc":"PNFL","assunto":"Legislação Ambiental (CONAMA)","media":72,"q":65,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"Conceitos Básicos de Auditoria","media":72,"q":65,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"ISSAI 100 e Normas Internacionais","media":72,"q":50,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"Testes e Procedimentos de Auditoria","media":71,"q":55,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"Planejamento de Auditoria","media":74,"q":40,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"ETA - Estação de Tratamento de Água","media":72,"q":80,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Barragens","media":71,"q":85,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Irrigação e Drenagem","media":72,"q":50,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Drenagem Urbana / Macrodrenagem","media":74,"q":60,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Sondagens de Solo / Ensaios","media":72,"q":65,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Controle Tecnológico","media":72,"q":80,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Terraplenagem","media":74,"q":80,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Especificações de Materiais","media":73,"q":50,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Instalações Hidrossanitárias","media":70,"q":50,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Controle Tecnológico do Concreto","media":74,"q":45,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Engenharia de Avaliações (NBR 14653)","media":74,"q":55,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Estruturas Metálicas","media":71,"q":25,"fonte":"MG"},{"disc":"Dir. Constitucional","assunto":"Direitos Fundamentais","media":74,"q":60,"fonte":"MG+RN"},{"disc":"Dir. Constitucional","assunto":"Organização Político-Administrativa","media":70,"q":40,"fonte":"MG+RN"},{"disc":"Dir. Constitucional","assunto":"Poder Judiciário","media":72,"q":50,"fonte":"MG+RN"},{"disc":"Dir. Administrativo","assunto":"Nova Lei de Licitações (14.133/21)","media":74,"q":60,"fonte":"MG+RN"},{"disc":"Controle Externo","assunto":"Abrangência do Controle (art. 70 CF)","media":74,"q":30,"fonte":"MG"},{"disc":"Controle Externo","assunto":"LOTCE-RN e RITCE-RN","media":74,"q":46,"fonte":"RN"},{"disc":"AFO","assunto":"Receita e Despesa Pública","media":74,"q":75,"fonte":"MG+RN"},{"disc":"AFO","assunto":"LRF e Responsabilidade Fiscal","media":72,"q":55,"fonte":"MG+RN"},{"disc":"LP","assunto":"Coesão e Coerência Textual","media":74,"q":50,"fonte":"MG+RN"},{"disc":"LP","assunto":"Crase e Pontuação","media":70,"q":30,"fonte":"MG+RN"},{"disc":"LP","assunto":"Tipologia e Gênero Textual","media":72,"q":30,"fonte":"MG+RN"},{"disc":"LP","assunto":"Funções Sintáticas / Reescrita","media":70,"q":25,"fonte":"MG+RN"}];
@@ -2976,8 +3046,33 @@ function abrirModalRegistro(tarefaId=null){
         <div>
           <label class="form-label">Semana</label>
           <select id="mr-semana" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit">
-            ${['S01','S02','S03','S04','S05','S06','S07','S08','S09','S10','S11','S12','S13','S14','S15','S16','S17','S18','S19','S20'].map(s=>`<option>${s}</option>`).join('')}
-          </select>
+            <option>S01</option>
+            <option>S02</option>
+            <option>S03</option>
+            <option>S04</option>
+            <option>S05</option>
+            <option>S06</option>
+            <option>S07</option>
+            <option>S08</option>
+            <option>S09</option>
+            <option>S10</option>
+            <option>S11</option>
+            <option>S12</option>
+            <option>S13</option>
+            <option>S14</option>
+            <option>S15</option>
+            <option>S16</option>
+            <option>S17</option>
+            <option>S18</option>
+            <option>S19</option>
+            <option>S20</option>
+            <option>S21</option>
+            <option>S22</option>
+            <option>S23</option>
+            <option>S24</option>
+            <option>S25</option>
+            <option>S26</option>
+            </select>
         </div>
         <div>
           <label class="form-label">Obs</label>
@@ -4337,12 +4432,27 @@ function atualizarContador(){
   const hoje = new Date();
   hoje.setHours(0,0,0,0);
   const dias = Math.ceil((prova - hoje) / 86400000);
+
+  // Detectar semana atual pelo calendário
+  const hojeStr = dataHoje();
+  let semAtual = '';
+  Object.entries(CALENDARIO_SEMANAS).forEach(([sem, cal])=>{
+    if(hojeStr >= cal.inicio && hojeStr <= cal.fim) semAtual = sem;
+  });
+
   if(dias > 0){
-    el.textContent = '📅 ' + dias + ' dias para a prova · 29/11/2026';
+    el.innerHTML = (semAtual ? `<b>${semAtual}</b> · ` : '') +
+      `📅 <b>${dias}</b> dias para a prova · 29/11/2026`;
     el.style.background = dias <= 30 ? 'var(--red-bg,#FDEDEC)' : dias <= 60 ? 'var(--amber-bg,#FEF9E7)' : 'var(--bg3)';
     el.style.color = dias <= 30 ? 'var(--red)' : dias <= 60 ? 'var(--amber)' : 'var(--text2)';
   } else {
     el.textContent = '🎯 Dia da prova!';
+  }
+
+  // Sincronizar semana no seletor
+  if(semAtual){
+    const sel = document.getElementById('sem-selector');
+    if(sel && sel.value !== semAtual) sel.value = semAtual;
   }
 }
 
