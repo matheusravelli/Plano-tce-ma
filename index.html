@@ -3448,7 +3448,7 @@ function setDesempTab(tab){
 let editalTabAtiva = 'topicos';
 function setEditalTab(tab){
   editalTabAtiva = tab;
-  const tabs = ['topicos','importar'];
+  const tabs = ['info','simulador','topicos','importar'];
   tabs.forEach(t=>{
     const btn = document.getElementById('edital-tab-'+t);
     const pan = document.getElementById('edital-painel-'+t);
@@ -3460,12 +3460,77 @@ function setEditalTab(tab){
     btn.style.fontWeight = active?'500':'400';
   });
   if(tab==='topicos') setTimeout(renderEdital, 50);
+  if(tab==='simulador') setTimeout(calcularSimulador, 50);
   if(tab==='importar'){
     // Mover conteúdo da view importar para cá
     const wrap = document.getElementById('edital-importar-wrap');
     const src = document.getElementById('view-importar');
     if(wrap && src) wrap.innerHTML = src.innerHTML;
   }
+}
+
+// ── SIMULADOR DE NOTA ────────────────────────────────────────────────────────
+function calcularSimulador(){
+  const p1   = Math.min(40, parseInt(document.getElementById('sim-p1')?.value)||0);
+  const p2   = Math.min(60, parseInt(document.getElementById('sim-p2')?.value)||0);
+  const peca = Math.min(20, parseFloat(document.getElementById('sim-peca')?.value)||0);
+  const q1   = Math.min(10, parseFloat(document.getElementById('sim-q1')?.value)||0);
+  const q2   = Math.min(10, parseFloat(document.getElementById('sim-q2')?.value)||0);
+
+  // Sincronizar sliders
+  const r1 = document.getElementById('sim-p1-range');
+  const r2 = document.getElementById('sim-p2-range');
+  if(r1) r1.value = p1;
+  if(r2) r2.value = p2;
+
+  const notaP1   = p1 * 1;
+  const notaP2   = p2 * 2;
+  const notaObj  = notaP1 + notaP2;
+  const notaDisc = peca + q1 + q2;
+  const total    = notaObj + notaDisc;
+
+  const pctP1    = Math.round(p1/40*100);
+  const pctP2    = Math.round(p2/60*100);
+  const pctObj   = Math.round(notaObj/160*100);
+  const pctDisc  = Math.round(notaDisc/40*100);
+  const pctTotal = Math.round(total/200*100);
+
+  const eliminadoObj  = notaObj < 64;
+  const eliminadoPeca = peca < 10;
+  const aprovado = !eliminadoObj && !eliminadoPeca;
+  const corTotal = pctTotal>=80?'var(--green)':pctTotal>=65?'var(--amber)':'var(--red)';
+
+  const el = document.getElementById('sim-output');
+  if(!el) return;
+
+  const linhas = [
+    ['P1 — Gerais', p1+'/40 acertos', notaP1+'/40 pts', pctP1, eliminadoObj?'var(--red)':'var(--green)'],
+    ['P2 — Específicos (×2)', p2+'/60 acertos', notaP2+'/120 pts', pctP2, 'var(--blue)'],
+    ['Objetivas total', '', notaObj+'/160 pts', pctObj, eliminadoObj?'var(--red)':notaObj>=100?'var(--green)':'var(--amber)'],
+    ['Peça técnica', '', peca+'/20 pts', Math.round(peca/20*100), eliminadoPeca?'var(--red)':'var(--green)'],
+    ['Questões discursivas', '', (q1+q2)+'/20 pts', Math.round((q1+q2)/20*100), 'var(--text2)'],
+    ['Discursiva total', '', notaDisc+'/40 pts', pctDisc, 'var(--text2)'],
+  ];
+
+  el.innerHTML =
+    '<div style="text-align:center;padding:16px;border-radius:var(--radius);background:var(--bg2);margin-bottom:12px">' +
+    '<div style="font-size:40px;font-weight:700;color:'+corTotal+'">'+total.toFixed(1)+'</div>' +
+    '<div style="font-size:13px;color:var(--text2)">de 200 pontos ('+pctTotal+'%)</div>' +
+    '<div style="margin-top:8px;font-size:13px;font-weight:600;color:'+(aprovado?'var(--green)':'var(--red)')+'">'+
+    (aprovado?'✅ Aprovado nas objetivas':'❌ Eliminado')+'</div>'+
+    (eliminadoObj?'<div style="font-size:11px;color:var(--red);margin-top:4px">⚠️ Objetivas abaixo de 64 pts</div>':'')+
+    (eliminadoPeca?'<div style="font-size:11px;color:var(--red);margin-top:4px">⚠️ Peça técnica abaixo de 10 pts</div>':'')+
+    '</div>' +
+    '<div style="display:flex;flex-direction:column;gap:8px">' +
+    linhas.map(([label,sub,pts,pct,cor])=>
+      '<div style="padding:8px;border-radius:var(--radius);background:var(--bg)">'+
+      '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">'+
+      '<span>'+label+(sub?' <span style="color:var(--text3)">('+sub+')</span>':'')+'</span>'+
+      '<span style="font-weight:600;color:'+cor+'">'+pts+'</span></div>'+
+      '<div style="height:4px;background:var(--bg3);border-radius:2px;overflow:hidden">'+
+      '<div style="height:4px;width:'+pct+'%;background:'+cor+';border-radius:2px;transition:width .3s"></div>'+
+      '</div></div>'
+    ).join('') + '</div>';
 }
 
 // ── BACKUP / RESTORE ────────────────────────────────────────────────────────
