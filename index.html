@@ -3228,39 +3228,78 @@ const LS_T = 'tcema_tarefas';
 // sbHeaders e sbConfigured definidos acima
 
 // Salvar sessões
+// Sanitização central — garante campos uniformes para cada tabela
+function sanitizarSessao(s){
+  return {
+    id: Number(s.id),
+    semana: s.semana||'',
+    data: s.data||'',
+    disc: s.disc||'',
+    assunto: s.assunto||'',
+    tipo: s.tipo||'',
+    qtd: parseInt(s.qtd)||0,
+    acertos: s.acertos!=null ? parseInt(s.acertos) : null,
+    meta: parseInt(s.meta)||75,
+    obs: s.obs||'',
+    tempo_min: parseInt(s.tempo_min)||0,
+    tarefa_id: s.tarefa_id ? Number(s.tarefa_id) : null
+  };
+}
+
+function sanitizarTarefa(t){
+  return {
+    id: Number(t.id),
+    semana: t.semana||'',
+    prio: t.prio||'A',
+    disc: t.disc||'',
+    tipo: t.tipo||'',
+    assunto: t.assunto||'',
+    link: t.link||'',
+    status: t.status||'pendente',
+    obs: t.obs||'',
+    qtd: parseInt(t.qtd)||10
+  };
+}
+
+function sanitizarErro(e){
+  return {
+    id: Number(e.id),
+    disc: e.disc||'',
+    assunto: e.assunto||'',
+    semana: e.semana||'',
+    data: e.data||'',
+    gravidade: e.gravidade||'Pontual',
+    descricao: e.descricao||'',
+    acao: e.acao||'',
+    status: e.status||'Pendente',
+    sessao_id: e.sessao_id ? Number(e.sessao_id) : null,
+    data_superado: e.data_superado||null
+  };
+}
+
+async function sbPost(tabela, dados, loteSize=50){
+  if(!sbConfigured()) return;
+  const baseUrl = getSbUrl().replace(/\/+$/,'');
+  for(let i=0; i<dados.length; i+=loteSize){
+    const r = await fetch(`${baseUrl}/rest/v1/${tabela}`, {
+      method:'POST',
+      headers:{...sbHeaders(),'Prefer':'resolution=merge-duplicates'},
+      body: JSON.stringify(dados.slice(i,i+loteSize))
+    });
+    if(!r.ok){
+      const err = await r.text();
+      console.warn(`Supabase ${tabela} erro:`, r.status, err);
+      throw new Error(`${tabela} ${r.status}: ${err}`);
+    }
+  }
+}
+
 async function saveSessoes(){
   localStorage.setItem(LS_S, JSON.stringify(sessoes));
   if(!sbConfigured()) return;
   try{
-    const baseUrl = getSbUrl().replace(/\/+$/,'');
-    // Enviar só campos que existem na tabela
-    // Garantir campos uniformes — sem created_at, sem campos extras
-    const limpas = sessoes.map(s=>({
-      id: Number(s.id),
-      semana: s.semana||'',
-      data: s.data||'',
-      disc: s.disc||'',
-      assunto: s.assunto||'',
-      tipo: s.tipo||'',
-      qtd: parseInt(s.qtd)||0,
-      acertos: s.acertos!=null ? parseInt(s.acertos) : null,
-      meta: parseInt(s.meta)||75,
-      obs: s.obs||'',
-      tempo_min: parseInt(s.tempo_min)||0,
-      tarefa_id: s.tarefa_id ? Number(s.tarefa_id) : null
-    }));
-    for(let i=0; i<limpas.length; i+=50){
-      const r = await fetch(`${baseUrl}/rest/v1/sessoes`, {
-        method:'POST',
-        headers:{...sbHeaders(),'Prefer':'resolution=merge-duplicates'},
-        body: JSON.stringify(limpas.slice(i,i+50))
-      });
-      if(!r.ok){
-        const err = await r.text();
-        console.warn('Supabase saveSessoes erro:', r.status, err);
-      }
-    }
-  } catch(e){ console.warn('Supabase save sessoes falhou:', e); }
+    await sbPost('sessoes', sessoes.map(sanitizarSessao));
+  } catch(e){ console.warn('saveSessoes falhou:', e); }
 }
 
 
@@ -3268,25 +3307,8 @@ async function saveSessoes(){
 async function saveTarefas(){
   localStorage.setItem(LS_T, JSON.stringify(tarefas));
   if(!sbConfigured()) return;
-  try {
-    const baseUrl = getSbUrl().replace(/\/+$/,'');
-    // Enviar só campos que a tabela aceita
-    const limpas = tarefas.map(t=>({
-      id:t.id, semana:t.semana, prio:t.prio, disc:t.disc,
-      tipo:t.tipo, assunto:t.assunto, link:t.link||'',
-      status:t.status, obs:t.obs||''
-    }));
-    for(let i=0; i<limpas.length; i+=50){
-      const r = await fetch(`${baseUrl}/rest/v1/tarefas`, {
-        method:'POST',
-        headers:{...sbHeaders(),'Prefer':'resolution=merge-duplicates'},
-        body: JSON.stringify(limpas.slice(i,i+50))
-      });
-      if(!r.ok){
-        const err = await r.text();
-        console.warn('saveTarefas erro:', r.status, err);
-      }
-    }
+  try{
+    await sbPost('tarefas', tarefas.map(sanitizarTarefa));
   } catch(e){ console.warn('saveTarefas falhou:', e); }
 }
 
