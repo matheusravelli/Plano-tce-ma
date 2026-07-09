@@ -3903,6 +3903,7 @@ function renderMetrics(){
 
 function renderUltimasSessoes(){
   const el = document.getElementById('ultimas-sessoes');
+  if(!el) return;
   const ult = [...sessoes].reverse().slice(0,6);
   if(!ult.length){ el.innerHTML='<div class="empty">Nenhuma sessão registrada</div>'; return; }
   el.innerHTML = ult.map(s=>{
@@ -3916,6 +3917,7 @@ function renderUltimasSessoes(){
 
 function renderDashTarefas(){
   const el = document.getElementById('dash-tarefas');
+  if(!el) return;
   const pend = tarefas.filter(t=>t.status==='pendente').slice(0,6);
   if(!pend.length){ el.innerHTML='<div class="empty">Nenhuma tarefa pendente</div>'; return; }
   el.innerHTML = pend.map(t=>`<div class="row">
@@ -4104,6 +4106,7 @@ async function registrarSessao(){
 
 function renderHistorico(){
   const el = document.getElementById('historico-sessoes');
+  if(!el) return;
   if(!sessoes.length){ el.innerHTML='<div class="empty">Nenhuma sessão ainda</div>'; return; }
   el.innerHTML = [...sessoes].reverse().map(s=>{
     const p = s.acertos!=null ? pct(s.acertos,s.qtd) : null;
