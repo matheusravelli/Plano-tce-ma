@@ -764,17 +764,11 @@ alter table tarefas disable row level security;
         <!-- Datas -->
         <div class="card" style="padding:1rem">
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:10px">📅 Datas importantes</div>
-          ${[
-            ['Inscrições abertas','17/07 a 21/08/2026'],
-            ['Taxa de inscrição','R$ 300,00'],
-            ['Provas objetivas (manhã)','29/11/2026 — 5 horas'],
-            ['Prova discursiva (tarde)','29/11/2026 — 4 horas'],
-            ['Site','cebraspe.org.br/concursos/tce_ma_26'],
-          ].map(([k,v])=>`
-          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
-            <span style="color:var(--text2)">${k}</span>
-            <span style="font-weight:500;text-align:right;max-width:180px">${v}</span>
-          </div>`).join('')}
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--text2)">Inscrições abertas</span><span style="font-weight:500">17/07 a 21/08/2026</span></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--text2)">Taxa de inscrição</span><span style="font-weight:500">R$ 300,00</span></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--text2)">Provas objetivas (manhã)</span><span style="font-weight:500">29/11/2026 — 5 horas</span></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--text2)">Prova discursiva (tarde)</span><span style="font-weight:500">29/11/2026 — 4 horas</span></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px"><span style="color:var(--text2)">Site</span><span style="font-weight:500">cebraspe.org.br/concursos/tce_ma_26</span></div>
         </div>
 
         <!-- Vagas -->
