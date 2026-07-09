@@ -182,6 +182,33 @@ alter table tarefas disable row level security;
       </div>
     </div>
 
+    <!-- Métricas gerais (necessário para renderMetrics) -->
+    <div class="metric-grid" id="metrics" style="margin-bottom:1.5rem"></div>
+
+    <!-- Sugestão de hoje -->
+    <div style="margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div class="section-title" style="margin:0;flex:1">💡 O que fazer hoje</div>
+        <button onclick="setSemTab('diario');showView('semana',null)"
+          style="font-size:11px;border:none;background:transparent;color:var(--blue);cursor:pointer;padding:0">
+          Ver diário completo →
+        </button>
+      </div>
+      <div id="dash-sugestao"></div>
+    </div>
+
+    <!-- Previsão + Ritmo -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem">
+      <div class="card" style="padding:1rem">
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:8px">📅 Previsão de conclusão</div>
+        <div id="dash-previsao" style="font-size:13px;line-height:1.6"></div>
+      </div>
+      <div class="card" style="padding:1rem">
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:8px">⚡ Ritmo necessário</div>
+        <div id="dash-ritmo" style="font-size:13px;line-height:1.6"></div>
+      </div>
+    </div>
+
     <!-- Disciplinas mais fracas — ação imediata -->
     <div style="margin-bottom:1.5rem">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -3868,7 +3895,8 @@ function renderMetrics(){
       <div class="metric-sub">${abaixo} sessões abaixo da meta</div>
     </div>
     <div class="metric"><div class="metric-label">Tarefas pendentes</div><div class="metric-val">${pendT}</div><div class="metric-sub">a concluir</div></div>`;
-  document.getElementById('metrics').innerHTML = html_m;
+  const metricsEl = document.getElementById('metrics');
+  if(metricsEl) metricsEl.innerHTML = html_m;
   const dm = document.getElementById('desemp-metrics');
   if(dm) dm.innerHTML = html_m;
 }
