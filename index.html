@@ -245,19 +245,9 @@ alter table tarefas disable row level security;
 
   <!-- SEMANA -->
   <div id="view-semana" class="view">
-
-    <!-- Header -->
+    <!-- Filtros -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
-      <div style="flex:1">
-        <div style="font-size:16px;font-weight:500" id="sem-titulo">Semana atual</div>
-        <div style="font-size:12px;color:var(--text2)" id="sem-subtitulo"></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <label style="font-size:12px;color:var(--text2);white-space:nowrap">Início:</label>
-        <input type="date" id="sem-data-inicio" onchange="salvarDataInicio()"
-          style="padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);width:140px">
-      </div>
-      <select id="sem-selector" onchange="renderSemana()" style="padding:6px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+      <select id="sem-selector" onchange="renderSemana()" style="padding:6px 10px;font-size:14px;font-weight:600;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);width:82px">
         <option>S01</option>
         <option>S02</option>
         <option>S03</option>
@@ -285,62 +275,34 @@ alter table tarefas disable row level security;
         <option>S25</option>
         <option>S26</option>
       </select>
-      <button class="btn btn-sm" onclick="distribuirAuto()"><i class="ti ti-wand"></i> Auto</button>
-      <button class="btn btn-sm" onclick="redistribuirRestantes()" id="btn-redistribuir" style="display:none"><i class="ti ti-calendar-due"></i> Redistribuir</button>
-      <button class="btn btn-sm" onclick="limparDistribuicao()"><i class="ti ti-trash"></i></button>
-    </div>
-
-    <!-- Sub-abas: Diário / Plano / Pendências -->
-    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
-      <button id="sem-tab-diario" onclick="setSemTab('diario')"
-        style="padding:7px 16px;font-size:13px;font-weight:500;border:none;border-bottom:2px solid var(--text);background:transparent;cursor:pointer;font-family:inherit;color:var(--text)">
-        📋 Diário
-      </button>
-      <button id="sem-tab-plano" onclick="setSemTab('plano')"
-        style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
-        📅 Plano da semana
-      </button>
-      <button id="sem-tab-pend" onclick="setSemTab('pend')"
-        style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
-        ⚠️ Pendências
-      </button>
-    </div>
-
-    <!-- Progresso geral -->
-    <div class="card" style="padding:.75rem 1rem;margin-bottom:1rem">
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <div id="sem-prog-texto" style="font-size:13px;flex:1"></div>
-        <div style="width:200px">
-          <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
-            <div id="sem-prog-barra" style="height:6px;background:var(--green);border-radius:3px;transition:width .3s;width:0%"></div>
-          </div>
-        </div>
-        <div id="sem-prog-pct" style="font-size:14px;font-weight:500;min-width:36px;text-align:right"></div>
+      <div id="sem-subtitulo" style="font-size:12px;color:var(--text2);flex:1"></div>
+      <div class="tabs" style="margin:0" id="sem-prio-tabs">
+        <button class="tab active" onclick="setSemPrio('todas',this)">Todas</button>
+        <button class="tab" onclick="setSemPrio('A',this)">A</button>
+        <button class="tab" onclick="setSemPrio('B',this)">B</button>
+        <button class="tab" onclick="setSemPrio('C',this)">C</button>
       </div>
+      <select id="sem-status-filtro" onchange="renderSemana()" style="padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+        <option value="pendente">Pendentes</option>
+        <option value="feita">Concluídas</option>
+        <option value="todas">Todas</option>
+      </select>
+      <select id="sem-disc-filtro" onchange="renderSemana()" style="padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);max-width:160px">
+        <option value="">Todas as disc.</option>
+      </select>
     </div>
-
-    <!-- Painel Diário -->
-    <div id="sem-painel-diario">
-      <div style="display:flex;gap:6px;margin-bottom:10px" id="diario-tabs">
-        <button class="tab active" onclick="setDiarioFiltro('hoje',this)">Hoje</button>
-        <button class="tab" onclick="setDiarioFiltro('ontem',this)">Ontem</button>
-        <button class="tab" onclick="setDiarioFiltro('semana',this)">Toda a semana</button>
+    <!-- Progresso -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+      <div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
+        <div id="sem-prog-barra" style="height:6px;background:var(--green);border-radius:3px;transition:width .3s;width:0%"></div>
       </div>
-      <div id="sem-diario"></div>
+      <div id="sem-prog-texto" style="font-size:12px;color:var(--text2);white-space:nowrap"></div>
     </div>
-
-    <!-- Painel Plano -->
-    <div id="sem-painel-plano" style="display:none">
-      <div id="sem-dias" style="display:flex;flex-direction:column;gap:10px"></div>
-    </div>
-
-    <!-- Painel Pendências -->
-    <div id="sem-painel-pend" style="display:none">
-      <div id="sem-pend-conteudo"></div>
-    </div>
+    <!-- Lista -->
+    <div id="sem-lista-tarefas"></div>
   </div>
 
-  <!-- REGISTRAR -->
+  <!-- REGISTRAR --><!-- REGISTRAR -->
   <div id="view-registrar" class="view">
 
     <!-- Filtros topo -->
@@ -1590,244 +1552,92 @@ Dias: ${diasRestantes.join(', ')}`
 }
 
 function renderSemana(){
-  const semEl = document.getElementById('sem-selector');
-  if(!semEl) return;
-  const sem = semEl.value;
+  const sem = document.getElementById('sem-selector')?.value || 'S06';
+  const statusF = document.getElementById('sem-status-filtro')?.value || 'pendente';
+  const discF   = document.getElementById('sem-disc-filtro')?.value   || '';
 
-  // Título
-  const titEl = document.getElementById('sem-titulo');
-  if(titEl) titEl.textContent = `${sem} — Plano da Semana`;
-
-  // Usar calendário fixo em vez de data manual
-  const calSem = CALENDARIO_SEMANAS[sem];
-  const dataInicioEl = document.getElementById('sem-data-inicio');
-  const dataSalva = calSem ? calSem.inicio : localStorage.getItem('sem_inicio_'+sem);
-  if(dataInicioEl && calSem) dataInicioEl.value = calSem.inicio;
-
-  // Mostrar botão redistribuir
-  const btnRedist = document.getElementById('btn-redistribuir');
-  if(btnRedist) btnRedist.style.display = 'inline-flex';
-
-  // Tarefas desta semana
-  const tarefasSem = tarefas.filter(t=>t.semana===sem);
-  const feitas     = tarefasSem.filter(t=>t.status==='feita').length;
-  const total      = tarefasSem.length;
-
-  // Subtítulo com datas da semana (após declarar total)
-  const subEl = document.getElementById('sem-subtitulo');
-  if(subEl && calSem){
-    const diasAteProva = Math.ceil((new Date('2026-11-29') - new Date(calSem.inicio)) / 86400000);
-    subEl.textContent = calSem.label + ' · ' + total + ' tarefas · ' + diasAteProva + ' dias para a prova';
+  // Popular disciplinas
+  const selDisc = document.getElementById('sem-disc-filtro');
+  if(selDisc && selDisc.options.length <= 1){
+    const discs = [...new Set(tarefas.filter(t=>t.semana===sem).map(t=>t.disc).filter(Boolean))].sort();
+    discs.forEach(d=>{ const o=document.createElement('option'); o.value=d; o.textContent=d; selDisc.appendChild(o); });
   }
-  const semDistrib = tarefasSem.filter(t=>t.status==='pendente' && !planoSemanal[t.id]);
-  const pctSem     = total ? Math.round(feitas/total*100) : 0;
-
-  // Progresso
-  const progTexto = document.getElementById('sem-prog-texto');
-  const progBarra = document.getElementById('sem-prog-barra');
-  const progPct   = document.getElementById('sem-prog-pct');
-  if(progTexto) progTexto.innerHTML = `<b>${feitas}</b> de <b>${total}</b> tarefas concluídas${semDistrib.length?' · <span style="color:var(--amber)">${semDistrib.length} sem dia definido</span>':''}`;
-  if(progBarra) progBarra.style.width = pctSem+'%';
-  if(progBarra) progBarra.style.background = pctSem===100?'var(--green)':pctSem>50?'var(--amber)':'var(--blue)';
-  if(progPct)   progPct.textContent = pctSem+'%';
 
   // Subtítulo
-  // subtítulo já atualizado pelo calendário fixo acima
-
-  const pb = {A:'badge-bad',B:'badge-warn',C:'badge-new'};
-  const diasEl = document.getElementById('sem-dias');
-  if(!diasEl) return;
-
-  // Detectar dia atual da semana
-  const agora = new Date();
-  const diaSemanaHoje = agora.getDay(); // 0=dom,1=seg,...,6=sab
-  // Mapear índice do dia para posição em DIAS
-  const DIAS_IDX = {Seg:1,Ter:2,Qua:3,Qui:4,Sex:5,Sáb:6,Dom:0};
-  const DIAS_IDX_NUM = {0:'Dom',1:'Seg',2:'Ter',3:'Qua',4:'Qui',5:'Sex',6:'Sáb'};
-  const diaHojeNome = DIAS_IDX_NUM[diaSemanaHoje];
-
-  // Verificar se semana selecionada é a semana atual
-  // Usar localStorage para mapear semana → data de início
-  const semanaAtual = sem; // ex: S04
-  const semInicioStr = localStorage.getItem('sem_inicio_'+semanaAtual);
-  let isSemanaNow = false;
-  let diasPassados = new Set();
-  let diasRestantes = [...DIAS];
-
-  if(semInicioStr){
-    // Calcular quais dias já passaram
-    const semInicio = new Date(semInicioStr);
-    DIAS.forEach(dia=>{
-      const diasOffset = {Seg:0,Ter:1,Qua:2,Qui:3,Sex:4,Sáb:5,Dom:6};
-      const dataDia = new Date(semInicio);
-      dataDia.setDate(semInicio.getDate() + diasOffset[dia]);
-      // Dia já passou (anterior a hoje, não conta hoje)
-      if(dataDia < new Date(agora.getFullYear(),agora.getMonth(),agora.getDate())){
-        diasPassados.add(dia);
-      }
-    });
-    isSemanaNow = true;
-    diasRestantes = DIAS.filter(d=>!diasPassados.has(d));
+  const calSem = typeof CALENDARIO_SEMANAS!=='undefined' ? CALENDARIO_SEMANAS[sem] : null;
+  const subEl = document.getElementById('sem-subtitulo');
+  if(subEl && calSem){
+    const dias = Math.ceil((new Date('2026-11-29')-new Date(calSem.inicio))/86400000);
+    subEl.textContent = calSem.label + ' · ' + dias + ' dias para a prova';
   }
 
-  // Construir cards por dia
-  diasEl.innerHTML = DIAS.map(dia=>{
-    const tarefasDia = tarefasSem.filter(t=>planoSemanal[t.id]?.dia===dia);
-    const feitasDia  = tarefasDia.filter(t=>t.status==='feita').length;
-    const totalDia   = tarefasDia.length;
-    const pctDia     = totalDia ? Math.round(feitasDia/totalDia*100) : 0;
-    const isHoje     = dia===diaHojeNome && isSemanaNow;
-    const isPassado  = diasPassados.has(dia) && isSemanaNow;
-    const corDia     = isPassado&&pctDia<100 ? 'var(--red)' :
-                       pctDia===100?'var(--green)':
-                       isHoje?'var(--blue)':
-                       pctDia>0?'var(--amber)':'var(--text3)';
+  // Filtrar
+  const semPrio = window.semPrioFiltro||'todas';
+  let lista = tarefas.filter(t=>t.semana===sem);
+  const total=lista.length, feitas=lista.filter(t=>t.status==='feita').length;
+  if(statusF!=='todas') lista=lista.filter(t=>t.status===statusF);
+  if(semPrio!=='todas') lista=lista.filter(t=>t.prio===semPrio);
+  if(discF) lista=lista.filter(t=>t.disc===discF);
+  lista.sort((a,b)=>a.prio.localeCompare(b.prio));
 
-    const borderColor = isHoje ? 'var(--blue)' : isPassado&&pctDia<100 ? 'var(--red)' : 'var(--border)';
-    const bgHeader = isHoje ? 'var(--blue-bg,#EBF5FB)' : isPassado ? 'var(--bg3)' : 'var(--bg2)';
-    return `<div style="border:1px solid ${borderColor};border-radius:var(--radius-lg);overflow:hidden;opacity:${isPassado&&pctDia===0?'0.5':'1'}">
-      <!-- Header do dia -->
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${bgHeader};cursor:pointer"
-           onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-        <div style="min-width:90px">
-          <div style="font-size:13px;font-weight:${isHoje?'700':'500'};color:${isHoje?'var(--blue)':'var(--text)'}">${DIAS_LABEL[dia]}</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:1px">
-            ${isHoje?'📍 Hoje':isPassado?'✓ Encerrado':''}
-          </div>
-        </div>
-        <div style="font-size:11px;color:var(--text3)">${CARGA[dia]}h</div>
-        <div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;max-width:120px">
-          <div style="height:5px;width:${pctDia}%;background:${corDia};border-radius:3px;transition:width .3s"></div>
-        </div>
-        <div style="font-size:12px;font-weight:500;color:${corDia};min-width:60px;text-align:right">
-          ${totalDia?`${feitasDia}/${totalDia} feitas`:'<span style="color:var(--text3)">vazio</span>'}
-        </div>
-        <div style="font-size:11px;color:var(--text3)">▼</div>
-      </div>
+  // Progresso
+  const pct_s=total?Math.round(feitas/total*100):0;
+  const pb_el=document.getElementById('sem-prog-barra');
+  const pt_el=document.getElementById('sem-prog-texto');
+  if(pb_el) pb_el.style.width=pct_s+'%';
+  if(pt_el) pt_el.textContent=feitas+'/'+total+' concluídas ('+pct_s+'%)';
 
-      <!-- Corpo do dia -->
-      <div style="padding:8px 14px">
-        ${tarefasDia.length===0
-          ? `<div style="font-size:12px;color:var(--text3);padding:6px 0">Nenhuma tarefa alocada para este dia.</div>`
-          : tarefasDia.map(t=>`
-          <!-- Linha principal da tarefa -->
-          <div id="sem-row-${t.id}" style="border-bottom:1px solid var(--border)">
-            <div style="display:grid;grid-template-columns:20px 1fr auto auto auto;align-items:center;gap:8px;padding:8px 0">
-              <div class="task-check ${t.status==='feita'?'done':''}"
-                onclick="semCheckClick(${t.id},'${t.status}')"
-                style="cursor:pointer">
-                ${t.status==='feita'?'<i class="ti ti-check" style="font-size:11px;color:white"></i>':''}</div>
-              <div style="overflow:hidden;cursor:${t.status==='feita'?'default':'pointer'}"
-                onclick="if('${t.status}'!=='feita') abrirRegistroSemana(${t.id})">
-                <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${t.status==='feita'?'text-decoration:line-through;opacity:.5':''}">${t.assunto}</div>
-                <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.disc} · ${t.tipo}${t.link?` · <a href="${t.link}" target="_blank" onclick="event.stopPropagation()" style="color:var(--blue)">🔗</a>`:''}</div>
-              </div>
-              <span class="badge ${pb[t.prio]||'badge-pend'}" style="font-size:10px;white-space:nowrap">[${t.prio}]</span>
-              <select onchange="moverParaDia(${t.id},this.value);this.value=''" title="Mover dia" style="font-size:11px;padding:2px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text);width:36px">
-                <option value="">📅</option>
-                ${DIAS.filter(d=>d!==dia).map(d=>`<option value="${d}">${d}</option>`).join('')}
-              </select>
-              <button onclick="removerDoDia(${t.id})" style="border:none;background:transparent;color:var(--text3);cursor:pointer;padding:0;font-size:13px;line-height:1">✕</button>
-            </div>
-            <!-- Formulário inline de registro (oculto por padrão) -->
-            <div id="sem-reg-${t.id}" style="display:none;padding:10px 12px;background:var(--bg2);border-radius:0 0 var(--radius) var(--radius);border-top:1px solid var(--border)">
-              <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:8px">Registrar desempenho</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-                <div>
-                  <label class="form-label">Questões</label>
-                  <input type="number" id="sem-qtd-${t.id}" value="${t.qtd||10}" min="1"
-                    style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"
-                    oninput="semAtualizarPreview(${t.id})">
-                </div>
-                <div>
-                  <label class="form-label">Acertos</label>
-                  <input type="number" id="sem-acertos-${t.id}" placeholder="ex: 8" min="0"
-                    style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"
-                    oninput="semAtualizarPreview(${t.id})">
-                </div>
-                <div>
-                  <label class="form-label">Meta (%)</label>
-                  <input type="number" id="sem-meta-${t.id}" value="${t.meta||75}" min="0" max="100"
-                    style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"
-                    oninput="semAtualizarPreview(${t.id})">
-                </div>
-                <div>
-                  <label class="form-label">Tempo (min)</label>
-                  <input type="number" id="sem-tempo-${t.id}" placeholder="ex: 45" min="0"
-                    style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
-                </div>
-              </div>
-              <div style="margin-bottom:8px">
-                <label class="form-label">Obs / padrão de erro</label>
-                <input type="text" id="sem-obs-${t.id}" placeholder="Anotar onde errou..."
-                  style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                <button onclick="semRegistrar(${t.id})"
-                  style="padding:5px 14px;border:none;border-radius:var(--radius);background:var(--text);color:var(--bg);font-size:12px;cursor:pointer;font-family:inherit;font-weight:500">
-                  ✅ Salvar e concluir
-                </button>
-                <button onclick="semFecharRegistro(${t.id})"
-                  style="padding:5px 12px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit">
-                  Cancelar
-                </button>
-                <div id="sem-preview-${t.id}" style="margin-left:auto;font-size:14px;font-weight:500"></div>
-              </div>
-            </div>
-          </div>`).join('')
-        }
+  const el=document.getElementById('sem-lista-tarefas');
+  if(!el) return;
 
-        <!-- Adicionar tarefa sem dia a este dia -->
-        ${semDistrib.length>0?`
-        <div style="margin-top:6px">
-          <select onchange="moverParaDia(parseInt(this.value),'${dia}');this.value=''"
-            style="font-size:11px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text);width:100%">
-            <option value="">+ Adicionar tarefa pendente a ${dia}</option>
-            ${semDistrib.map(t=>`<option value="${t.id}">[${t.prio}] ${t.assunto} · ${t.disc}</option>`).join('')}
-          </select>
-        </div>`:``}
-      </div>
-    </div>`;
+  if(!lista.length){
+    el.innerHTML='<div class="empty" style="padding:2rem">Nenhuma tarefa neste filtro.</div>';
+    return;
+  }
+
+  const badgeMap={A:'badge-bad',B:'badge-warn',C:'badge-new'};
+  el.innerHTML=lista.map(t=>{
+    const feita=t.status==='feita';
+    const al=!feita?nivelAlerta(t):null;
+    const corAl=al?.nivel==='critico'?'var(--red)':al?.nivel==='alerta'?'var(--amber)':'var(--green)';
+    return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:var(--radius);background:var(--bg2);margin-bottom:6px;opacity:'+(feita?'.6':'1')+'">'
+
+      // Checkbox circular
+      +'<button onclick="semCheckRapido('+t.id+',''+t.status+'')" style="flex-shrink:0;margin-top:1px;width:20px;height:20px;border-radius:50%;border:2px solid '+(feita?'var(--green)':'var(--border2)')+';background:'+(feita?'var(--green)':'transparent')+';cursor:pointer;font-size:11px;color:white;display:flex;align-items:center;justify-content:center">'+(feita?'✓':'')+'</button>'
+
+      // Info
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
+          +'<span class="badge '+(badgeMap[t.prio]||'badge-pend')+'" style="font-size:10px">['+t.prio+']</span>'
+          +'<span style="font-size:13px;font-weight:500;'+(feita?'text-decoration:line-through;':'')+'">'+t.assunto+'</span>'
+          +(al&&al.nivel!=='ok'?'<span style="font-size:10px;color:'+corAl+'">●</span>':'')
+        +'</div>'
+        +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+t.disc+' · '+t.tipo+(t.link?' · <a href="'+t.link+'" target="_blank" style="color:var(--blue)">🔗</a>':'')+'</div>'
+      +'</div>'
+
+      // Botões
+      +'<div style="display:flex;gap:4px;flex-shrink:0">'
+        +(!feita?'<button onclick="abrirModalRegistro('+t.id+')" style="font-size:11px;padding:4px 10px;border:none;border-radius:var(--radius);background:var(--blue);color:white;cursor:pointer">✅</button>':'')
+        +'<button onclick="abrirEditarTarefa('+t.id+')" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;cursor:pointer;color:var(--text2)">✏️</button>'
+      +'</div>'
+    +'</div>';
   }).join('');
-
-  // Renderizar diário
-  setTimeout(renderDiario, 50);
-
-  // Tarefas sem dia definido
-  if(semDistrib.length){
-    diasEl.innerHTML += `
-    <div style="border:1px solid var(--amber);border-radius:var(--radius-lg);padding:10px 14px;background:var(--amber-bg,#FEF9E7)">
-      <div style="font-size:12px;font-weight:500;color:var(--amber);margin-bottom:6px">
-        ⚠️ ${semDistrib.length} tarefa${semDistrib.length>1?'s':''} sem dia definido
-      </div>
-      ${semDistrib.map(t=>`
-      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
-        <span class="badge ${pb[t.prio]||'badge-pend'}">[${t.prio}]</span>
-        <div style="flex:1;font-size:12px">${t.assunto} · <span style="color:var(--text3)">${t.disc}</span></div>
-        <select onchange="moverParaDia(${t.id},this.value);this.value=''"
-          style="font-size:11px;padding:2px 4px;border:1px solid var(--border2);border-radius:4px;background:var(--bg);color:var(--text)">
-          <option value="">Alocar para...</option>
-          ${DIAS.map(d=>`<option value="${d}">${d}</option>`).join('')}
-        </select>
-      </div>`).join('')}
-      <button class="btn btn-sm" onclick="distribuirAuto()" style="margin-top:8px;font-size:12px">
-        <i class="ti ti-wand"></i> Distribuir automaticamente
-      </button>
-    </div>`;
-  }
 }
 
-// ── REVISÃO //───────────
-const CALENDARIO_SEMANAS = {"S01":{"inicio":"2026-06-01","fim":"2026-06-07","label":"01/06 a 07/06"},"S02":{"inicio":"2026-06-08","fim":"2026-06-14","label":"08/06 a 14/06"},"S03":{"inicio":"2026-06-15","fim":"2026-06-21","label":"15/06 a 21/06"},"S04":{"inicio":"2026-06-22","fim":"2026-06-28","label":"22/06 a 28/06"},"S05":{"inicio":"2026-06-29","fim":"2026-07-05","label":"29/06 a 05/07"},"S06":{"inicio":"2026-07-06","fim":"2026-07-12","label":"06/07 a 12/07"},"S07":{"inicio":"2026-07-13","fim":"2026-07-19","label":"13/07 a 19/07"},"S08":{"inicio":"2026-07-20","fim":"2026-07-26","label":"20/07 a 26/07"},"S09":{"inicio":"2026-07-27","fim":"2026-08-02","label":"27/07 a 02/08"},"S10":{"inicio":"2026-08-03","fim":"2026-08-09","label":"03/08 a 09/08"},"S11":{"inicio":"2026-08-10","fim":"2026-08-16","label":"10/08 a 16/08"},"S12":{"inicio":"2026-08-17","fim":"2026-08-23","label":"17/08 a 23/08"},"S13":{"inicio":"2026-08-24","fim":"2026-08-30","label":"24/08 a 30/08"},"S14":{"inicio":"2026-08-31","fim":"2026-09-06","label":"31/08 a 06/09"},"S15":{"inicio":"2026-09-07","fim":"2026-09-13","label":"07/09 a 13/09"},"S16":{"inicio":"2026-09-14","fim":"2026-09-20","label":"14/09 a 20/09"},"S17":{"inicio":"2026-09-21","fim":"2026-09-27","label":"21/09 a 27/09"},"S18":{"inicio":"2026-09-28","fim":"2026-10-04","label":"28/09 a 04/10"},"S19":{"inicio":"2026-10-05","fim":"2026-10-11","label":"05/10 a 11/10"},"S20":{"inicio":"2026-10-12","fim":"2026-10-18","label":"12/10 a 18/10"},"S21":{"inicio":"2026-10-19","fim":"2026-10-25","label":"19/10 a 25/10"},"S22":{"inicio":"2026-10-26","fim":"2026-11-01","label":"26/10 a 01/11"},"S23":{"inicio":"2026-11-02","fim":"2026-11-08","label":"02/11 a 08/11"},"S24":{"inicio":"2026-11-09","fim":"2026-11-15","label":"09/11 a 15/11"},"S25":{"inicio":"2026-11-16","fim":"2026-11-22","label":"16/11 a 22/11"},"S26":{"inicio":"2026-11-23","fim":"2026-11-29","label":"23/11 a 29/11"}};
-const EDITAL_CARGO13 = {"LP":{"nome":"Língua Portuguesa","topicos":["Compreensão e interpretação de textos","Reconhecimento de tipos e gêneros textuais","Domínio da ortografia oficial","Coesão textual — elementos de referenciação e conectores","Emprego de tempos e modos verbais","Emprego das classes de palavras","Relações de coordenação entre orações e termos","Relações de subordinação entre orações e termos","Emprego dos sinais de pontuação","Concordância verbal e nominal","Regência verbal e nominal","Emprego do sinal indicativo de crase","Colocação dos pronomes átonos","Reescrita de frases e parágrafos","Significação das palavras (sinonímia, antonímia, denotação, conotação)"]},"Informática":{"nome":"Informática / Competências Digitais","topicos":["Cultura digital, cidadania e letramento digital (Lei 14.533/2023)","Pensamento computacional aplicado ao serviço público","Sistemas operacionais: Microsoft Windows","Editores de texto, planilhas e apresentações (Microsoft Office)","Redes de computadores: LAN, WAN, Internet, protocolos","Ferramentas de comunicação: e-mail, Teams, Meet","Segurança da informação: backup, vírus, firewall, phishing","LGPD — Lei 13.709/2018","Armazenamento em nuvem (OneDrive, Google Drive)","Assinatura digital e Marco Civil da Internet (Lei 12.965/2014)","Governo digital: plataforma Gov.br","SEI e Processo Eletrônico Nacional (PEN)","IA, big data e IoT no setor público","Ética e responsabilidade digital no serviço público"]},"Raciocínio Lógico":{"nome":"Raciocínio Lógico","topicos":["Estruturas lógicas","Lógica de argumentação: analogias, inferências, deduções","Lógica sentencial: proposições simples e compostas","Tabelas-verdade e equivalências","Leis de De Morgan","Diagramas lógicos","Lógica de primeira ordem","Princípios de contagem e probabilidade","Operações com conjuntos","Raciocínio aritmético, geométrico e matricial"]},"Dir. Adm":{"nome":"Direito Administrativo","topicos":["Organização administrativa: centralização, descentralização","Administração direta e indireta","Ato administrativo: conceito, requisitos, atributos, classificação","Agentes públicos: conceito, espécies, cargo, emprego e função","Poderes administrativos: hierárquico, disciplinar, regulamentar, polícia","Uso e abuso do poder","Licitação: princípios, modalidades, tipos, procedimento","Lei 14.133/2021 e Decreto 11.462/2023","Contratação direta: dispensa e inexigibilidade","Contratos administrativos: conceito, características, vigência, alteração","Convênios e consórcios públicos (Lei 11.107/2005)","Controle da administração pública","Responsabilidade civil do Estado","Desapropriação","Acesso à informação (Lei 12.527/2011) e LGPD"]},"Dir. Const":{"nome":"Direito Constitucional","topicos":["Princípios fundamentais da CF/88","Aplicabilidade das normas constitucionais","Direitos e deveres individuais e coletivos","Direitos sociais","Direitos de nacionalidade e direitos políticos","Organização político-administrativa: União, estados, DF, municípios","Administração pública: disposições gerais e servidores","Poder Executivo: atribuições e responsabilidades","Poder Legislativo: estrutura, funcionamento, processo legislativo","Fiscalização contábil, financeira e orçamentária","Poder Judiciário: disposições gerais e órgãos","Funções essenciais à justiça: MP, Advocacia Pública, Defensoria","Constituição do Estado do Maranhão"]},"Controle Externo":{"nome":"Controle Externo","topicos":["Conceito, tipos e formas de controle","Controle interno e externo","Controle parlamentar","Controle pelos Tribunais de Contas","Controle administrativo","Lei 8.429/1992 — Improbidade Administrativa","Contencioso administrativo e jurisdição una","Controle jurisdicional da administração","Controle da atividade financeira do Estado","TCU, TCEs e TCMs","TCE-MA na Constituição do Estado do Maranhão"]},"Legislação TCE-MA":{"nome":"Legislação Específica TCE-MA","topicos":["Regimento Interno do TCE-MA","Lei 8.258/2005 — Lei Orgânica do TCE-MA","Lei 9.936/2013 — Organização Administrativa","IN 50/2017 e suas alterações","IN 82/2025"]},"História e Geo MA":{"nome":"História e Geografia do Maranhão","topicos":["França Equinocial: expedição de Daniel de La Touche","Fundação de São Luís e Batalha de Guaxenduba","Invasão e expulsão dos holandeses","Estado do Maranhão e Grão-Pará — Revolta de Bequimão","Período Imperial: adesão e Batalha do Jenipapo","A Balaiada: caracterização e causas","Período Republicano e Revolução de 1930","O Vitorinismo e a Greve de 1951","Principais fatos políticos e sociais — segunda metade do séc. XX","Localização, superfície e limites do Maranhão","Áreas de Proteção Ambiental e Parques Nacionais","Clima, geomorfologia e recursos minerais","Relevo: planaltos, planícies e baixadas","Rios: bacias limítrofes e genuinamente maranhenses","Vegetação: floresta, cerrado e cocais","Geografia da população: urbanização e movimentos populacionais","Agricultura, pecuária e extrativismo","Setor industrial e terciário; malha viária, portos e aeroportos","Cultura maranhense"]},"Direitos Humanos":{"nome":"Noções de Direitos Humanos","topicos":["Teoria geral dos direitos fundamentais","Direitos humanos e direitos fundamentais","Declaração Universal dos Direitos Humanos","Agenda 2030 da ONU","Estatuto da Pessoa com Deficiência (Lei 13.146/2015)","Acessibilidade (Lei 10.098/2000)","Prioridade de atendimento a pessoas com deficiência (Lei 10.048/2000)","Estatuto da Igualdade Racial (Lei 12.288/2010)"]},"Auditoria":{"nome":"Auditoria do Setor Público","topicos":["Conceito, finalidade, objetivo, abrangência","Auditoria interna e externa: papéis","Instrumentos de fiscalização: auditoria, levantamento, monitoramento, acompanhamento, inspeção","Auditoria de conformidade","Auditoria operacional","Auditoria financeira","Normas INTOSAI: ISSAIs 100, 200, 300 e 400","Normas Brasileiras de Auditoria do Setor Público (NBASP)","Planejamento: escopo, materialidade, risco, relevância","Amostragem estatística em auditoria","Matriz de planejamento","Execução: programas, papéis de trabalho, testes e procedimentos","Técnicas: exame documental, inspeção física, entrevista, circularização","Evidências e caracterização de achados","Matriz de achados e matriz de responsabilização","Comunicação dos resultados: relatórios de auditoria","Monitoramento"]},"Eng — PNFL":{"nome":"PNFL — Planejamento, Normas, Fiscalização e Legislação","topicos":["Planejamento de projetos e obras: programação e controle","Viabilidade técnica, físico-financeira e econômica","Análise e interpretação de documentação técnica","Análise e compatibilização de projetos","Segurança e higiene do trabalho","Fiscalização de obras: ensaios, medições, reajustamento, fatura","Documentação da obra: diários, ARTs, legalização","Recebimento provisório e definitivo","Iluminação pública","Energias renováveis (solar, eólica, hidrelétrica)","Sustentabilidade na construção civil","Cidades inteligentes","BDI — Benefícios e Despesas Indiretas","Encargos sociais","Avaliação de custos e quantitativos; orçamento analítico e sintético","Composição analítica de serviços","Cronograma físico-financeiro","PERT-CPM e GVA / Gantt / EAP","Curva ABC e Curva S","Licitação de obras (Lei 14.133/2021): conceito, modalidades, procedimentos","Acervo técnico","Anteprojeto, projeto básico e projeto executivo","Contratos administrativos de obras: formalização, execução, rescisão","Lei 15.190/2025 — Legislação Ambiental","Lei 9.605/1998 — Crimes ambientais","CONAMA 1/1986 e 237/1997 — Licenciamento ambiental","Lei 8.987/1995 — Concessões","Lei 11.079/2004 — PPPs"]},"Eng — Edificações":{"nome":"Obras de Edificações","topicos":["Projetos e especificações de materiais e serviços","Programação e acompanhamento de obras","Canteiro de obras","Fundações diretas e indiretas","Alvenaria","Estruturas de concreto armado e protendido","Estruturas metálicas e coberturas","Impermeabilização","Cobertura","Esquadrias","Pisos e revestimentos","Pinturas","Instalações elétricas prediais","Instalações hidrossanitárias","Instalações de prevenção a incêndio","Controle de qualidade de materiais (cimento, aço, madeira, cerâmica)","SINAPI: conceitos e aplicação","Engenharia de avaliações (NBR 14.653)","Gestão na produção: projeto, materiais, manutenção","Patologia e recuperação de edificações","Manutenção predial"]},"Eng — Obras Hídricas":{"nome":"Obras Hídricas","topicos":["Barragens, soleiras, órgãos extravasores","Tomadas de água, canais, condutos sob pressão, túneis, bueiros","Aproveitamento hidrelétrico: turbinas, geradores, estruturas","Irrigação e drenagem: conceito, condicionantes, operação e manutenção","Abastecimento de água: captação, adução, ETA, recalque, reservação, distribuição","Coleta e tratamento de esgoto (ETE): lagoas, fossas sépticas","Obras de defesa contra inundação e macrodrenagem","Condutos forçados e bombas hidráulicas","Condutos livres e canais","Sistema de coleta de esgoto","Drenagem urbana","Aspectos construtivos, operação e manutenção"]},"Eng — Rodoviárias":{"nome":"Obras Rodoviárias","topicos":["Estudos geotécnicos: análise de sondagens","Especificações de materiais: características físicas","Ensaios técnicos de solo, betuminosos e agregados","Terraplenagem: cortes, aterros, bota-fora","Pavimentação: subleito, sub-base, base e revestimento asfáltico","Drenagem e obras de arte especiais","Principais equipamentos utilizados","SICRO: metodologia, produtividade e equipamentos","Acompanhamento e apropriação de serviços","Execução: terraplenagem, pavimentação, drenagem e sinalização","Impactos ambientais e medidas mitigadoras","Fiscalização: medições, reajustamento, documentação técnica","Controle de materiais: cimento, agregados, betuminosos","Controle de execução de obras e serviços","Patologias, recuperação e manutenção rodoviária","Sinalização rodoviária"]}};
+window.semPrioFiltro='todas';
+function setSemPrio(p,btn){
+  window.semPrioFiltro=p;
+  document.querySelectorAll('#sem-prio-tabs .tab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderSemana();
+}
+async function semCheckRapido(id,status){
+  const t=tarefas.find(t=>t.id===id);
+  if(!t) return;
+  if(status==='feita'){ t.status='pendente'; await saveTarefas(); renderSemana(); }
+  else abrirModalRegistro(id);
+}
 
-const HISTORICO_MG_RN = [{"disc":"PNFL","assunto":"Viabilidade Econômico-Financeira","media":55,"q":15,"fonte":"MG"},{"disc":"PNFL","assunto":"Iluminação Pública","media":61,"q":18,"fonte":"RN"},{"disc":"Obras de Edificações","assunto":"Instalações Elétricas","media":48,"q":55,"fonte":"MG+RN"},{"disc":"Dir. Constitucional","assunto":"Funções Essenciais à Justiça (MP, OAB)","media":57,"q":35,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Condutos Forçados / Bombas","media":42,"q":55,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Instalações de Combate a Incêndio","media":60,"q":45,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Impermeabilização","media":63,"q":55,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Sistema de Coleta de Esgoto","media":63,"q":24,"fonte":"RN"},{"disc":"Obras de Edificações","assunto":"Estruturas de Concreto","media":65,"q":90,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"COSO e Controle Interno","media":65,"q":70,"fonte":"MG+RN"},{"disc":"Controle Externo","assunto":"Controle Administrativo","media":65,"q":90,"fonte":"MG+RN"},{"disc":"PNFL","assunto":"Canteiro de Obras / Segurança (NR-24)","media":65,"q":50,"fonte":"MG+RN"},{"disc":"PNFL","assunto":"PPPs - Lei 11.079/2004","media":65,"q":65,"fonte":"MG+RN"},{"disc":"Dir. Constitucional","assunto":"Remédios Constitucionais","media":64,"q":55,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Drenagem e OAE","media":64,"q":75,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Fundações","media":68,"q":40,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Patologias e Manutenção Rodoviária","media":68,"q":60,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"Amostragem em Auditoria","media":67,"q":50,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Turbinas e Geradores","media":67,"q":70,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Impactos Ambientais Rodoviários","media":67,"q":30,"fonte":"MG"},{"disc":"Controle Externo","assunto":"Improbidade Administrativa (Lei 8.429/92)","media":68,"q":75,"fonte":"MG+RN"},{"disc":"Dir. Constitucional","assunto":"Poder Executivo","media":68,"q":35,"fonte":"MG+RN"},{"disc":"Dir. Administrativo","assunto":"Atos Administrativos","media":67,"q":80,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"SICRO","media":60,"q":35,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Condutos Livres / Canais","media":60,"q":30,"fonte":"MG"},{"disc":"Obras Rodoviárias","assunto":"Sinalização","media":62,"q":25,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Revestimentos e Pinturas","media":65,"q":45,"fonte":"MG"},{"disc":"Obras de Edificações","assunto":"Cobertura","media":68,"q":35,"fonte":"MG"},{"disc":"Dir. Constitucional","assunto":"Direitos Sociais","media":66,"q":50,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Pavimentação","media":69,"q":130,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"ETE - Estação de Tratamento de Esgoto","media":69,"q":120,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Esquadrias","media":59,"q":34,"fonte":"MG"},{"disc":"PNFL","assunto":"GVA - Gerenciamento do Valor Agregado","media":72,"q":45,"fonte":"MG+RN"},{"disc":"PNFL","assunto":"Anteprojeto / Projeto Básico / Executivo","media":70,"q":25,"fonte":"RN"},{"disc":"PNFL","assunto":"Concessões - Lei 8.987/1995","media":70,"q":40,"fonte":"MG+RN"},{"disc":"PNFL","assunto":"Legislação Ambiental (CONAMA)","media":72,"q":65,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"Conceitos Básicos de Auditoria","media":72,"q":65,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"ISSAI 100 e Normas Internacionais","media":72,"q":50,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"Testes e Procedimentos de Auditoria","media":71,"q":55,"fonte":"MG+RN"},{"disc":"Auditoria","assunto":"Planejamento de Auditoria","media":74,"q":40,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"ETA - Estação de Tratamento de Água","media":72,"q":80,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Barragens","media":71,"q":85,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Irrigação e Drenagem","media":72,"q":50,"fonte":"MG+RN"},{"disc":"Obras Hídricas","assunto":"Drenagem Urbana / Macrodrenagem","media":74,"q":60,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Sondagens de Solo / Ensaios","media":72,"q":65,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Controle Tecnológico","media":72,"q":80,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Terraplenagem","media":74,"q":80,"fonte":"MG+RN"},{"disc":"Obras Rodoviárias","assunto":"Especificações de Materiais","media":73,"q":50,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Instalações Hidrossanitárias","media":70,"q":50,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Controle Tecnológico do Concreto","media":74,"q":45,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Engenharia de Avaliações (NBR 14653)","media":74,"q":55,"fonte":"MG+RN"},{"disc":"Obras de Edificações","assunto":"Estruturas Metálicas","media":71,"q":25,"fonte":"MG"},{"disc":"Dir. Constitucional","assunto":"Direitos Fundamentais","media":74,"q":60,"fonte":"MG+RN"},{"disc":"Dir. Constitucional","assunto":"Organização Político-Administrativa","media":70,"q":40,"fonte":"MG+RN"},{"disc":"Dir. Constitucional","assunto":"Poder Judiciário","media":72,"q":50,"fonte":"MG+RN"},{"disc":"Dir. Administrativo","assunto":"Nova Lei de Licitações (14.133/21)","media":74,"q":60,"fonte":"MG+RN"},{"disc":"Controle Externo","assunto":"Abrangência do Controle (art. 70 CF)","media":74,"q":30,"fonte":"MG"},{"disc":"Controle Externo","assunto":"LOTCE-RN e RITCE-RN","media":74,"q":46,"fonte":"RN"},{"disc":"AFO","assunto":"Receita e Despesa Pública","media":74,"q":75,"fonte":"MG+RN"},{"disc":"AFO","assunto":"LRF e Responsabilidade Fiscal","media":72,"q":55,"fonte":"MG+RN"},{"disc":"LP","assunto":"Coesão e Coerência Textual","media":74,"q":50,"fonte":"MG+RN"},{"disc":"LP","assunto":"Crase e Pontuação","media":70,"q":30,"fonte":"MG+RN"},{"disc":"LP","assunto":"Tipologia e Gênero Textual","media":72,"q":30,"fonte":"MG+RN"},{"disc":"LP","assunto":"Funções Sintáticas / Reescrita","media":70,"q":25,"fonte":"MG+RN"}];
-
-const DADOS_REVISAO = {"10_RODOVIAS_PAVIMENTACAO":{"name":"Rodovias e Pavimentação","emoji":"🛣️","topics":{"Terraplenagem":[],"Pavimentação":[],"Projeto (Obras rodoviárias)":[],"IS-207 - Estudos de traçado":[],"Pontes":[],"Obras de Artes Especiais (Pontes, passarelas e pontilhões)":[],"MEDINA":[],"Resíduos sólidos":[],"SICRO":[],"Resíduos":[],"Terraplanagem":[],"Obras de arte":[]}},"11_LICITACOES_CONTRATOS":{"name":"Licitações e Contratos","emoji":"📜","topics":{"Regime Diferenciado de Contratações Públicas - RDC":[],"Lei de licitações":[],"Fiscalização de contratos":[],"Parceria Público Privada":[],"Modalidades de licitação":[],"Fases da licitação - Julgamento, Habilitação e Encerramento (art. 55 a 71 da Lei n 14.133/2021)":[],"Contratação Direta, Inexigibilidade e Dispensa (arts. 72 a 75 da Lei n 14.133/2021)":[],"Fiscalização de obras":[],"Concessões":[],"NLLC":[],"Alienações":[]}},"12_ORCAMENTO_PLANEJAMENTO":{"name":"Orçamento e Planejamento","emoji":"💰","topics":{"Produtividade e Equipamentos":[],"Cronograma físico-financeiro":[],"Composições de Custos e Orçamentação":[],"Curva S":[],"Planejamento de obras":[],"Orçamento":[],"SINAPI":[],"Apropriação de serviços":[],"Gerenciamento do Valor Agregado":[],"Produtividade e equipamentos":[]}},"13_AVALIACAO_IMOVEIS_PERICIAS":{"name":"Avaliação de Imóveis e Perícias","emoji":"🏠","topics":{"Avaliações de imóveis":[],"NBR 13752 - Perícias de engenharia na construção civil":[],"Engenharia Legal":[],"Engenharia de avaliações":[]}},"14_LEGISLACAO_AMBIENTAL":{"name":"Legislação Ambiental","emoji":"🌿","topics":{"Lei nº 9.605/1998 (Lei dos Crimes Ambientais)":[],"Resolução CONAMA 377/2006":[],"Meio-ambiente":[]}},"15_ACESSIBILIDADE_SEGURANCA":{"name":"Acessibilidade e Segurança","emoji":"♿","topics":{"Topografia":[],"Norma de acessibilidade":[],"Acessibilidade (NBR 9050)":[],"Segurança no Trabalho":[]}},"1_GEOTECNIA_SOLOS":{"name":"Geotecnia e Mecânica dos Solos","emoji":"🪨","topics":{"Classificação dos solos":[],"Estudos geotécnicos":[],"Sondagem":[],"Sondagem de Solos":[],"Sondagem dos solos":[],"Solos":[],"Geotecnia":[],"Empuxos de terra":[],"Mecânica dos solos":[],"Ensaios de solo":[],"Origem e natureza do solo":[],"Características e propriedades dos solos":[],"Características dos materiais":[]}},"2_FUNDACOES":{"name":"Fundações","emoji":"🏗️","topics":{"Fundações - Revisado":[],"Fundações":[]}},"3_RESISTENCIA_MATERIAIS_ESTRUTURAS":{"name":"Resistência dos Materiais e Estruturas","emoji":"⚙️","topics":{"Principais estruturas hidráulicas":[],"Estruturas de madeira":[],"Dimensionamento de estruturas de concreto armado":[],"Estruturas metálicas":[],"Resistência dos Materiais":[],"Estruturas de concreto":[],"Flexão e flambagem":[],"Resistência dos materiais":[],"Execução e estruturas em concreto":[],"Grau de hiperasticidade":[],"Dimensionamento de Estruturas de Concreto Armado":[]}},"4_CONCRETO":{"name":"Tecnologia do Concreto","emoji":"🧱","topics":{"Sistema de abastecimento de água":[],"Concreto armado":[],"Concreto protendido":[],"Cimento":[],"Aço para concreto armado":[],"Controle Tecnológico do Concreto":[],"Características Mecânicas e Reológicas do Concreto":[],"Controle tecnológico do Concreto":[],"Controle de materiais":[],"Reação Álcali-Agregado (RAA)":[],"Controle tecnológico":[]}},"5_ESTRUTURAS_METALICAS_MADEIRA":{"name":"Estruturas Metálicas e de Madeira","emoji":"🔩","topics":{"Estrutura de madeira":[]}},"6_MATERIAIS_CONSTRUCAO":{"name":"Materiais de Construção","emoji":"🪵","topics":{"Especificações de materiais":[],"Materiais de construção":[],"Alvenaria":[],"Alvenaria estrutural":[],"Materiais":[],"Esquadrias":[],"Vidros":[]}},"7_EDIFICACOES":{"name":"Construção de Edificações","emoji":"🏢","topics":{"NR 18":[],"Cobertura":[],"Revestimentos (Paredes, Juntas, Argamassas)":[],"Piso e pavimentação":[],"Pinturas":[],"Impermeabilização":[],"Canteiro de Obras":[],"Pisos":[],"Revestimentos":[],"Pintura":[],"Manutenção e inspeção predial":[],"NR 18 - Canteiro de obras":[],"Canteiro de obras":[]}},"8_INSTALACOES_PREDIAIS":{"name":"Instalações Prediais","emoji":"🔌","topics":{"Instalações prediais - Esgoto":[],"Instalações elétricas":[],"Instalações prediais - Água fria":[],"Extintores de Incêndio":[],"Sistemas de Detecção e Alarme de Incêndio":[],"Hidrantes, mangotinhos e mangueiras":[],"Instalações prediais - Drenagem Pluvial":[],"Sprinkler":[],"Instalação de prevenção de combate a incêndio":[],"Instalações prediais - Drenagem pluvial":[],"NR 10 - Segurança em instalações elétricas":[],"Instalações prediais - Água quente":[],"Instalações hidros sanitárias":[],"Instalações prediais":[]}},"9_OBRAS_HIDRICAS_SANEAMENTO":{"name":"Obras Hídricas e Saneamento","emoji":"💧","topics":{"Drenagem (Obras Rodoviárias)":[],"Fossa Séptica":[],"Aproveitamento hidrelétrico":[],"Mecânica dos fluidos":[],"Sistema de coleta de esgoto":[],"Irrigação e Drenagem":[],"Estações elevatórias":[],"Obras portuárias":[],"Drenagem Pluvial":[],"IP4 - Instalações Portuárias Públicas de Pequeno Porte":[],"ETE - Estação de tratamento de esgoto":[],"Poços":[],"Projetos (Obras hídricas)":[],"ETA - Estação de tratamento de água":[],"Tratamento de esgoto":[],"Sistema de coleta de Esgoto (NBR 9648 e 9649)":[],"Precipitações":[],"Bomba - Sistema de recalques":[],"Drenagem":[],"Irrigação":[],"Lodos ativados":[],"Filtro anaeróbio":[],"Tratamento de efluentes":[]}}}
-const LS_REV = 'tcema_revisao';
-let revisaoProgress = {};
-let revDisc = null;
-let revFiltro = 'todos';
 
 function setRevFiltro(f, btn){
   revFiltro = f;
