@@ -875,73 +875,78 @@ alter table tarefas disable row level security;
 
     <!-- Painel Simulador -->
     <div id="edital-painel-simulador" style="display:none">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <!-- Inputs -->
-        <div>
-          <div class="card" style="padding:1rem;margin-bottom:12px">
-            <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">P1 — Conhecimentos Gerais (40 q × 1 pt)</div>
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-              <label style="font-size:12px;flex:1">Acertos em P1</label>
-              <input type="number" id="sim-p1" value="30" min="0" max="40" oninput="calcularSimulador()"
-                style="width:70px;padding:5px 8px;font-size:14px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
-              <span style="font-size:12px;color:var(--text3)">/40</span>
-            </div>
-            <input type="range" id="sim-p1-range" min="0" max="40" value="30" oninput="document.getElementById('sim-p1').value=this.value;calcularSimulador()"
-              style="width:100%;accent-color:var(--blue)">
-          </div>
+      <!-- Tabs: Projeção real vs Manual -->
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
+        <button id="sim-tab-projecao" onclick="setSimTab('projecao')"
+          style="padding:6px 14px;font-size:12px;font-weight:500;border:none;border-bottom:2px solid var(--text);background:transparent;cursor:pointer;font-family:inherit;color:var(--text)">
+          📊 Projeção pelo meu desempenho
+        </button>
+        <button id="sim-tab-manual" onclick="setSimTab('manual')"
+          style="padding:6px 14px;font-size:12px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
+          ✏️ Simular manualmente
+        </button>
+      </div>
 
-          <div class="card" style="padding:1rem;margin-bottom:12px">
-            <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">P2 — Conhecimentos Específicos (60 q × 2 pts)</div>
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-              <label style="font-size:12px;flex:1">Acertos em P2</label>
-              <input type="number" id="sim-p2" value="40" min="0" max="60" oninput="calcularSimulador()"
-                style="width:70px;padding:5px 8px;font-size:14px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
-              <span style="font-size:12px;color:var(--text3)">/60</span>
-            </div>
-            <input type="range" id="sim-p2-range" min="0" max="60" value="40" oninput="document.getElementById('sim-p2').value=this.value;calcularSimulador()"
-              style="width:100%;accent-color:var(--blue)">
-          </div>
-
-          <div class="card" style="padding:1rem">
-            <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">P3 — Discursiva (40 pts total)</div>
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-              <label style="font-size:12px;flex:1">Peça técnica</label>
-              <input type="number" id="sim-peca" value="14" min="0" max="20" oninput="calcularSimulador()"
-                style="width:70px;padding:5px 8px;font-size:13px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
-              <span style="font-size:12px;color:var(--text3)">/20</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-              <label style="font-size:12px;flex:1">Questão discursiva 1</label>
-              <input type="number" id="sim-q1" value="7" min="0" max="10" oninput="calcularSimulador()"
-                style="width:70px;padding:5px 8px;font-size:13px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
-              <span style="font-size:12px;color:var(--text3)">/10</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px">
-              <label style="font-size:12px;flex:1">Questão discursiva 2</label>
-              <input type="number" id="sim-q2" value="7" min="0" max="10" oninput="calcularSimulador()"
-                style="width:70px;padding:5px 8px;font-size:13px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
-              <span style="font-size:12px;color:var(--text3)">/10</span>
-            </div>
-          </div>
+      <!-- Painel Projeção -->
+      <div id="sim-painel-projecao">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px">
+          Estimativa baseada na sua média atual por disciplina, aplicada ao número de questões de cada uma na prova.
         </div>
+        <div id="sim-projecao-conteudo"></div>
+      </div>
 
-        <!-- Resultado -->
-        <div>
-          <div class="card" style="padding:1rem;margin-bottom:12px" id="sim-resultado">
-            <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">📊 Resultado simulado</div>
-            <div id="sim-output">Preencha os campos ao lado</div>
+      <!-- Painel Manual -->
+      <div id="sim-painel-manual" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div class="card" style="padding:1rem;margin-bottom:12px">
+              <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">P1 — Conhecimentos Gerais (40 q × 1 pt)</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                <label style="font-size:12px;flex:1">Acertos em P1</label>
+                <input type="number" id="sim-p1" value="30" min="0" max="40" oninput="calcularSimulador()"
+                  style="width:70px;padding:5px 8px;font-size:14px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+                <span style="font-size:12px;color:var(--text3)">/40</span>
+              </div>
+              <input type="range" id="sim-p1-range" min="0" max="40" value="30" oninput="document.getElementById('sim-p1').value=this.value;calcularSimulador()"
+                style="width:100%;accent-color:var(--blue)">
+            </div>
+            <div class="card" style="padding:1rem;margin-bottom:12px">
+              <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">P2 — Conhecimentos Específicos (60 q × 2 pts)</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                <label style="font-size:12px;flex:1">Acertos em P2</label>
+                <input type="number" id="sim-p2" value="40" min="0" max="60" oninput="calcularSimulador()"
+                  style="width:70px;padding:5px 8px;font-size:14px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+                <span style="font-size:12px;color:var(--text3)">/60</span>
+              </div>
+              <input type="range" id="sim-p2-range" min="0" max="60" value="40" oninput="document.getElementById('sim-p2').value=this.value;calcularSimulador()"
+                style="width:100%;accent-color:var(--blue)">
+            </div>
+            <div class="card" style="padding:1rem">
+              <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">P3 — Discursiva (40 pts total)</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                <label style="font-size:12px;flex:1">Peça técnica</label>
+                <input type="number" id="sim-peca" value="14" min="0" max="20" oninput="calcularSimulador()"
+                  style="width:70px;padding:5px 8px;font-size:13px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+                <span style="font-size:12px;color:var(--text3)">/20</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                <label style="font-size:12px;flex:1">Questão discursiva 1</label>
+                <input type="number" id="sim-q1" value="7" min="0" max="10" oninput="calcularSimulador()"
+                  style="width:70px;padding:5px 8px;font-size:13px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+                <span style="font-size:12px;color:var(--text3)">/10</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <label style="font-size:12px;flex:1">Questão discursiva 2</label>
+                <input type="number" id="sim-q2" value="7" min="0" max="10" oninput="calcularSimulador()"
+                  style="width:70px;padding:5px 8px;font-size:13px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+                <span style="font-size:12px;color:var(--text3)">/10</span>
+              </div>
+            </div>
           </div>
-          <div class="card" style="padding:1rem" id="sim-meta-card">
-            <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">🎯 Quanto preciso acertar?</div>
-            <div style="font-size:12px;line-height:1.8">
-              <b>Mínimo para não ser eliminado:</b><br>
-              • P1 + P2 ≥ 64 pts<br>
-              • Peça técnica ≥ 10 pts<br><br>
-              <b>Para ser competitivo (top 3):</b><br>
-              • P1: ≥ 28/40 (70%)<br>
-              • P2: ≥ 48/60 (80%)<br>
-              • P3: ≥ 28/40 (70%)<br>
-              • <b>Total: ≥ 160/200 (80%)</b>
+          <div>
+            <div class="card" style="padding:1rem" id="sim-resultado">
+              <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">📊 Resultado simulado</div>
+              <div id="sim-output">Preencha os campos ao lado</div>
             </div>
           </div>
         </div>
@@ -1226,7 +1231,7 @@ function atualizarPreviewTarefa(id){
   }
 }
 
-// ── CADERNO DE ERROS ────────────────────────────────────────────────────────
+// ── CADERNO DE ERROS //──
 let erros = [];
 let cadFiltro = 'todos';
 const LS_E = 'tcema_erros';
@@ -1393,7 +1398,7 @@ function renderCaderno(){
   `).join('');
 }
 
-// ── PLANO SEMANAL ───────────────────────────────────────────────────────────
+// ── PLANO SEMANAL //─────
 // Distribuição: { tarefa_id: { dia: 'Seg', ordem: 0 } }
 let planoSemanal = {};
 const LS_P = 'tcema_plano';
@@ -1811,7 +1816,7 @@ function renderSemana(){
   }
 }
 
-// ── REVISÃO ─────────────────────────────────────────────────────────────────
+// ── REVISÃO //───────────
 const CALENDARIO_SEMANAS = {"S01":{"inicio":"2026-06-01","fim":"2026-06-07","label":"01/06 a 07/06"},"S02":{"inicio":"2026-06-08","fim":"2026-06-14","label":"08/06 a 14/06"},"S03":{"inicio":"2026-06-15","fim":"2026-06-21","label":"15/06 a 21/06"},"S04":{"inicio":"2026-06-22","fim":"2026-06-28","label":"22/06 a 28/06"},"S05":{"inicio":"2026-06-29","fim":"2026-07-05","label":"29/06 a 05/07"},"S06":{"inicio":"2026-07-06","fim":"2026-07-12","label":"06/07 a 12/07"},"S07":{"inicio":"2026-07-13","fim":"2026-07-19","label":"13/07 a 19/07"},"S08":{"inicio":"2026-07-20","fim":"2026-07-26","label":"20/07 a 26/07"},"S09":{"inicio":"2026-07-27","fim":"2026-08-02","label":"27/07 a 02/08"},"S10":{"inicio":"2026-08-03","fim":"2026-08-09","label":"03/08 a 09/08"},"S11":{"inicio":"2026-08-10","fim":"2026-08-16","label":"10/08 a 16/08"},"S12":{"inicio":"2026-08-17","fim":"2026-08-23","label":"17/08 a 23/08"},"S13":{"inicio":"2026-08-24","fim":"2026-08-30","label":"24/08 a 30/08"},"S14":{"inicio":"2026-08-31","fim":"2026-09-06","label":"31/08 a 06/09"},"S15":{"inicio":"2026-09-07","fim":"2026-09-13","label":"07/09 a 13/09"},"S16":{"inicio":"2026-09-14","fim":"2026-09-20","label":"14/09 a 20/09"},"S17":{"inicio":"2026-09-21","fim":"2026-09-27","label":"21/09 a 27/09"},"S18":{"inicio":"2026-09-28","fim":"2026-10-04","label":"28/09 a 04/10"},"S19":{"inicio":"2026-10-05","fim":"2026-10-11","label":"05/10 a 11/10"},"S20":{"inicio":"2026-10-12","fim":"2026-10-18","label":"12/10 a 18/10"},"S21":{"inicio":"2026-10-19","fim":"2026-10-25","label":"19/10 a 25/10"},"S22":{"inicio":"2026-10-26","fim":"2026-11-01","label":"26/10 a 01/11"},"S23":{"inicio":"2026-11-02","fim":"2026-11-08","label":"02/11 a 08/11"},"S24":{"inicio":"2026-11-09","fim":"2026-11-15","label":"09/11 a 15/11"},"S25":{"inicio":"2026-11-16","fim":"2026-11-22","label":"16/11 a 22/11"},"S26":{"inicio":"2026-11-23","fim":"2026-11-29","label":"23/11 a 29/11"}};
 const EDITAL_CARGO13 = {"LP":{"nome":"Língua Portuguesa","topicos":["Compreensão e interpretação de textos","Reconhecimento de tipos e gêneros textuais","Domínio da ortografia oficial","Coesão textual — elementos de referenciação e conectores","Emprego de tempos e modos verbais","Emprego das classes de palavras","Relações de coordenação entre orações e termos","Relações de subordinação entre orações e termos","Emprego dos sinais de pontuação","Concordância verbal e nominal","Regência verbal e nominal","Emprego do sinal indicativo de crase","Colocação dos pronomes átonos","Reescrita de frases e parágrafos","Significação das palavras (sinonímia, antonímia, denotação, conotação)"]},"Informática":{"nome":"Informática / Competências Digitais","topicos":["Cultura digital, cidadania e letramento digital (Lei 14.533/2023)","Pensamento computacional aplicado ao serviço público","Sistemas operacionais: Microsoft Windows","Editores de texto, planilhas e apresentações (Microsoft Office)","Redes de computadores: LAN, WAN, Internet, protocolos","Ferramentas de comunicação: e-mail, Teams, Meet","Segurança da informação: backup, vírus, firewall, phishing","LGPD — Lei 13.709/2018","Armazenamento em nuvem (OneDrive, Google Drive)","Assinatura digital e Marco Civil da Internet (Lei 12.965/2014)","Governo digital: plataforma Gov.br","SEI e Processo Eletrônico Nacional (PEN)","IA, big data e IoT no setor público","Ética e responsabilidade digital no serviço público"]},"Raciocínio Lógico":{"nome":"Raciocínio Lógico","topicos":["Estruturas lógicas","Lógica de argumentação: analogias, inferências, deduções","Lógica sentencial: proposições simples e compostas","Tabelas-verdade e equivalências","Leis de De Morgan","Diagramas lógicos","Lógica de primeira ordem","Princípios de contagem e probabilidade","Operações com conjuntos","Raciocínio aritmético, geométrico e matricial"]},"Dir. Adm":{"nome":"Direito Administrativo","topicos":["Organização administrativa: centralização, descentralização","Administração direta e indireta","Ato administrativo: conceito, requisitos, atributos, classificação","Agentes públicos: conceito, espécies, cargo, emprego e função","Poderes administrativos: hierárquico, disciplinar, regulamentar, polícia","Uso e abuso do poder","Licitação: princípios, modalidades, tipos, procedimento","Lei 14.133/2021 e Decreto 11.462/2023","Contratação direta: dispensa e inexigibilidade","Contratos administrativos: conceito, características, vigência, alteração","Convênios e consórcios públicos (Lei 11.107/2005)","Controle da administração pública","Responsabilidade civil do Estado","Desapropriação","Acesso à informação (Lei 12.527/2011) e LGPD"]},"Dir. Const":{"nome":"Direito Constitucional","topicos":["Princípios fundamentais da CF/88","Aplicabilidade das normas constitucionais","Direitos e deveres individuais e coletivos","Direitos sociais","Direitos de nacionalidade e direitos políticos","Organização político-administrativa: União, estados, DF, municípios","Administração pública: disposições gerais e servidores","Poder Executivo: atribuições e responsabilidades","Poder Legislativo: estrutura, funcionamento, processo legislativo","Fiscalização contábil, financeira e orçamentária","Poder Judiciário: disposições gerais e órgãos","Funções essenciais à justiça: MP, Advocacia Pública, Defensoria","Constituição do Estado do Maranhão"]},"Controle Externo":{"nome":"Controle Externo","topicos":["Conceito, tipos e formas de controle","Controle interno e externo","Controle parlamentar","Controle pelos Tribunais de Contas","Controle administrativo","Lei 8.429/1992 — Improbidade Administrativa","Contencioso administrativo e jurisdição una","Controle jurisdicional da administração","Controle da atividade financeira do Estado","TCU, TCEs e TCMs","TCE-MA na Constituição do Estado do Maranhão"]},"Legislação TCE-MA":{"nome":"Legislação Específica TCE-MA","topicos":["Regimento Interno do TCE-MA","Lei 8.258/2005 — Lei Orgânica do TCE-MA","Lei 9.936/2013 — Organização Administrativa","IN 50/2017 e suas alterações","IN 82/2025"]},"História e Geo MA":{"nome":"História e Geografia do Maranhão","topicos":["França Equinocial: expedição de Daniel de La Touche","Fundação de São Luís e Batalha de Guaxenduba","Invasão e expulsão dos holandeses","Estado do Maranhão e Grão-Pará — Revolta de Bequimão","Período Imperial: adesão e Batalha do Jenipapo","A Balaiada: caracterização e causas","Período Republicano e Revolução de 1930","O Vitorinismo e a Greve de 1951","Principais fatos políticos e sociais — segunda metade do séc. XX","Localização, superfície e limites do Maranhão","Áreas de Proteção Ambiental e Parques Nacionais","Clima, geomorfologia e recursos minerais","Relevo: planaltos, planícies e baixadas","Rios: bacias limítrofes e genuinamente maranhenses","Vegetação: floresta, cerrado e cocais","Geografia da população: urbanização e movimentos populacionais","Agricultura, pecuária e extrativismo","Setor industrial e terciário; malha viária, portos e aeroportos","Cultura maranhense"]},"Direitos Humanos":{"nome":"Noções de Direitos Humanos","topicos":["Teoria geral dos direitos fundamentais","Direitos humanos e direitos fundamentais","Declaração Universal dos Direitos Humanos","Agenda 2030 da ONU","Estatuto da Pessoa com Deficiência (Lei 13.146/2015)","Acessibilidade (Lei 10.098/2000)","Prioridade de atendimento a pessoas com deficiência (Lei 10.048/2000)","Estatuto da Igualdade Racial (Lei 12.288/2010)"]},"Auditoria":{"nome":"Auditoria do Setor Público","topicos":["Conceito, finalidade, objetivo, abrangência","Auditoria interna e externa: papéis","Instrumentos de fiscalização: auditoria, levantamento, monitoramento, acompanhamento, inspeção","Auditoria de conformidade","Auditoria operacional","Auditoria financeira","Normas INTOSAI: ISSAIs 100, 200, 300 e 400","Normas Brasileiras de Auditoria do Setor Público (NBASP)","Planejamento: escopo, materialidade, risco, relevância","Amostragem estatística em auditoria","Matriz de planejamento","Execução: programas, papéis de trabalho, testes e procedimentos","Técnicas: exame documental, inspeção física, entrevista, circularização","Evidências e caracterização de achados","Matriz de achados e matriz de responsabilização","Comunicação dos resultados: relatórios de auditoria","Monitoramento"]},"Eng — PNFL":{"nome":"PNFL — Planejamento, Normas, Fiscalização e Legislação","topicos":["Planejamento de projetos e obras: programação e controle","Viabilidade técnica, físico-financeira e econômica","Análise e interpretação de documentação técnica","Análise e compatibilização de projetos","Segurança e higiene do trabalho","Fiscalização de obras: ensaios, medições, reajustamento, fatura","Documentação da obra: diários, ARTs, legalização","Recebimento provisório e definitivo","Iluminação pública","Energias renováveis (solar, eólica, hidrelétrica)","Sustentabilidade na construção civil","Cidades inteligentes","BDI — Benefícios e Despesas Indiretas","Encargos sociais","Avaliação de custos e quantitativos; orçamento analítico e sintético","Composição analítica de serviços","Cronograma físico-financeiro","PERT-CPM e GVA / Gantt / EAP","Curva ABC e Curva S","Licitação de obras (Lei 14.133/2021): conceito, modalidades, procedimentos","Acervo técnico","Anteprojeto, projeto básico e projeto executivo","Contratos administrativos de obras: formalização, execução, rescisão","Lei 15.190/2025 — Legislação Ambiental","Lei 9.605/1998 — Crimes ambientais","CONAMA 1/1986 e 237/1997 — Licenciamento ambiental","Lei 8.987/1995 — Concessões","Lei 11.079/2004 — PPPs"]},"Eng — Edificações":{"nome":"Obras de Edificações","topicos":["Projetos e especificações de materiais e serviços","Programação e acompanhamento de obras","Canteiro de obras","Fundações diretas e indiretas","Alvenaria","Estruturas de concreto armado e protendido","Estruturas metálicas e coberturas","Impermeabilização","Cobertura","Esquadrias","Pisos e revestimentos","Pinturas","Instalações elétricas prediais","Instalações hidrossanitárias","Instalações de prevenção a incêndio","Controle de qualidade de materiais (cimento, aço, madeira, cerâmica)","SINAPI: conceitos e aplicação","Engenharia de avaliações (NBR 14.653)","Gestão na produção: projeto, materiais, manutenção","Patologia e recuperação de edificações","Manutenção predial"]},"Eng — Obras Hídricas":{"nome":"Obras Hídricas","topicos":["Barragens, soleiras, órgãos extravasores","Tomadas de água, canais, condutos sob pressão, túneis, bueiros","Aproveitamento hidrelétrico: turbinas, geradores, estruturas","Irrigação e drenagem: conceito, condicionantes, operação e manutenção","Abastecimento de água: captação, adução, ETA, recalque, reservação, distribuição","Coleta e tratamento de esgoto (ETE): lagoas, fossas sépticas","Obras de defesa contra inundação e macrodrenagem","Condutos forçados e bombas hidráulicas","Condutos livres e canais","Sistema de coleta de esgoto","Drenagem urbana","Aspectos construtivos, operação e manutenção"]},"Eng — Rodoviárias":{"nome":"Obras Rodoviárias","topicos":["Estudos geotécnicos: análise de sondagens","Especificações de materiais: características físicas","Ensaios técnicos de solo, betuminosos e agregados","Terraplenagem: cortes, aterros, bota-fora","Pavimentação: subleito, sub-base, base e revestimento asfáltico","Drenagem e obras de arte especiais","Principais equipamentos utilizados","SICRO: metodologia, produtividade e equipamentos","Acompanhamento e apropriação de serviços","Execução: terraplenagem, pavimentação, drenagem e sinalização","Impactos ambientais e medidas mitigadoras","Fiscalização: medições, reajustamento, documentação técnica","Controle de materiais: cimento, agregados, betuminosos","Controle de execução de obras e serviços","Patologias, recuperação e manutenção rodoviária","Sinalização rodoviária"]}};
 
@@ -1969,7 +1974,7 @@ function renderRevisao(){
     if(Math.round(a.total/a.count)<a.meta) assuntosReforco.add(a.assunto.toLowerCase());
   });
 
-  // ── Sidebar ───────────────────────────────────────────────────────────────
+  // ── Sidebar //─────────
   sideEl.innerHTML = '<div style="display:flex;flex-direction:column;gap:2px">' +
     discKeys.map(key=>{
       const info = DADOS_REVISAO[key];
@@ -1996,7 +2001,7 @@ function renderRevisao(){
     '</div>' +
     '</div>';
 
-  // ── Conteúdo ──────────────────────────────────────────────────────────────
+  // ── Conteúdo //────────
   const disc = DADOS_REVISAO[revDisc];
   let html_out = '';
 
@@ -2345,7 +2350,7 @@ async function semRegistrar(id){
   renderAll();
 }
 
-// ── DIÁRIO DE EXECUÇÃO ──────────────────────────────────────────────────────
+// ── DIÁRIO DE EXECUÇÃO //
 let diarioFiltro = 'hoje';
 
 let semTabAtiva = 'diario';
@@ -2596,7 +2601,7 @@ function renderDiario(){
     }).join('');
 }
 
-// ── REFORÇO HISTÓRICO ────────────────────────────────────────────────────────
+// ── REFORÇO HISTÓRICO //──
 let rfTabAtiva = 'atual';
 let rfHistFiltro = 'todos';
 
@@ -2720,7 +2725,7 @@ async function gerarTarefaHistorico(disc, assunto, meta){
   renderAll();
 }
 
-// ── PENDÊNCIAS GERAIS ────────────────────────────────────────────────────────
+// ── PENDÊNCIAS GERAIS //──
 function renderPendencias(){
   const el = document.getElementById('sem-pend-conteudo');
   if(!el) return;
@@ -3048,7 +3053,7 @@ function renderEdital(){
   el.innerHTML = html_out || '<div class="empty" style="padding:2rem">Nenhum tópico neste filtro.</div>';
 }
 
-// ── PAINEL INTELIGENTE ──────────────────────────────────────────────────────
+// ── PAINEL INTELIGENTE //
 
 function calcularPrevisao(){
   const elPrev = document.getElementById('dash-previsao');
@@ -3203,7 +3208,7 @@ function renderSugestaoHoje(){
   el.innerHTML = html_s;
 }
 
-// ── REGISTRO CENTRAL ────────────────────────────────────────────────────────
+// ── REGISTRO CENTRAL //──
 // Um único modal de registro chamado de qualquer lugar
 
 function abrirModalRegistro(tarefaId=null){
@@ -3464,7 +3469,7 @@ function setEditalTab(tab){
     btn.style.fontWeight = active?'500':'400';
   });
   if(tab==='topicos') setTimeout(renderEdital, 50);
-  if(tab==='simulador') setTimeout(calcularSimulador, 50);
+  if(tab==='simulador') setTimeout(()=>{ setSimTab('projecao'); renderSimProjecao(); }, 50);
   if(tab==='importar'){
     // Mover conteúdo da view importar para cá
     const wrap = document.getElementById('edital-importar-wrap');
@@ -3473,7 +3478,133 @@ function setEditalTab(tab){
   }
 }
 
-// ── SIMULADOR DE NOTA ────────────────────────────────────────────────────────
+// ── SIMULADOR DE NOTA ──
+// Distribuição de questões por disciplina na prova
+const DIST_QUESTOES = {
+  // P1 — Conhecimentos Gerais (40q)
+  'LP':                  { p:'P1', q:8,  peso:1 },
+  'Dir. Adm':            { p:'P1', q:4,  peso:1 },
+  'Dir. Const':          { p:'P1', q:4,  peso:1 },
+  'Informática':         { p:'P1', q:5,  peso:1 },
+  'História e Geo MA':   { p:'P1', q:4,  peso:1 },
+  'Direitos Humanos':    { p:'P1', q:3,  peso:1 },
+  'Controle Externo':    { p:'P1', q:4,  peso:1 },
+  'Legislação TCE-MA':   { p:'P1', q:4,  peso:1 },
+  'Raciocínio Lógico':   { p:'P1', q:4,  peso:1 },
+  // P2 — Conhecimentos Específicos (60q × peso 2)
+  'Eng — PNFL':              { p:'P2', q:12, peso:2 },
+  'Eng — Edificações':       { p:'P2', q:12, peso:2 },
+  'Eng — Obras Hídricas':    { p:'P2', q:12, peso:2 },
+  'Eng — Rodoviárias':       { p:'P2', q:12, peso:2 },
+  'Auditoria':               { p:'P2', q:12, peso:2 },
+};
+
+let simTabAtiva = 'projecao';
+
+function setSimTab(tab){
+  simTabAtiva = tab;
+  ['projecao','manual'].forEach(t=>{
+    const btn = document.getElementById('sim-tab-'+t);
+    const pan = document.getElementById('sim-painel-'+t);
+    if(!btn||!pan) return;
+    const active = t===tab;
+    pan.style.display = active?'block':'none';
+    btn.style.borderBottomColor = active?'var(--text)':'transparent';
+    btn.style.color = active?'var(--text)':'var(--text2)';
+    btn.style.fontWeight = active?'500':'400';
+  });
+  if(tab==='projecao') renderSimProjecao();
+  if(tab==='manual') calcularSimulador();
+}
+
+function renderSimProjecao(){
+  const el = document.getElementById('sim-projecao-conteudo');
+  if(!el) return;
+
+  // Calcular média real por disciplina
+  const mediaDisc = {};
+  sessoes.filter(s=>s.acertos!=null&&s.qtd>0).forEach(s=>{
+    if(!mediaDisc[s.disc]) mediaDisc[s.disc]={total:0,count:0};
+    mediaDisc[s.disc].total += pct(s.acertos,s.qtd);
+    mediaDisc[s.disc].count++;
+  });
+  Object.keys(mediaDisc).forEach(d=>{
+    mediaDisc[d].avg = Math.round(mediaDisc[d].total/mediaDisc[d].count);
+  });
+
+  // Calcular acertos esperados por disciplina
+  let totalP1pts=0, totalP2pts=0;
+  let linhasP1='', linhasP2='';
+
+  Object.entries(DIST_QUESTOES).forEach(([disc,cfg])=>{
+    const media = mediaDisc[disc]?.avg ?? null;
+    const acertosEsp = media!==null ? Math.round(cfg.q * media/100) : null;
+    const ptsEsp = acertosEsp!==null ? acertosEsp * cfg.peso : null;
+    const cor = media===null?'var(--text3)':media>=75?'var(--green)':media>=65?'var(--amber)':'var(--red)';
+    const semDados = media===null;
+
+    if(cfg.p==='P1') totalP1pts += ptsEsp||0;
+    if(cfg.p==='P2') totalP2pts += ptsEsp||0;
+
+    const linha = '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">' +
+      '<div style="flex:1;font-size:12px;font-weight:500">' + disc + '</div>' +
+      '<div style="font-size:11px;color:var(--text3);min-width:40px;text-align:center">' + cfg.q + 'q</div>' +
+      '<div style="width:60px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden">' +
+      '<div style="height:4px;width:'+(media||0)+'%;background:'+cor+';border-radius:2px"></div></div>' +
+      '<div style="font-size:12px;font-weight:600;color:'+cor+';min-width:36px;text-align:right">' +
+      (semDados?'—':media+'%')+'</div>' +
+      '<div style="font-size:11px;color:var(--text3);min-width:60px;text-align:right">' +
+      (semDados?'sem dados':'~'+acertosEsp+'/'+cfg.q+' = '+(ptsEsp||0)+'pts')+'</div>' +
+      '</div>';
+
+    if(cfg.p==='P1') linhasP1 += linha;
+    else linhasP2 += linha;
+  });
+
+  const totalObj = totalP1pts + totalP2pts;
+  const corObj = totalObj>=100?'var(--green)':totalObj>=64?'var(--amber)':'var(--red)';
+  const aprovado = totalObj >= 64;
+
+  el.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">' +
+      '<div class="card" style="padding:.75rem 1rem">' +
+        '<div style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--text3);margin-bottom:6px">P1 — Gerais</div>' +
+        '<div style="font-size:28px;font-weight:700">' + totalP1pts + '<span style="font-size:13px;font-weight:400;color:var(--text3)">/40 pts</span></div>' +
+        '<div style="font-size:11px;color:var(--text3)">' + Math.round(totalP1pts/40*100) + '% de aproveitamento</div>' +
+      '</div>' +
+      '<div class="card" style="padding:.75rem 1rem">' +
+        '<div style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--text3);margin-bottom:6px">P2 — Específicos (×2)</div>' +
+        '<div style="font-size:28px;font-weight:700">' + totalP2pts + '<span style="font-size:13px;font-weight:400;color:var(--text3)">/120 pts</span></div>' +
+        '<div style="font-size:11px;color:var(--text3)">' + Math.round(totalP2pts/120*100) + '% de aproveitamento</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="padding:12px 16px;border-radius:var(--radius);background:var(--bg2);margin-bottom:1rem;display:flex;align-items:center;gap:12px">' +
+      '<div>' +
+        '<div style="font-size:12px;color:var(--text2)">Objetivas estimadas</div>' +
+        '<div style="font-size:32px;font-weight:700;color:'+corObj+'">' + totalObj + '<span style="font-size:14px;font-weight:400;color:var(--text3)">/160 pts</span></div>' +
+      '</div>' +
+      '<div style="margin-left:auto;text-align:right">' +
+        '<div style="font-size:14px;font-weight:600;color:'+corObj+'">' + (aprovado?'✅ Aprovado nas objetivas':'❌ Abaixo do mínimo (64 pts)') + '</div>' +
+        '<div style="font-size:11px;color:var(--text3);margin-top:4px">Discursiva não incluída — depende de treino</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' +
+      '<div>' +
+        '<div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text3);margin-bottom:8px">P1 — Conhecimentos Gerais</div>' +
+        linhasP1 +
+      '</div>' +
+      '<div>' +
+        '<div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text3);margin-bottom:8px">P2 — Conhecimentos Específicos</div>' +
+        linhasP2 +
+      '</div>' +
+    '</div>' +
+    '<div style="margin-top:12px;padding:10px 14px;border-radius:var(--radius);background:var(--amber-bg,#FEF9E7);font-size:12px;color:var(--text2)">' +
+      '⚠️ Projeção baseada na sua média atual de acertos. Disciplinas sem dados aparecem como "—" e não entram no cálculo. ' +
+      'Quanto mais sessões você registrar, mais precisa fica a estimativa.' +
+    '</div>';
+}
+
+//
 function calcularSimulador(){
   const p1   = Math.min(40, parseInt(document.getElementById('sim-p1')?.value)||0);
   const p2   = Math.min(60, parseInt(document.getElementById('sim-p2')?.value)||0);
@@ -3537,7 +3668,7 @@ function calcularSimulador(){
     ).join('') + '</div>';
 }
 
-// ── BACKUP / RESTORE ────────────────────────────────────────────────────────
+// ── BACKUP / RESTORE //──
 function exportarDados(){
   const dados = {
     versao: 1,
@@ -4635,7 +4766,7 @@ function cancelarImport(){
   document.getElementById('imp-msg').textContent='';
 }
 
-// ── EVOLUÇÃO ────────────────────────────────────────────────────────────────
+// ── EVOLUÇÃO //──────────
 function renderEvolucao(){
   if(!document.getElementById('ev-blocos')) return;
 
@@ -4712,7 +4843,7 @@ function renderEvolucao(){
     }).join('');
 }
 
-// ── REFORÇO ──────────────────────────────────────────────────────────────────
+// ── REFORÇO //────────────
 let tarefasReforco = []; // buffer antes de confirmar
 
 function renderReforco(){
