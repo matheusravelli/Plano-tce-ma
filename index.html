@@ -3436,14 +3436,17 @@ function setDesempTab(tab){
   });
   if(tab==='reforco'){
     const el = document.getElementById('desemp-rf-lista');
+  if(!el) return;
     if(el) el.innerHTML = document.getElementById('rf-lista')?.innerHTML||'';
   }
   if(tab==='evolucao'){
     const el = document.getElementById('desemp-ev-lista');
+  if(!el) return;
     if(el) el.innerHTML = document.getElementById('ev-lista')?.innerHTML||'';
   }
   if(tab==='tarefas'){
     const el = document.getElementById('desemp-tar-lista');
+  if(!el) return;
     if(el) el.innerHTML = document.getElementById('reg-lista-tarefas')?.innerHTML||'<div class="empty">Nenhuma tarefa</div>';
   }
 }
@@ -4062,6 +4065,7 @@ function renderDashCriticos(){
 
 function renderDashDesempenho(){
   const el = document.getElementById('dash-desempenho');
+  if(!el) return;
   const discs = {};
   sessoes.filter(s=>s.acertos!=null&&s.qtd>0).forEach(s=>{
     if(!discs[s.disc]) discs[s.disc]={total:0,count:0,meta:s.meta||75};
@@ -4360,6 +4364,7 @@ function renderDesempenho(){
     discs[s.disc].total+=pct(s.acertos,s.qtd); discs[s.disc].count++;
   });
   const el=document.getElementById('desemp-disc');
+  if(!el) return;
   if(!Object.keys(discs).length){ el.innerHTML='<div class="empty">Nenhum registro</div>'; }
   else el.innerHTML=Object.entries(discs).sort((a,b)=>b[1].total/b[1].count-a[1].total/a[1].count).map(([disc,d])=>{
     const avg=Math.round(d.total/d.count),meta=d.meta;
