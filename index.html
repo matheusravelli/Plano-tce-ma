@@ -132,15 +132,13 @@ alter table tarefas disable row level security;
 </div>
 
   <div class="nav">
-    <button class="nav-btn active" onclick="showView('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
-    <button class="nav-btn" onclick="showView('semana',this)"><i class="ti ti-calendar-week"></i> Semana</button>
-    <button class="nav-btn" onclick="showView('registrar',this)"><i class="ti ti-pencil-check"></i> Registrar</button>
-    <button class="nav-btn" onclick="showView('importar',this)"><i class="ti ti-file-import"></i> Importar metas</button>
-    <button class="nav-btn" onclick="showView('evolucao',this)"><i class="ti ti-trending-up"></i> Evolução</button>
-    <button class="nav-btn" onclick="showView('reforco',this)"><i class="ti ti-refresh-alert"></i> Reforço</button>
-    <button class="nav-btn" onclick="showView('estudo',this)"><i class="ti ti-books"></i> Estudo</button>
-    <button class="nav-btn" onclick="showView('edital',this)"><i class="ti ti-list-check"></i> Edital</button>
-    <button class="nav-btn" onclick="showView('desempenho',this)"><i class="ti ti-chart-bar"></i> Desempenho</button>
+    <button class="nav-btn active" id="nav-inicio" onclick="showView('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Início</button>
+    <button class="nav-btn" id="nav-semana" onclick="showView('semana',this)"><i class="ti ti-calendar-week"></i> Semana</button>
+    <button class="nav-btn" id="nav-desempenho" onclick="showView('desempenho',this)"><i class="ti ti-chart-bar"></i> Desempenho</button>
+    <button class="nav-btn" id="nav-estudo" onclick="showView('estudo',this)"><i class="ti ti-books"></i> Estudo</button>
+    <button class="nav-btn" id="nav-edital" onclick="showView('edital',this)"><i class="ti ti-list-check"></i> Edital</button>
+    <button class="nav-btn" onclick="abrirModalRegistro(null)" title="Registrar sessão"
+      style="margin-left:auto;font-size:13px;font-weight:600;padding:0 14px;background:var(--text);color:var(--bg);border-radius:var(--radius)">＋ Registrar</button>
   </div>
 
   <!-- DASHBOARD -->
@@ -578,6 +576,22 @@ alter table tarefas disable row level security;
       </div>
     </div>
     </div>
+    </div><!-- fim painel-geral -->
+
+    <!-- Painel Reforço -->
+    <div id="desemp-painel-reforco" style="display:none">
+      <div id="desemp-rf-lista"></div>
+    </div>
+
+    <!-- Painel Evolução -->
+    <div id="desemp-painel-evolucao" style="display:none">
+      <div id="desemp-ev-lista"></div>
+    </div>
+
+    <!-- Painel Tarefas -->
+    <div id="desemp-painel-tarefas" style="display:none">
+      <div id="desemp-tar-lista"></div>
+    </div>
   </div>
 
   <!-- EDITAL -->
@@ -587,6 +601,9 @@ alter table tarefas disable row level security;
         <div style="font-size:15px;font-weight:500">📋 Edital Verticalizado — Cargo 13 · Engenharia</div>
         <div style="font-size:12px;color:var(--text2)" id="edital-stats"></div>
       </div>
+      <button class="btn btn-sm" onclick="setEditalTab('importar')" style="font-size:12px">
+        <i class="ti ti-file-import"></i> Importar semana
+      </button>
       <div class="tabs" style="margin:0" id="edital-filtro-tabs">
         <button class="tab active" onclick="setEditalFiltro('todos',this)">Todos</button>
         <button class="tab" onclick="setEditalFiltro('estudados',this)">✅ Estudados</button>
@@ -598,7 +615,27 @@ alter table tarefas disable row level security;
         <option value="">Todas as disciplinas</option>
       </select>
     </div>
-    <div id="edital-conteudo"></div>
+    <!-- Sub-abas Edital -->
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem;margin-top:10px">
+      <button id="edital-tab-topicos" onclick="setEditalTab('topicos')"
+        style="padding:7px 16px;font-size:13px;font-weight:500;border:none;border-bottom:2px solid var(--text);background:transparent;cursor:pointer;font-family:inherit;color:var(--text)">
+        📋 Tópicos
+      </button>
+      <button id="edital-tab-importar" onclick="setEditalTab('importar')"
+        style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
+        📥 Importar semana
+      </button>
+    </div>
+
+    <!-- Painel Tópicos -->
+    <div id="edital-painel-topicos">
+      <div id="edital-conteudo"></div>
+    </div>
+
+    <!-- Painel Importar (conteúdo da antiga aba Importar metas) -->
+    <div id="edital-painel-importar" style="display:none">
+      <div id="edital-importar-wrap"></div>
+    </div>
   </div>
 
   <!-- DESEMPENHO -->
@@ -1902,7 +1939,7 @@ let semRegAberto = null;
 
 function semCheckClick(id, status){
   if(status==='feita') toggleTarefa(id);
-  else abrirRegistroSemana(id);
+  else abrirModalRegistro(id);
 }
 
 function abrirRegistroSemana(id){
@@ -2682,6 +2719,398 @@ function renderEdital(){
   el.innerHTML = html_out || '<div class="empty" style="padding:2rem">Nenhum tópico neste filtro.</div>';
 }
 
+// ── PAINEL INTELIGENTE ──────────────────────────────────────────────────────
+
+function calcularPrevisao(){
+  const elPrev = document.getElementById('dash-previsao');
+  const elRitmo = document.getElementById('dash-ritmo');
+  if(!elPrev||!elRitmo) return;
+
+  const prova = new Date('2026-11-29');
+  const hoje  = new Date();
+  hoje.setHours(0,0,0,0);
+  const diasRestantes = Math.ceil((prova-hoje)/86400000);
+
+  // Tópicos do edital
+  let totalTopicos=0, topicosFeitos=0;
+  if(typeof EDITAL_CARGO13!=='undefined'){
+    Object.entries(EDITAL_CARGO13).forEach(([disc,info])=>{
+      info.topicos.forEach(t=>{
+        totalTopicos++;
+        const sess = sessoes.filter(s=>{
+          if(s.disc!==disc&&!s.disc?.includes(disc.split(' ')[0])) return false;
+          const a=(s.assunto||'').toLowerCase();
+          const palavras=t.toLowerCase().replace(/[().,/—:]/g,' ').split(/\s+/).filter(p=>p.length>4);
+          return palavras.some(p=>a.includes(p));
+        });
+        if(sess.length>0) topicosFeitos++;
+      });
+    });
+  }
+
+  const topicosRestantes = totalTopicos - topicosFeitos;
+  const pctEdital = Math.round(topicosFeitos/totalTopicos*100);
+
+  // Ritmo atual: média de tópicos novos por semana nas últimas 2 semanas
+  const ultimas2sem = new Date(hoje); ultimas2sem.setDate(hoje.getDate()-14);
+  const sessoesRecentes = sessoes.filter(s=>s.data&&new Date(s.data)>=ultimas2sem);
+  const topicosNovosRecentes = new Set(sessoesRecentes.map(s=>s.disc+'|'+s.assunto)).size;
+  const ritmoAtualPorDia = topicosNovosRecentes / 14;
+  const ritmoAtualPorSem = Math.round(ritmoAtualPorDia * 7);
+
+  // Ritmo necessário
+  const semanasRestantes = Math.ceil(diasRestantes/7);
+  const ritmoNecessarioPorSem = topicosRestantes > 0 ? Math.ceil(topicosRestantes/semanasRestantes) : 0;
+
+  // Previsão com ritmo atual
+  let previsaoStr = '';
+  if(ritmoAtualPorDia > 0){
+    const diasNecessarios = Math.ceil(topicosRestantes/ritmoAtualPorDia);
+    const dataPrevisao = new Date(hoje);
+    dataPrevisao.setDate(hoje.getDate()+diasNecessarios);
+    const antes = dataPrevisao < prova;
+    previsaoStr = `<span style="color:${antes?'var(--green)':'var(--red)'};font-size:15px;font-weight:600">
+      ${dataPrevisao.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})}
+    </span>
+    <div style="font-size:11px;color:var(--text3);margin-top:2px">
+      ${antes?'✅ Antes da prova ('+diasRestantes+' dias restantes)':'⚠️ DEPOIS da prova — precisa acelerar'}
+    </div>`;
+  } else {
+    previsaoStr = '<span style="color:var(--text3)">Sem dados de ritmo ainda</span>';
+  }
+
+  elPrev.innerHTML = `
+    <div style="margin-bottom:8px">
+      <div style="font-size:11px;color:var(--text3)">Cobertura do edital</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+        <div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
+          <div style="height:6px;width:${pctEdital}%;background:${pctEdital>70?'var(--green)':pctEdital>40?'var(--blue)':'var(--amber)'};border-radius:3px"></div>
+        </div>
+        <span style="font-size:12px;font-weight:600">${topicosFeitos}/${totalTopicos} (${pctEdital}%)</span>
+      </div>
+    </div>
+    ${previsaoStr}`;
+
+  // Ritmo
+  const ok = ritmoAtualPorSem >= ritmoNecessarioPorSem;
+  elRitmo.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div>
+        <div style="font-size:10px;color:var(--text3)">Ritmo atual</div>
+        <div style="font-size:18px;font-weight:600;color:${ok?'var(--green)':'var(--amber)'}">${ritmoAtualPorSem}<span style="font-size:11px;font-weight:400"> tóp/sem</span></div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text3)">Necessário</div>
+        <div style="font-size:18px;font-weight:600">${ritmoNecessarioPorSem}<span style="font-size:11px;font-weight:400"> tóp/sem</span></div>
+      </div>
+    </div>
+    ${!ok&&ritmoNecessarioPorSem>0?`<div style="font-size:11px;padding:6px 8px;border-radius:var(--radius);background:var(--amber-bg,#FEF9E7);color:var(--amber)">
+      ⚠️ Precisa de +${ritmoNecessarioPorSem-ritmoAtualPorSem} tópicos/semana para cobrir o edital antes da prova
+    </div>`:''}
+    <div style="font-size:11px;color:var(--text3);margin-top:6px">${semanasRestantes} semanas até 29/11/2026</div>`;
+}
+
+function renderSugestaoHoje(){
+  const el = document.getElementById('dash-sugestao');
+  if(!el) return;
+
+  const DIAS_IDX_NUM = {0:'Dom',1:'Seg',2:'Ter',3:'Qua',4:'Qui',5:'Sex',6:'Sáb'};
+  const diaHoje = DIAS_IDX_NUM[new Date().getDay()];
+  const hoje = dataHoje();
+
+  // Tarefas planejadas para hoje
+  const planejadas = tarefas.filter(t=>planoSemanal[t.id]?.dia===diaHoje && t.status==='pendente');
+  // Sessões já feitas hoje
+  const feitasHoje = sessoes.filter(s=>s.data===hoje);
+  // Tarefas em atraso (semanas anteriores pendentes)
+  const emAtraso = tarefas.filter(t=>{
+    if(t.status!=='pendente') return false;
+    const semAtual = document.getElementById('sem-selector')?.value||'S04';
+    return t.semana < semAtual;
+  });
+
+  const totalMin = feitasHoje.reduce((a,s)=>a+(parseInt(s.tempo_min)||0),0);
+  const horasHoje = totalMin>=60?Math.floor(totalMin/60)+'h'+(totalMin%60?String(totalMin%60).padStart(2,'0')+'min':''):totalMin?totalMin+'min':'0min';
+
+  let html_s = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+      <div class="card" style="padding:.6rem .8rem;text-align:center">
+        <div style="font-size:18px;font-weight:600">${feitasHoje.length}</div>
+        <div style="font-size:10px;color:var(--text3)">sessões hoje</div>
+      </div>
+      <div class="card" style="padding:.6rem .8rem;text-align:center">
+        <div style="font-size:18px;font-weight:600">${horasHoje}</div>
+        <div style="font-size:10px;color:var(--text3)">estudado hoje</div>
+      </div>
+      <div class="card" style="padding:.6rem .8rem;text-align:center">
+        <div style="font-size:18px;font-weight:600;color:${emAtraso.length>0?'var(--amber)':'var(--green)'}">${emAtraso.length}</div>
+        <div style="font-size:10px;color:var(--text3)">em atraso</div>
+      </div>
+    </div>`;
+
+  if(planejadas.length > 0){
+    html_s += `<div style="font-size:12px;font-weight:500;margin-bottom:6px;color:var(--text2)">📋 ${planejadas.length} tarefa${planejadas.length>1?'s':''} planejada${planejadas.length>1?'s':''} para hoje (${diaHoje}):</div>`;
+    html_s += planejadas.slice(0,5).map(t=>{
+      const alerta = nivelAlerta(t);
+      const cor = alerta?.nivel==='critico'?'var(--red)':alerta?.nivel==='alerta'?'var(--amber)':'var(--text3)';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:var(--radius);background:var(--bg2);margin-bottom:4px">
+        <div class="task-check" onclick="semCheckClick(${t.id},'${t.status}')" style="cursor:pointer;flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.assunto}</div>
+          <div style="font-size:11px;color:var(--text3)">${t.disc} · ${t.tipo}</div>
+        </div>
+        ${alerta&&alerta.nivel!=='ok'?`<span style="font-size:10px;color:${cor};flex-shrink:0">${alerta.nivel==='critico'?'🔴':alerta.nivel==='alerta'?'🟠':'🟡'} ${alerta.mediaHist}%</span>`:''}
+        ${t.link?`<a href="${t.link}" target="_blank" style="font-size:11px;color:var(--blue);flex-shrink:0">🔗</a>`:''}
+      </div>`;
+    }).join('');
+    if(planejadas.length>5) html_s += `<div style="font-size:11px;color:var(--text3);padding:4px 0">+ ${planejadas.length-5} mais — <button onclick="showView('semana',null)" style="border:none;background:transparent;color:var(--blue);cursor:pointer;font-size:11px;padding:0">ver aba Semana</button></div>`;
+  } else {
+    html_s += `<div class="empty" style="padding:.75rem">
+      Nenhuma tarefa alocada para hoje no plano. 
+      <button onclick="setSemTab('plano');showView('semana',null)" style="border:none;background:transparent;color:var(--blue);cursor:pointer;font-size:12px;padding:0">Abrir plano da semana →</button>
+    </div>`;
+  }
+
+  el.innerHTML = html_s;
+}
+
+// ── REGISTRO CENTRAL ────────────────────────────────────────────────────────
+// Um único modal de registro chamado de qualquer lugar
+
+function abrirModalRegistro(tarefaId=null){
+  document.getElementById('modal-registro')?.remove();
+
+  const t = tarefaId ? tarefas.find(t=>t.id===tarefaId) : null;
+  const discs = [...new Set([
+    ...tarefas.map(t=>t.disc),
+    ...sessoes.map(s=>s.disc)
+  ].filter(Boolean))].sort();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'modal-registro';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2000;display:flex;align-items:center;justify-content:center';
+
+  overlay.innerHTML = `
+    <div onclick="event.stopPropagation()"
+      style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-lg);
+             padding:1.25rem;width:500px;max-width:95vw;max-height:92vh;overflow-y:auto">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+        <div style="flex:1;font-size:15px;font-weight:500">
+          ${t ? '✅ Registrar sessão' : '✏️ Nova sessão'}
+        </div>
+        <button onclick="document.getElementById('modal-registro').remove()"
+          style="border:none;background:transparent;cursor:pointer;font-size:18px;color:var(--text3);padding:0;line-height:1">✕</button>
+      </div>
+
+      ${t ? `
+      <!-- Tarefa vinculada -->
+      <div style="padding:8px 12px;border-radius:var(--radius);background:var(--bg2);margin-bottom:1rem;border-left:3px solid var(--blue)">
+        <div style="font-size:13px;font-weight:500">${t.assunto}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${t.disc} · ${t.tipo} · ${t.semana}</div>
+        ${nivelAlerta(t) && nivelAlerta(t).nivel!=='ok' ? badgeAlerta(t) : ''}
+      </div>` : ''}
+
+      <!-- Campos principais -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label class="form-label">Questões</label>
+          <input type="number" id="mr-qtd" value="${t?.qtd||10}" min="1" autofocus
+            style="width:100%;padding:7px 10px;font-size:14px;font-weight:600;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"
+            oninput="mrAtualizarPreview()">
+        </div>
+        <div>
+          <label class="form-label">Acertos</label>
+          <input type="number" id="mr-acertos" placeholder="ex: 8" min="0"
+            style="width:100%;padding:7px 10px;font-size:14px;font-weight:600;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"
+            oninput="mrAtualizarPreview()">
+        </div>
+      </div>
+
+      <!-- Preview de % -->
+      <div id="mr-preview" style="text-align:center;padding:8px;margin-bottom:10px;border-radius:var(--radius);background:var(--bg2);min-height:36px;font-size:22px;font-weight:700"></div>
+
+      <!-- Campos secundários (colapsáveis) -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <label class="form-label">Meta (%)</label>
+          <input type="number" id="mr-meta" value="${t?.meta||75}" min="0" max="100"
+            style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"
+            oninput="mrAtualizarPreview()">
+        </div>
+        <div>
+          <label class="form-label">Tempo (min)</label>
+          <input type="number" id="mr-tempo" placeholder="ex: 45" min="0"
+            style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <label class="form-label">Data</label>
+          <input type="date" id="mr-data" value="${dataHoje()}"
+            style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+        </div>
+      </div>
+
+      ${!t ? `
+      <!-- Sem tarefa — campos de disc/assunto/tipo/semana -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <label class="form-label">Disciplina</label>
+          <select id="mr-disc" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit">
+            ${discs.map(d=>`<option>${d}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Tipo</label>
+          <select id="mr-tipo" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit">
+            <option>Diagnóstico</option><option>Fixação</option><option>Revisão</option><option>Extensivo</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label class="form-label">Assunto</label>
+        <input type="text" id="mr-assunto" placeholder="ex: Licitações"
+          style="width:100%;padding:6px 10px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <label class="form-label">Semana</label>
+          <select id="mr-semana" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit">
+            ${['S01','S02','S03','S04','S05','S06','S07','S08','S09','S10','S11','S12','S13','S14','S15','S16','S17','S18','S19','S20'].map(s=>`<option>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Obs</label>
+          <input type="text" id="mr-obs" placeholder="padrão de erro..."
+            style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+        </div>
+      </div>` : `
+      <div style="margin-bottom:10px">
+        <label class="form-label">Obs (padrão de erro)</label>
+        <input type="text" id="mr-obs" placeholder="onde errou, o que revisar..."
+          style="width:100%;padding:6px 10px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+      </div>`}
+
+      <!-- Botões -->
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="confirmarModalRegistro(${tarefaId||'null'})"
+          style="flex:1;padding:10px;border:none;border-radius:var(--radius);background:var(--text);color:var(--bg);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
+          ✅ Salvar sessão
+        </button>
+        <button onclick="document.getElementById('modal-registro').remove()"
+          style="padding:10px 16px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit">
+          Cancelar
+        </button>
+      </div>
+    </div>`;
+
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  setTimeout(()=>document.getElementById('mr-acertos')?.focus(), 100);
+}
+
+function mrAtualizarPreview(){
+  const qtd  = parseInt(document.getElementById('mr-qtd')?.value)||0;
+  const ac   = parseInt(document.getElementById('mr-acertos')?.value);
+  const meta = parseInt(document.getElementById('mr-meta')?.value)||75;
+  const prev = document.getElementById('mr-preview');
+  if(!prev) return;
+  if(!qtd || isNaN(ac)){ prev.innerHTML = ''; return; }
+  const p = pct(ac,qtd);
+  const cor = p>=meta?'var(--green)':p>=meta-10?'var(--amber)':'var(--red)';
+  prev.innerHTML = `<span style="color:${cor}">${p}%</span> <span style="font-size:13px;font-weight:400;color:var(--text3)">${ac}/${qtd} questões ${p>=meta?'✅ acima da meta':'⚠️ abaixo da meta ('+meta+'%)'}</span>`;
+}
+
+async function confirmarModalRegistro(tarefaId){
+  const qtd  = parseInt(document.getElementById('mr-qtd')?.value)||0;
+  const acEl = document.getElementById('mr-acertos')?.value;
+  const acertos = acEl!==''&&acEl!==undefined ? parseInt(acEl) : null;
+  const meta = parseInt(document.getElementById('mr-meta')?.value)||75;
+  const tempo = parseInt(document.getElementById('mr-tempo')?.value)||0;
+  const data  = document.getElementById('mr-data')?.value || dataHoje();
+  const obs   = document.getElementById('mr-obs')?.value?.trim()||'';
+
+  if(!qtd){ alert('Informe a quantidade de questões'); return; }
+
+  const t = tarefaId ? tarefas.find(t=>t.id===tarefaId) : null;
+
+  const disc    = t ? t.disc    : document.getElementById('mr-disc')?.value||'';
+  const assunto = t ? t.assunto : document.getElementById('mr-assunto')?.value?.trim()||'';
+  const tipo    = t ? t.tipo    : document.getElementById('mr-tipo')?.value||'Fixação';
+  const semana  = t ? t.semana  : document.getElementById('mr-semana')?.value||'S04';
+
+  if(!assunto){ alert('Informe o assunto'); return; }
+
+  const s = {
+    id: Date.now(), semana, data, disc, assunto, tipo,
+    qtd, acertos, meta, obs,
+    tempo_min: parseInt(tempo)||0,
+    tarefa_id: t ? Number(t.id) : null
+  };
+
+  sessoes.push(s);
+  await saveSessoes();
+
+  if(t){
+    t.status = 'feita';
+    await saveTarefas();
+  }
+
+  document.getElementById('modal-registro')?.remove();
+  renderAll();
+}
+
+// ── CONTROLE DE SUB-ABAS ────────────────────────────────────────────────────
+
+function setDesempTab(tab){
+  const tabs = ['geral','reforco','evolucao','tarefas'];
+  tabs.forEach(t=>{
+    const btn = document.getElementById('desemp-tab-'+t);
+    const pan = document.getElementById('desemp-painel-'+t);
+    if(!btn||!pan) return;
+    const active = t===tab;
+    pan.style.display = active?'block':'none';
+    btn.style.borderBottomColor = active?'var(--text)':'transparent';
+    btn.style.color = active?'var(--text)':'var(--text2)';
+    btn.style.fontWeight = active?'500':'400';
+  });
+  if(tab==='reforco'){
+    const el = document.getElementById('desemp-rf-lista');
+    if(el) el.innerHTML = document.getElementById('rf-lista')?.innerHTML||'';
+  }
+  if(tab==='evolucao'){
+    const el = document.getElementById('desemp-ev-lista');
+    if(el) el.innerHTML = document.getElementById('ev-lista')?.innerHTML||'';
+  }
+  if(tab==='tarefas'){
+    const el = document.getElementById('desemp-tar-lista');
+    if(el) el.innerHTML = document.getElementById('reg-lista-tarefas')?.innerHTML||'<div class="empty">Nenhuma tarefa</div>';
+  }
+}
+
+let editalTabAtiva = 'topicos';
+function setEditalTab(tab){
+  editalTabAtiva = tab;
+  const tabs = ['topicos','importar'];
+  tabs.forEach(t=>{
+    const btn = document.getElementById('edital-tab-'+t);
+    const pan = document.getElementById('edital-painel-'+t);
+    if(!btn||!pan) return;
+    const active = t===tab;
+    pan.style.display = active?'block':'none';
+    btn.style.borderBottomColor = active?'var(--text)':'transparent';
+    btn.style.color = active?'var(--text)':'var(--text2)';
+    btn.style.fontWeight = active?'500':'400';
+  });
+  if(tab==='topicos') setTimeout(renderEdital, 50);
+  if(tab==='importar'){
+    // Mover conteúdo da view importar para cá
+    const wrap = document.getElementById('edital-importar-wrap');
+    const src = document.getElementById('view-importar');
+    if(wrap && src) wrap.innerHTML = src.innerHTML;
+  }
+}
+
 // ── BACKUP / RESTORE ────────────────────────────────────────────────────────
 function exportarDados(){
   const dados = {
@@ -3023,6 +3452,8 @@ function renderAll(){
   renderDashTarefas();
   renderDashCriticos();
   renderDashDesempenho();
+  calcularPrevisao();
+  renderSugestaoHoje();
   renderHistorico();
   renderTarefas();
   renderDesempenho();
