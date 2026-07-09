@@ -1564,12 +1564,14 @@ function renderSemana(){
   }
 
   // Subtítulo
-  const calSem = typeof CALENDARIO_SEMANAS!=='undefined' ? CALENDARIO_SEMANAS[sem] : null;
-  const subEl = document.getElementById('sem-subtitulo');
-  if(subEl && calSem){
-    const dias = Math.ceil((new Date('2026-11-29')-new Date(calSem.inicio))/86400000);
-    subEl.textContent = calSem.label + ' · ' + dias + ' dias para a prova';
-  }
+  try{
+    const calSem = CALENDARIO_SEMANAS?.[sem];
+    const subEl = document.getElementById('sem-subtitulo');
+    if(subEl && calSem){
+      const dias = Math.ceil((new Date('2026-11-29')-new Date(calSem.inicio))/86400000);
+      subEl.textContent = calSem.label + ' · ' + dias + ' dias para a prova';
+    }
+  }catch(e){}
 
   // Filtrar
   const semPrio = window.semPrioFiltro||'todas';
@@ -1596,32 +1598,36 @@ function renderSemana(){
   }
 
   const badgeMap={A:'badge-bad',B:'badge-warn',C:'badge-new'};
-  el.innerHTML=lista.map(t=>{
-    const feita=t.status==='feita';
-    const al=!feita?nivelAlerta(t):null;
-    const corAl=al?.nivel==='critico'?'var(--red)':al?.nivel==='alerta'?'var(--amber)':'var(--green)';
-    return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:var(--radius);background:var(--bg2);margin-bottom:6px;opacity:'+(feita?'.6':'1')+'">'
+  const rows = [];
+  for(const t of lista){
+    try{
+      const feita = t.status==='feita';
+      let alBadge = '';
+      try{
+        const al = !feita ? nivelAlerta(t) : null;
+        if(al && al.nivel!=='ok'){
+          const corAl = al.nivel==='critico'?'var(--red)':'var(--amber)';
+          alBadge = '<span style="font-size:10px;color:'+corAl+'"> ●</span>';
+        }
+      }catch(e){}
 
-      // Checkbox circular
-      +'<button onclick="semCheckRapido('+t.id+',''+t.status+'')" style="flex-shrink:0;margin-top:1px;width:20px;height:20px;border-radius:50%;border:2px solid '+(feita?'var(--green)':'var(--border2)')+';background:'+(feita?'var(--green)':'transparent')+';cursor:pointer;font-size:11px;color:white;display:flex;align-items:center;justify-content:center">'+(feita?'✓':'')+'</button>'
-
-      // Info
-      +'<div style="flex:1;min-width:0">'
-        +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
-          +'<span class="badge '+(badgeMap[t.prio]||'badge-pend')+'" style="font-size:10px">['+t.prio+']</span>'
-          +'<span style="font-size:13px;font-weight:500;'+(feita?'text-decoration:line-through;':'')+'">'+t.assunto+'</span>'
-          +(al&&al.nivel!=='ok'?'<span style="font-size:10px;color:'+corAl+'">●</span>':'')
+      rows.push(
+        '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius);background:var(--bg2);margin-bottom:6px;opacity:'+(feita?'.6':'1')+'">'
+        +'<button onclick="semCheckRapido('+t.id+',''+t.status+'')" style="flex-shrink:0;width:20px;height:20px;border-radius:50%;border:2px solid '+(feita?'var(--green)':'var(--border2)')+';background:'+(feita?'var(--green)':'transparent')+';cursor:pointer;font-size:11px;color:white;display:flex;align-items:center;justify-content:center">'+(feita?'✓':'')+'</button>'
+        +'<span class="badge '+(badgeMap[t.prio]||'badge-pend')+'" style="font-size:10px;flex-shrink:0">['+t.prio+']</span>'
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:13px;font-weight:500;'+(feita?'text-decoration:line-through;':'')+'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+t.assunto+alBadge+'</div>'
+          +'<div style="font-size:11px;color:var(--text3)">'+t.disc+' · '+t.tipo+(t.link?' · <a href="'+t.link+'" target="_blank" style="color:var(--blue)">🔗</a>':'')+'</div>'
         +'</div>'
-        +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+t.disc+' · '+t.tipo+(t.link?' · <a href="'+t.link+'" target="_blank" style="color:var(--blue)">🔗</a>':'')+'</div>'
-      +'</div>'
-
-      // Botões
-      +'<div style="display:flex;gap:4px;flex-shrink:0">'
-        +(!feita?'<button onclick="abrirModalRegistro('+t.id+')" style="font-size:11px;padding:4px 10px;border:none;border-radius:var(--radius);background:var(--blue);color:white;cursor:pointer">✅</button>':'')
-        +'<button onclick="abrirEditarTarefa('+t.id+')" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;cursor:pointer;color:var(--text2)">✏️</button>'
-      +'</div>'
-    +'</div>';
-  }).join('');
+        +'<div style="display:flex;gap:4px;flex-shrink:0">'
+          +(!feita?'<button onclick="abrirModalRegistro('+t.id+')" style="font-size:11px;padding:4px 10px;border:none;border-radius:var(--radius);background:var(--blue);color:white;cursor:pointer">✅</button>':'')
+          +'<button onclick="abrirEditarTarefa('+t.id+')" style="font-size:12px;padding:4px 8px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;cursor:pointer;color:var(--text2)">✏️</button>'
+        +'</div>'
+        +'</div>'
+      );
+    }catch(e){ console.warn('Erro na tarefa',t.id,e); }
+  }
+  el.innerHTML = rows.join('');
 }
 
 window.semPrioFiltro='todas';
