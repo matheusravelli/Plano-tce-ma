@@ -1746,6 +1746,7 @@ function renderRevStats(){
 // Mapa assunto (sessão) → chave da disciplina de revisão
 function encontrarRevisaoPorAssunto(assunto){
   if(!assunto) return null;
+  if(typeof DADOS_REVISAO === 'undefined' || !DADOS_REVISAO) return null;
   const termosBusca = assunto.toLowerCase()
     .replace(/[—–-]/g,' ').replace(/\s+/g,' ').trim().split(' ');
   for(const [discKey, info] of Object.entries(DADOS_REVISAO)){
@@ -3341,6 +3342,8 @@ function setEditalTab(tab){
 
 // ── SIMULADOR DE NOTA ──
 // Distribuição de questões por disciplina na prova
+const DADOS_REVISAO = {};
+
 const DIST_QUESTOES = {
   // P1 — Conhecimentos Gerais (40q)
   'LP':                  { p:'P1', q:8,  peso:1 },
@@ -4076,6 +4079,7 @@ function renderDashEditalProgress(){
 }
 
 function renderDashCriticos(){
+  if(typeof DADOS_REVISAO === 'undefined') return;
   const el = document.getElementById('dash-criticos');
   if(!el) return;
 
