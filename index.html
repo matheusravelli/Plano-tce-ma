@@ -4020,8 +4020,17 @@ async function load(){
         const ds = await rs.json();
         const dt = await rt.json();
         // Supabase é a fonte de verdade — usar direto, sem merge
-        sessoes = ds;
-        tarefas = dt;
+        // Normalizar disciplinas inconsistentes
+        const _mapaDisc = {
+          'Ctrl Ext':'Controle Externo',
+          'Eng - Hídricas':'Eng — Obras Hídricas',
+          'Obras Hídricas':'Eng — Obras Hídricas',
+          'Obras Rodoviárias':'Eng — Rodoviárias',
+          'Obras de Edificações':'Eng — Edificações',
+          'Engenharia Civil':'Eng — PNFL',
+        };
+        sessoes = ds.map(s=>({...s, disc:_mapaDisc[s.disc]||s.disc}));
+        tarefas = dt.map(t=>({...t, disc:_mapaDisc[t.disc]||t.disc}));
         localStorage.setItem(LS_S, JSON.stringify(sessoes));
         localStorage.setItem(LS_T, JSON.stringify(tarefas));
         // Marcar o ID máximo como sincronizado para evitar reenvio
