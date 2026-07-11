@@ -3765,7 +3765,17 @@ async function deleteTarefaRemote(id){
 
 // Carregar dados
 async function load(){
-  // 1. Tentar localStorage primeiro (para resposta imediata)
+  // Mostrar loading
+  const appEl = document.getElementById('app') || document.querySelector('.app-container');
+  const loadEl = document.createElement('div');
+  loadEl.id = 'app-loading';
+  loadEl.style.cssText = 'position:fixed;inset:0;background:var(--bg,#0f0f0f);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:12px';
+  loadEl.innerHTML = '<div style="font-size:22px;font-weight:700">Gerenciador TCE-MA</div><div style="font-size:13px;color:#888" id="load-msg">Carregando...</div><div style="width:200px;height:3px;background:#333;border-radius:2px;overflow:hidden"><div id="load-bar" style="height:3px;width:0%;background:#4CAF50;border-radius:2px;transition:width .3s"></div></div>';
+  document.body.appendChild(loadEl);
+  const setMsg = (m,p)=>{ const el=document.getElementById('load-msg'); const b=document.getElementById('load-bar'); if(el)el.textContent=m; if(b)b.style.width=p+'%'; };
+
+  // 1. Carregar localStorage (rápido)
+  setMsg('Carregando dados locais...', 20);
   try{ const r=localStorage.getItem(LS_S); if(r) sessoes=JSON.parse(r); }catch(e){}
   try{ const r=localStorage.getItem(LS_T); if(r) tarefas=JSON.parse(r); }catch(e){}
   try{ const r=localStorage.getItem(LS_E); if(r) erros=JSON.parse(r); }catch(e){}
@@ -3794,6 +3804,7 @@ async function load(){
   // 2. Se não tem nada local E Supabase não configurado, usar seed
   if(!sessoes.length && !sbConfigured()) sessoes = SEED_S;
   if(!tarefas.length && !sbConfigured()) tarefas = SEED_T;
+  if(!sbConfigured()) document.getElementById('app-loading')?.remove();
 
   // 3. Se Supabase configurado, buscar dados remotos (sobrescreve local)
   if(sbConfigured()){
@@ -3820,8 +3831,7 @@ async function load(){
         }
         // Re-renderizar com dados atualizados do Supabase
         renderAll();
-        // Re-renderizar com dados atualizados
-        renderAll();
+
         // Erros (tabela pode não existir ainda — sem crash)
         if(re && re.ok){
           const de = await re.json();
@@ -3829,6 +3839,7 @@ async function load(){
         }
         document.getElementById('sb-status').textContent = '🟢 Online';
         setTimeout(()=>{ const el=document.getElementById('sb-status'); if(el) el.textContent=''; },3000);
+        document.getElementById('app-loading')?.remove();
         // Re-renderizar com dados do Supabase
         renderAll();
       }
