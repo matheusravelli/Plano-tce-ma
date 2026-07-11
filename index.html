@@ -245,6 +245,20 @@ alter table tarefas disable row level security;
 
   <!-- SEMANA -->
   <div id="view-semana" class="view">
+    <!-- Sub-abas -->
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
+      <button id="sem-tab-lista" onclick="setSemVisualizacao('lista')"
+        style="padding:7px 16px;font-size:13px;font-weight:500;border:none;border-bottom:2px solid var(--text);background:transparent;cursor:pointer;font-family:inherit;color:var(--text)">
+        📋 Lista
+      </button>
+      <button id="sem-tab-ciclo" onclick="setSemVisualizacao('ciclo')"
+        style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
+        📅 Por dia
+      </button>
+    </div>
+
+    <!-- Painel Lista -->
+    <div id="sem-painel-lista">
     <!-- Filtros -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
       <select id="sem-selector" onchange="renderSemana()" style="padding:6px 10px;font-size:14px;font-weight:600;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);width:82px">
@@ -300,9 +314,15 @@ alter table tarefas disable row level security;
     </div>
     <!-- Lista -->
     <div id="sem-lista-tarefas"></div>
+    </div><!-- fim painel lista -->
+
+    <!-- Painel Ciclo -->
+    <div id="sem-painel-ciclo" style="display:none">
+      <div id="sem-ciclo-conteudo"></div>
+    </div>
   </div>
 
-  <!-- REGISTRAR --><!-- REGISTRAR -->
+  <!-- REGISTRAR -->
   <div id="view-registrar" class="view">
 
     <!-- Filtros topo -->
@@ -3344,6 +3364,55 @@ function setEditalTab(tab){
 // Distribuição de questões por disciplina na prova
 const DADOS_REVISAO = {};
 
+// Ciclo semanal fixo — disciplinas por dia
+const CICLO_SEMANAL = {
+  'Seg': {
+    label: 'Segunda-feira',
+    discs: ['LP','Dir. Const','Dir. Adm'],
+    foco: 'Conhecimentos Gerais — Linguagem e Direito',
+    tipo: 'estudo'
+  },
+  'Ter': {
+    label: 'Terça-feira',
+    discs: ['Eng — Edificações','Eng — Obras Hídricas'],
+    foco: 'Engenharia Civil — Edificações e Obras Hídricas (peso 2)',
+    tipo: 'estudo'
+  },
+  'Qua': {
+    label: 'Quarta-feira',
+    discs: ['AFO','Controle Externo','Auditoria'],
+    foco: 'Conhecimentos Gerais — Orçamento e Controle',
+    tipo: 'estudo'
+  },
+  'Qui': {
+    label: 'Quinta-feira',
+    discs: ['Eng — Rodoviárias','Eng — PNFL'],
+    foco: 'Engenharia Civil — Rodoviárias e PNFL (peso 2)',
+    tipo: 'estudo'
+  },
+  'Sex': {
+    label: 'Sexta-feira',
+    discs: ['Legislação TCE-MA','História e Geo MA','Direitos Humanos','Informática','Raciocínio Lógico'],
+    foco: 'Conhecimentos Gerais — Legislação e Temas Específicos',
+    tipo: 'estudo'
+  },
+  'Sáb': {
+    label: 'Sábado',
+    discs: [],
+    foco: 'Reforço — Assuntos abaixo da meta (automático)',
+    tipo: 'reforco'
+  },
+  'Dom': {
+    label: 'Domingo',
+    discs: [],
+    foco: 'Simulado — 10 questões por disciplina fraca',
+    tipo: 'simulado'
+  },
+};
+
+// Mapa dia da semana → sigla
+const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
 const DIST_QUESTOES = {
   // P1 — Conhecimentos Gerais (40q)
   'LP':                  { p:'P1', q:8,  peso:1 },
@@ -3764,6 +3833,132 @@ async function deleteTarefaRemote(id){
 }
 
 // Carregar dados
+// ── CICLO SEMANAL ────────────────────────────────────────────────────────────
+let semVisualizacao = 'lista';
+
+function setSemVisualizacao(v){
+  semVisualizacao = v;
+  ['lista','ciclo'].forEach(t=>{
+    const btn = document.getElementById('sem-tab-'+t);
+    const pan = document.getElementById('sem-painel-'+t);
+    if(!btn||!pan) return;
+    const active = t===v;
+    pan.style.display = active?'block':'none';
+    btn.style.borderBottomColor = active?'var(--text)':'transparent';
+    btn.style.color = active?'var(--text)':'var(--text2)';
+    btn.style.fontWeight = active?'500':'400';
+  });
+  if(v==='lista') renderSemana();
+  if(v==='ciclo') renderCiclo();
+}
+
+function renderCiclo(){
+  const el = document.getElementById('sem-ciclo-conteudo');
+  if(!el) return;
+  const sem = document.getElementById('sem-selector')?.value || 'S06';
+  const tarefasSem = tarefas.filter(t=>t.semana===sem);
+  const hoje = DIAS_SEMANA[new Date().getDay()];
+
+  // Calcular médias por disciplina para o sábado de reforço
+  const mediaDisc = {};
+  sessoes.filter(s=>s.acertos!=null&&s.qtd>0).forEach(s=>{
+    if(!mediaDisc[s.disc]) mediaDisc[s.disc]={total:0,count:0};
+    mediaDisc[s.disc].total += pct(s.acertos,s.qtd);
+    mediaDisc[s.disc].count++;
+  });
+  const discsFracas = Object.entries(mediaDisc)
+    .map(([d,v])=>({disc:d,media:Math.round(v.total/v.count)}))
+    .filter(d=>d.media<75)
+    .sort((a,b)=>a.media-b.media)
+    .slice(0,3);
+
+  el.innerHTML = Object.entries(CICLO_SEMANAL).map(([dia, ciclo])=>{
+    const isHoje = dia===hoje;
+    const corBorda = isHoje?'var(--blue)':'var(--border)';
+
+    // Tarefas do dia = tarefas cujas disciplinas pertencem a este dia
+    let tarefasDia = [];
+    if(ciclo.tipo==='estudo'){
+      tarefasDia = tarefasSem.filter(t=>ciclo.discs.some(d=>
+        t.disc===d || t.disc?.includes(d.split(' — ')[1]||'__')
+      ));
+    } else if(ciclo.tipo==='reforco'){
+      tarefasDia = tarefasSem.filter(t=>discsFracas.some(d=>t.disc===d.disc));
+    } else {
+      tarefasDia = [];
+    }
+
+    const feitas = tarefasDia.filter(t=>t.status==='feita').length;
+    const pend   = tarefasDia.filter(t=>t.status==='pendente').length;
+    const pct_d  = tarefasDia.length ? Math.round(feitas/tarefasDia.length*100) : 0;
+    const corPct = pct_d===100?'var(--green)':pct_d>0?'var(--blue)':'var(--text3)';
+
+    const badgeMap={A:'badge-bad',B:'badge-warn',C:'badge-new'};
+
+    return `<div style="border:1px solid ${corBorda};border-radius:var(--radius-lg);margin-bottom:10px;overflow:hidden;
+      ${isHoje?'box-shadow:0 0 0 2px var(--blue)':''}">
+      <!-- Header dia -->
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${isHoje?'var(--blue-bg,#EBF5FB)':'var(--bg2)'};cursor:pointer"
+           onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:${isHoje?700:600}">${isHoje?'📍 ':''}<b>${dia}</b> — ${ciclo.label}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${ciclo.foco}</div>
+        </div>
+        ${tarefasDia.length?`
+        <div style="font-size:11px;color:${corPct};font-weight:500">${feitas}/${tarefasDia.length}</div>
+        <div style="width:60px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden">
+          <div style="height:4px;width:${pct_d}%;background:${corPct};border-radius:2px"></div>
+        </div>`:'<div style="font-size:11px;color:var(--text3)">sem tarefas</div>'}
+        <div style="font-size:11px;color:var(--text3)">▼</div>
+      </div>
+
+      <!-- Conteúdo -->
+      <div style="${isHoje?'':'display:none'}">
+        ${ciclo.tipo==='reforco'?`
+        <div style="padding:10px 14px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;font-weight:600;color:var(--amber);margin-bottom:8px">🟠 Top 3 disciplinas para reforçar esta semana</div>
+          ${discsFracas.map(d=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+            <div style="flex:1;font-size:12px;font-weight:500">${d.disc}</div>
+            <div style="font-size:13px;font-weight:700;color:${d.media<60?'var(--red)':'var(--amber)'}">${d.media}%</div>
+            <button onclick="abrirModalRegistro(null)" style="font-size:11px;padding:3px 8px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;cursor:pointer;color:var(--text2);font-family:inherit">+ Sessão</button>
+          </div>`).join('')}
+          ${discsFracas.length===0?'<div style="font-size:12px;color:var(--text3)">Nenhuma disciplina abaixo de 75% 🎉</div>':''}
+        </div>`:
+        ciclo.tipo==='simulado'?`
+        <div style="padding:10px 14px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;font-weight:600;color:var(--blue);margin-bottom:8px">🎯 Simulado semanal</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Resolva 10 questões de cada disciplina fraca e registre aqui:</div>
+          ${discsFracas.map(d=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+            <div style="flex:1;font-size:12px">${d.disc} <span style="color:var(--text3)">(meta: 75%, atual: ${d.media}%)</span></div>
+            <button onclick="abrirModalRegistro(null)" style="font-size:11px;padding:3px 8px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;cursor:pointer;color:var(--text2);font-family:inherit">Registrar</button>
+          </div>`).join('')}
+        </div>`:`
+        <!-- Tarefas do dia -->
+        <div style="padding:6px 14px;border-top:1px solid var(--border)">
+          ${tarefasDia.length===0?
+            `<div style="padding:8px 0;font-size:12px;color:var(--text3)">Nenhuma tarefa desta disciplina na ${sem}. As tarefas aparecem conforme você importa as metas semanais.</div>`:
+            tarefasDia.sort((a,b)=>a.prio.localeCompare(b.prio)).map(t=>{
+              const feita=t.status==='feita';
+              return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);opacity:${feita?.6:1}">
+                <button onclick="semCheckRapido(${t.id},'${t.status}')" style="flex-shrink:0;width:18px;height:18px;border-radius:50%;border:2px solid ${feita?'var(--green)':'var(--border2)'};background:${feita?'var(--green)':'transparent'};cursor:pointer;font-size:10px;color:white;display:flex;align-items:center;justify-content:center">${feita?'✓':''}</button>
+                <span class="badge ${badgeMap[t.prio]||'badge-pend'}" style="font-size:10px">[${t.prio}]</span>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:12px;font-weight:500;${feita?'text-decoration:line-through;':''}">${t.assunto}</div>
+                  <div style="font-size:11px;color:var(--text3)">${t.tipo}${t.link?' · <a href="'+t.link+'" target="_blank" style="color:var(--blue)">🔗</a>':''}</div>
+                </div>
+                ${!feita?`<button onclick="abrirModalRegistro(${t.id})" style="font-size:11px;padding:3px 8px;border:none;border-radius:var(--radius);background:var(--blue);color:white;cursor:pointer">✅</button>`:''}
+                <button onclick="abrirEditarTarefa(${t.id})" style="font-size:12px;padding:3px 6px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;cursor:pointer;color:var(--text2)">✏️</button>
+              </div>`;
+            }).join('')
+          }
+        </div>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 async function load(){
   // Mostrar loading
   const appEl = document.getElementById('app') || document.querySelector('.app-container');
