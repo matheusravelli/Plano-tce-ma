@@ -59,6 +59,8 @@ alter table tarefas disable row level security;
     --blue-bg:#020c20;
   }
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:var(--text);background:var(--bg);padding:0;margin:0;-webkit-font-smoothing:antialiased}
+  /* Evitar scroll automático ao clicar em botões */
+  button{touch-action:manipulation}
   .container{max-width:960px;margin:0 auto;padding:1.5rem 1rem}
   h1{font-size:18px;font-weight:600;margin-bottom:4px;letter-spacing:-.01em}
   .subtitle{font-size:12px;color:var(--text2);margin-bottom:1.5rem}
@@ -3506,6 +3508,9 @@ function renderConstancia(){
 }
 
 function setDesempTab(tab){
+  // Manter posição do scroll no topo da view
+  const viewEl = document.getElementById('view-desempenho');
+  const scrollY = window.scrollY;
   const tabs = ['geral','constancia','reforco','evolucao','tarefas'];
   tabs.forEach(t=>{
     const btn = document.getElementById('desemp-tab-'+t);
@@ -3517,6 +3522,8 @@ function setDesempTab(tab){
     btn.style.color = active?'var(--text)':'var(--text2)';
     btn.style.fontWeight = active?'500':'400';
   });
+  // Restaurar posição do scroll
+  requestAnimationFrame(()=>window.scrollTo(0, scrollY));
   if(tab==='constancia') setTimeout(renderConstancia, 50);
   if(tab==='reforco'){
     const el = document.getElementById('desemp-rf-lista');
@@ -4037,6 +4044,7 @@ let semVisualizacao = 'lista';
 
 function setSemVisualizacao(v){
   semVisualizacao = v;
+  const _sy=window.scrollY;
   ['lista','ciclo','historico'].forEach(t=>{
     const btn = document.getElementById('sem-tab-'+t);
     const pan = document.getElementById('sem-painel-'+t);
