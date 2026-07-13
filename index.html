@@ -253,12 +253,16 @@ alter table tarefas disable row level security;
     <!-- Sub-abas -->
     <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
       <button id="sem-tab-lista" onclick="setSemVisualizacao('lista')"
-        style="padding:7px 16px;font-size:13px;font-weight:500;border:none;border-bottom:2px solid var(--text);background:transparent;cursor:pointer;font-family:inherit;color:var(--text)">
+        style="padding:7px 16px;font-size:13px;font-weight:500;border:none;border-bottom:2px solid var(--green);background:transparent;cursor:pointer;font-family:inherit;color:var(--text)">
         📋 Lista
       </button>
       <button id="sem-tab-ciclo" onclick="setSemVisualizacao('ciclo')"
         style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
         📅 Por dia
+      </button>
+      <button id="sem-tab-historico" onclick="setSemVisualizacao('historico')"
+        style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
+        🕐 Histórico
       </button>
     </div>
 
@@ -305,6 +309,7 @@ alter table tarefas disable row level security;
         <option value="pendente">Pendentes</option>
         <option value="feita">Concluídas</option>
         <option value="todas">Todas</option>
+        <option value="atrasadas">⚠️ Todas pendentes</option>
       </select>
       <select id="sem-disc-filtro" onchange="renderSemana()" style="padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);max-width:160px">
         <option value="">Todas as disc.</option>
@@ -324,6 +329,11 @@ alter table tarefas disable row level security;
     <!-- Painel Ciclo -->
     <div id="sem-painel-ciclo" style="display:none">
       <div id="sem-ciclo-conteudo"></div>
+    </div>
+
+    <!-- Painel Histórico -->
+    <div id="sem-painel-historico" style="display:none">
+      <div id="sem-historico-conteudo"></div>
     </div>
   </div>
 
@@ -1608,12 +1618,19 @@ function renderSemana(){
 
   // Filtrar
   const semPrio = window.semPrioFiltro||'todas';
-  let lista = tarefas.filter(t=>t.semana===sem);
+  let lista;
+  if(statusF==='atrasadas'){
+    // Mostrar TODAS as pendentes de TODAS as semanas
+    lista = tarefas.filter(t=>t.status==='pendente');
+    lista.sort((a,b)=>a.semana.localeCompare(b.semana)||a.prio.localeCompare(b.prio));
+  } else {
+    lista = tarefas.filter(t=>t.semana===sem);
+  }
   const total=lista.length, feitas=lista.filter(t=>t.status==='feita').length;
-  if(statusF!=='todas') lista=lista.filter(t=>t.status===statusF);
+  if(statusF!=='todas'&&statusF!=='atrasadas') lista=lista.filter(t=>t.status===statusF);
   if(semPrio!=='todas') lista=lista.filter(t=>t.prio===semPrio);
   if(discF) lista=lista.filter(t=>t.disc===discF);
-  lista.sort((a,b)=>a.prio.localeCompare(b.prio));
+  if(statusF!=='atrasadas') lista.sort((a,b)=>a.prio.localeCompare(b.prio));
 
   // Progresso
   const pct_s=total?Math.round(feitas/total*100):0;
@@ -3843,19 +3860,101 @@ let semVisualizacao = 'lista';
 
 function setSemVisualizacao(v){
   semVisualizacao = v;
-  ['lista','ciclo'].forEach(t=>{
+  ['lista','ciclo','historico'].forEach(t=>{
     const btn = document.getElementById('sem-tab-'+t);
     const pan = document.getElementById('sem-painel-'+t);
     if(!btn||!pan) return;
     const active = t===v;
     pan.style.display = active?'block':'none';
-    btn.style.borderBottomColor = active?'var(--text)':'transparent';
+    btn.style.borderBottomColor = active?'var(--green)':'transparent';
     btn.style.color = active?'var(--text)':'var(--text2)';
     btn.style.fontWeight = active?'500':'400';
   });
   if(v==='lista') renderSemana();
   if(v==='ciclo') renderCiclo();
+  if(v==='historico') renderHistoricoSessoes();
 }
+
+function renderHistoricoSessoes(){
+  const el = document.getElementById('sem-historico-conteudo');
+  if(!el) return;
+
+  const porData = {};
+  [...sessoes].sort((a,b)=>(b.data||'').localeCompare(a.data||'')).forEach(s=>{
+    const d = s.data || 'sem data';
+    if(!porData[d]) porData[d] = [];
+    porData[d].push(s);
+  });
+
+  if(!Object.keys(porData).length){
+    el.innerHTML = '<div class="empty" style="padding:2rem">Nenhuma sessão registrada ainda.</div>';
+    return;
+  }
+
+  const hoje = dataHoje();
+  const ontemD = new Date(); ontemD.setDate(ontemD.getDate()-1);
+  const ontem = ontemD.toISOString().split('T')[0];
+
+  el.innerHTML = '';
+  Object.entries(porData).forEach(([data, sessoesDia])=>{
+    const totalAc = sessoesDia.filter(s=>s.acertos!=null).reduce((a,s)=>a+(parseInt(s.acertos)||0),0);
+    const totalQ2 = sessoesDia.filter(s=>s.acertos!=null).reduce((a,s)=>a+(parseInt(s.qtd)||0),0);
+    const mediaD = totalQ2 ? Math.round(totalAc/totalQ2*100) : null;
+    const corMedia = mediaD===null?'var(--text3)':mediaD>=75?'var(--green)':mediaD>=65?'var(--amber)':'var(--red)';
+    const totalQ = sessoesDia.reduce((a,s)=>a+(parseInt(s.qtd)||0),0);
+    const tempoTotal = sessoesDia.reduce((a,s)=>a+(parseInt(s.tempo_min)||0),0);
+    const tempoStr = tempoTotal>=60 ? Math.floor(tempoTotal/60)+'h'+(tempoTotal%60?String(tempoTotal%60).padStart(2,'0')+'min':'') : tempoTotal?tempoTotal+'min':'';
+
+    let dataLabel = data;
+    try{
+      const d = new Date(data+'T12:00:00');
+      if(data===hoje) dataLabel = '📍 Hoje';
+      else if(data===ontem) dataLabel = '🕐 Ontem';
+      else dataLabel = d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
+    }catch(e){}
+
+    // Container do dia
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-bottom:1rem;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden';
+
+    // Header clicável
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg2);cursor:pointer';
+    header.innerHTML =
+      '<div style="font-size:13px;font-weight:600;min-width:100px">'+dataLabel+'</div>'+
+      '<div style="flex:1;font-size:11px;color:var(--text3)">'+sessoesDia.length+' sessão'+(sessoesDia.length>1?'ões':'')+
+      (tempoStr?' · '+tempoStr:'')+' · '+totalQ+' questões</div>'+
+      (mediaD!==null?'<div style="font-size:14px;font-weight:700;color:'+corMedia+'">'+mediaD+'%</div>':'')+
+      '<div style="font-size:11px;color:var(--text3)">▼</div>';
+
+    // Corpo — aberto se for hoje
+    const corpo = document.createElement('div');
+    corpo.style.display = data===hoje ? 'block' : 'none';
+
+    sessoesDia.forEach(s=>{
+      const p = s.acertos!=null&&s.qtd ? Math.round(s.acertos/s.qtd*100) : null;
+      const cor = p===null?'var(--text3)':p>=75?'var(--green)':p>=65?'var(--amber)':'var(--red)';
+      const tempoS = (s.tempo_min||0)>=60 ? Math.floor(s.tempo_min/60)+'h'+(s.tempo_min%60?String(s.tempo_min%60).padStart(2,'0')+'min':'') : s.tempo_min?s.tempo_min+'min':'';
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--border)';
+      row.innerHTML =
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:13px;font-weight:500">'+(s.assunto||'—')+'</div>'+
+          '<div style="font-size:11px;color:var(--text3)">'+(s.disc||'')+' · '+(s.tipo||'')+(tempoS?' · '+tempoS:'')+'</div>'+
+          (s.obs?'<div style="font-size:11px;color:var(--amber);margin-top:2px">📝 '+s.obs+'</div>':'')+
+        '</div>'+
+        (p!==null?'<div style="font-size:15px;font-weight:700;color:'+cor+'">'+p+'%</div>':'')+
+        (p!==null?'<div style="font-size:11px;color:var(--text3)">'+s.acertos+'/'+s.qtd+'</div>':'');
+      corpo.appendChild(row);
+    });
+
+    header.onclick = ()=>{ corpo.style.display = corpo.style.display==='none'?'block':'none'; };
+    wrap.appendChild(header);
+    wrap.appendChild(corpo);
+    el.appendChild(wrap);
+  });
+}
+
 
 function renderCiclo(){
   const el = document.getElementById('sem-ciclo-conteudo');
