@@ -3499,7 +3499,7 @@ function renderConstancia(){
     row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)';
     row.innerHTML =
       '<div style="font-size:12px;font-weight:500;min-width:110px">'+dataLabel+'</div>'+
-      '<div style="font-size:11px;color:var(--text3);flex:1">'+info.sessoes+' sessão'+(info.sessoes>1?'ões':'')+' · '+info.qtd+' questões'+(tempoD?' · '+tempoD:'')+'</div>'+
+      '<div style="font-size:11px;color:var(--text3);flex:1">'+info.sessoes+(info.sessoes>1?' sessões':' sessão')+' · '+info.qtd+' questões'+(tempoD?' · '+tempoD:'')+'</div>'+
       (mediaD!==null?'<div style="font-size:13px;font-weight:700;color:'+cor+'">'+mediaD+'%</div>':
        '<div style="font-size:11px;color:var(--text3)">sem acertos</div>')+
       '<div style="width:8px;height:8px;border-radius:50%;background:'+(d===hoje?'var(--green)':'var(--text3)')+'"></div>';
@@ -4107,7 +4107,7 @@ function renderHistoricoSessoes(){
     header.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg2);cursor:pointer';
     header.innerHTML =
       '<div style="font-size:13px;font-weight:600;min-width:100px">'+dataLabel+'</div>'+
-      '<div style="flex:1;font-size:11px;color:var(--text3)">'+sessoesDia.length+' sessão'+(sessoesDia.length>1?'ões':'')+
+      '<div style="flex:1;font-size:11px;color:var(--text3)">'+sessoesDia.length+(sessoesDia.length>1?' sessões':' sessão')+
       (tempoStr?' · '+tempoStr:'')+' · '+totalQ+' questões</div>'+
       (mediaD!==null?'<div style="font-size:14px;font-weight:700;color:'+corMedia+'">'+mediaD+'%</div>':'')+
       '<div style="font-size:11px;color:var(--text3)">▼</div>';
