@@ -969,6 +969,28 @@ alter table tarefas disable row level security;
 
   <!-- DESEMPENHO -->
   <div id="view-desempenho" class="view">
+    <!-- Sub-abas Desempenho -->
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
+      <button id="desemp-tab-geral" onclick="setDesempTab('geral')"
+        style="padding:7px 16px;font-size:13px;font-weight:500;border:none;border-bottom:2px solid var(--green);background:transparent;cursor:pointer;font-family:inherit;color:var(--text)">
+        📊 Geral
+      </button>
+      <button id="desemp-tab-constancia" onclick="setDesempTab('constancia')"
+        style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
+        🔥 Constância
+      </button>
+      <button id="desemp-tab-reforco" onclick="setDesempTab('reforco')"
+        style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
+        🔁 Reforço
+      </button>
+      <button id="desemp-tab-evolucao" onclick="setDesempTab('evolucao')"
+        style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
+        📈 Evolução
+      </button>
+    </div>
+
+    <!-- Painel Geral -->
+    <div id="desemp-painel-geral">
     <div class="metric-grid" id="desemp-metrics"></div>
     <div class="two-col">
       <div>
