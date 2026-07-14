@@ -229,6 +229,18 @@ alter table tarefas disable row level security;
       </div>
     </div>
 
+    <!-- Constância no Dashboard -->
+    <div style="margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div class="section-title" style="margin:0;flex:1">🔥 Constância</div>
+        <button onclick="setDesempTab('constancia');showView('desempenho',null)"
+          style="font-size:11px;border:none;background:transparent;color:var(--green);cursor:pointer;padding:0">
+          Ver detalhes →
+        </button>
+      </div>
+      <div id="dash-constancia-resumo"></div>
+    </div>
+
     <!-- Disciplinas mais fracas — ação imediata -->
     <div style="margin-bottom:1.5rem">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -4569,6 +4581,96 @@ function renderDashSemanaResumo(){
   });
 }
 
+const META_QUESTOES_DIA = 150;
+
+function renderDashConstanciaResumo(){
+  const el = document.getElementById('dash-constancia-resumo');
+  if(!el) return;
+
+  // Agrupar sessões por dia
+  const porDia = {};
+  sessoes.forEach(s=>{
+    if(!s.data) return;
+    if(!porDia[s.data]) porDia[s.data]={qtd:0,tempo:0};
+    porDia[s.data].qtd   += parseInt(s.qtd)||0;
+    porDia[s.data].tempo += parseInt(s.tempo_min)||0;
+  });
+
+  const hoje = dataHoje();
+  const diasOrdenados = Object.keys(porDia).sort().reverse();
+
+  // Streak atual (dias consecutivos com pelo menos 1 sessão)
+  let streak=0;
+  const d=new Date();
+  while(true){
+    const ds=d.toISOString().split('T')[0];
+    if(porDia[ds]){ streak++; d.setDate(d.getDate()-1); }
+    else if(ds===hoje){ d.setDate(d.getDate()-1); }
+    else break;
+  }
+
+  // Streak máximo
+  let maxStreak=0,cur=0,prev=null;
+  Object.keys(porDia).sort().forEach(d=>{
+    if(!prev){ cur=1; }
+    else{ const diff=(new Date(d)-new Date(prev))/86400000; cur=diff===1?cur+1:1; }
+    if(cur>maxStreak) maxStreak=cur;
+    prev=d;
+  });
+
+  // Dias que bateram a meta de 150q
+  const diasMeta = Object.entries(porDia).filter(([,v])=>v.qtd>=META_QUESTOES_DIA);
+  const totalDias = diasOrdenados.length;
+  const tempoStr = t=>t>=60?Math.floor(t/60)+'h'+(t%60?String(t%60).padStart(2,'0')+'min':''):t?t+'min':'—';
+
+  // Calendário dos últimos 30 dias
+  const ultimos30=[];
+  for(let i=29;i>=0;i--){
+    const dt=new Date(); dt.setDate(dt.getDate()-i);
+    ultimos30.push(dt.toISOString().split('T')[0]);
+  }
+
+  // Montar
+  const corStreak = streak>=7?'var(--green)':streak>=3?'var(--amber)':'var(--text)';
+
+  el.innerHTML =
+    // Métricas rápidas
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">'+
+      [
+        ['🔥 Streak', streak+' dias', corStreak],
+        ['🏆 Recorde', maxStreak+' dias', 'var(--text)'],
+        ['🎯 Meta '+META_QUESTOES_DIA+'q', diasMeta.length+'/'+totalDias+' dias', diasMeta.length>totalDias*0.6?'var(--green)':'var(--amber)'],
+      ].map(([l,v,c])=>
+        '<div style="padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);border-top:2px solid '+c+'">'+
+          '<div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">'+l+'</div>'+
+          '<div style="font-size:18px;font-weight:700;color:'+c+'">'+v+'</div>'+
+        '</div>'
+      ).join('')+
+    '</div>'+
+    // Calendário 30 dias
+    '<div style="margin-bottom:6px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text3)">ÚLTIMOS 30 DIAS</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:3px">'+
+      ultimos30.map(d=>{
+        const info = porDia[d];
+        const isHoje = d===hoje;
+        const bateuMeta = info && info.qtd>=META_QUESTOES_DIA;
+        const estudou = !!info;
+        let bg='var(--bg3)'; // sem estudo
+        if(estudou) bg = bateuMeta?'var(--green)':'#166534'; // meta ou parcial
+        return '<div title="'+d+(info?' — '+info.qtd+'q — '+tempoStr(info.tempo):' — sem estudo')+'" '+
+          'style="width:18px;height:18px;border-radius:3px;background:'+bg+';'+
+          (isHoje?'outline:2px solid var(--green);outline-offset:1px;':'')+
+          'cursor:default"></div>';
+      }).join('')+
+    '</div>'+
+    // Legenda
+    '<div style="display:flex;align-items:center;gap:10px;margin-top:6px;font-size:10px;color:var(--text3)">'+
+      '<div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:var(--bg3)"></div> Sem estudo</div>'+
+      '<div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:#166534"></div> Parcial</div>'+
+      '<div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:var(--green)"></div> Meta ('+META_QUESTOES_DIA+'q+)</div>'+
+    '</div>';
+}
+
 async function load(){
   // Mostrar loading
   const appEl = document.getElementById('app') || document.querySelector('.app-container');
@@ -4734,6 +4836,7 @@ function renderAll(){
   renderUltimasSessoes();
   renderDashTarefas();
   renderDashSemanaResumo();
+  renderDashConstanciaResumo();
   renderDashDiscFracas();
   renderDashEditalProgress();
   renderDashCriticos();
