@@ -205,6 +205,18 @@ alter table tarefas disable row level security;
       <div id="dash-sugestao"></div>
     </div>
 
+    <!-- Resumo da semana no Dashboard -->
+    <div style="margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div class="section-title" style="margin:0;flex:1">📊 Esta semana</div>
+        <button onclick="setDesempTab('semana');showView('desempenho',null)"
+          style="font-size:11px;border:none;background:transparent;color:var(--green);cursor:pointer;padding:0">
+          Ver detalhes →
+        </button>
+      </div>
+      <div id="dash-semana-resumo"></div>
+    </div>
+
     <!-- Previsão + Ritmo -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem">
       <div class="card" style="padding:1rem">
@@ -3725,8 +3737,8 @@ function setDesempTab(tab){
     btn.style.color = active?'var(--text)':'var(--text2)';
     btn.style.fontWeight = active?'500':'400';
   });
-  // Restaurar posição do scroll
-  requestAnimationFrame(()=>window.scrollTo(0, scrollY));
+  // Restaurar posição do scroll (sem animação)
+  window.scrollTo({top: scrollY, behavior: 'instant'});
   if(tab==='semana') setTimeout(renderResumaSemana, 50);
   if(tab==='constancia') setTimeout(renderConstancia, 50);
   if(tab==='reforco'){
@@ -4249,6 +4261,7 @@ let semVisualizacao = 'lista';
 function setSemVisualizacao(v){
   semVisualizacao = v;
   const _sy=window.scrollY;
+  const _cont=document.querySelector('.container');
   ['lista','ciclo','historico'].forEach(t=>{
     const btn = document.getElementById('sem-tab-'+t);
     const pan = document.getElementById('sem-painel-'+t);
@@ -4259,6 +4272,7 @@ function setSemVisualizacao(v){
     btn.style.color = active?'var(--text)':'var(--text2)';
     btn.style.fontWeight = active?'500':'400';
   });
+  window.scrollTo({top:_sy,behavior:'instant'});
   if(v==='lista') renderSemana();
   if(v==='ciclo') renderCiclo();
   if(v==='historico') renderHistoricoSessoes();
@@ -4452,6 +4466,109 @@ function renderCiclo(){
   }).join('');
 }
 
+function renderDashSemanaResumo(){
+  const el = document.getElementById('dash-semana-resumo');
+  if(!el) return;
+
+  // Calcular semana atual (dom a sáb)
+  const hoje = new Date();
+  const inicio = new Date(hoje);
+  inicio.setDate(hoje.getDate() - hoje.getDay());
+  inicio.setHours(0,0,0,0);
+  const fim = new Date(inicio);
+  fim.setDate(inicio.getDate()+6);
+  fim.setHours(23,59,59,999);
+  const ini_str = inicio.toISOString().split('T')[0];
+  const fim_str = fim.toISOString().split('T')[0];
+
+  const sessoesSem = sessoes.filter(s=>s.data>=ini_str&&s.data<=fim_str);
+  if(!sessoesSem.length){
+    el.innerHTML='<div style="padding:.75rem;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text3)">Nenhuma sessão registrada esta semana.</div>';
+    return;
+  }
+
+  // Agrupar por disciplina
+  const porDisc={};
+  sessoesSem.forEach(s=>{
+    const d=s.disc||'Sem disc';
+    if(!porDisc[d]) porDisc[d]={tempo:0,qtd:0,acertos:0};
+    porDisc[d].tempo+=parseInt(s.tempo_min)||0;
+    porDisc[d].qtd+=parseInt(s.qtd)||0;
+    porDisc[d].acertos+=s.acertos!=null?parseInt(s.acertos)||0:0;
+  });
+
+  const totalTempo=Object.values(porDisc).reduce((a,v)=>a+v.tempo,0);
+  const totalQ=sessoesSem.reduce((a,s)=>a+(parseInt(s.qtd)||0),0);
+  const totalAc=sessoesSem.filter(s=>s.acertos!=null).reduce((a,s)=>a+(parseInt(s.acertos)||0),0);
+  const totalQ2=sessoesSem.filter(s=>s.acertos!=null).reduce((a,s)=>a+(parseInt(s.qtd)||0),0);
+  const media=totalQ2?Math.round(totalAc/totalQ2*100):null;
+  const tempoStr=t=>t>=60?Math.floor(t/60)+'h'+(t%60?String(t%60).padStart(2,'0')+'min':''):t+'min';
+  const CORES=['#22c55e','#3b82f6','#f59e0b','#ef4444','#a855f7','#06b6d4','#f97316','#84cc16','#ec4899','#14b8a6'];
+
+  const discsOrdenadas=Object.entries(porDisc).sort((a,b)=>b[1].tempo-a[1].tempo);
+  const coresMap={};
+  discsOrdenadas.forEach(([d],i)=>{coresMap[d]=CORES[i%CORES.length];});
+
+  // Mini barras horizontais por disciplina
+  const barras = discsOrdenadas.map(([disc,info])=>{
+    const pct=totalTempo?Math.round(info.tempo/totalTempo*100):0;
+    const mediaD=info.qtd?Math.round(info.acertos/info.qtd*100):null;
+    const corM=mediaD===null?'var(--text3)':mediaD>=75?'var(--green)':mediaD>=65?'var(--amber)':'var(--red)';
+    return '<div style="margin-bottom:6px">'+
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">'+
+        '<div style="width:8px;height:8px;border-radius:50%;background:'+coresMap[disc]+';flex-shrink:0"></div>'+
+        '<div style="flex:1;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+disc+'</div>'+
+        '<div style="font-size:11px;color:var(--text3)">'+tempoStr(info.tempo)+'</div>'+
+        (mediaD!==null?'<div style="font-size:11px;font-weight:600;color:'+corM+'">'+mediaD+'%</div>':'')+
+      '</div>'+
+      '<div style="height:4px;background:var(--bg3);border-radius:2px;overflow:hidden">'+
+        '<div style="height:4px;width:'+pct+'%;background:'+coresMap[disc]+';border-radius:2px"></div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  const corMedia=media===null?'var(--text3)':media>=75?'var(--green)':media>=65?'var(--amber)':'var(--red)';
+
+  el.innerHTML=
+    '<div style="display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start">'+
+      // Donut mini
+      '<div style="position:relative;width:100px;height:100px;flex-shrink:0">'+
+        '<canvas id="dash-pizza-mini" width="100" height="100"></canvas>'+
+        '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">'+
+          '<div style="font-size:14px;font-weight:700">'+tempoStr(totalTempo)+'</div>'+
+          (media!==null?'<div style="font-size:11px;color:'+corMedia+'">'+media+'%</div>':'')+
+        '</div>'+
+      '</div>'+
+      // Barras
+      '<div>'+barras+'</div>'+
+    '</div>';
+
+  // Renderizar donut mini
+  requestAnimationFrame(()=>{
+    const canvas=document.getElementById('dash-pizza-mini');
+    if(!canvas||!window.Chart) return;
+    if(window._chartPizzaMini) window._chartPizzaMini.destroy();
+    window._chartPizzaMini=new Chart(canvas,{
+      type:'doughnut',
+      data:{
+        labels:discsOrdenadas.map(([d])=>d),
+        datasets:[{
+          data:discsOrdenadas.map(([,v])=>v.tempo||0),
+          backgroundColor:discsOrdenadas.map(([d])=>coresMap[d]),
+          borderColor:'#0d0d0d',
+          borderWidth:2
+        }]
+      },
+      options:{
+        responsive:false,
+        plugins:{legend:{display:false},tooltip:{enabled:false}},
+        cutout:'65%',
+        animation:{duration:400}
+      }
+    });
+  });
+}
+
 async function load(){
   // Mostrar loading
   const appEl = document.getElementById('app') || document.querySelector('.app-container');
@@ -4616,6 +4733,7 @@ function renderAll(){
   renderMetrics();
   renderUltimasSessoes();
   renderDashTarefas();
+  renderDashSemanaResumo();
   renderDashDiscFracas();
   renderDashEditalProgress();
   renderDashCriticos();
