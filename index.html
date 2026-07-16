@@ -5042,28 +5042,24 @@ async function load(){
   try{ const r=localStorage.getItem(LS_E); if(r) erros=JSON.parse(r); }catch(e){}
   try{ const r=localStorage.getItem(LS_P); if(r) planoSemanal=JSON.parse(r); }catch(e){}
   loadRevisaoProgress();
-  // Carregar tópicos salvos (inclui importados da semana e edições)
+  // Carregar dados de revisão salvos — merge completo com o base
   try{
-    const editados = localStorage.getItem('tcema_revisao_dados');
-    if(editados){
-      const parsed = JSON.parse(editados);
+    const salvos = localStorage.getItem('tcema_revisao_dados');
+    if(salvos){
+      const parsed = JSON.parse(salvos);
       for(const [dk, dv] of Object.entries(parsed)){
         if(!DADOS_REVISAO[dk]){
-          // Disciplina nova (não existia no array base) — adicionar completa
+          // Disciplina nova — adicionar completa
           DADOS_REVISAO[dk] = dv;
         } else {
-          // Disciplina existente — mesclar tópicos
+          // Disciplina existente — mesclar tópicos completamente
           for(const [topicName, items] of Object.entries(dv.topics||{})){
             if(!DADOS_REVISAO[dk].topics[topicName]){
-              // Tópico novo importado — adicionar
+              // Tópico novo — adicionar completo
               DADOS_REVISAO[dk].topics[topicName] = items;
             } else {
-              // Tópico existente — mesclar textos editados
-              items.forEach((item,i)=>{
-                if(DADOS_REVISAO[dk].topics[topicName][i]){
-                  DADOS_REVISAO[dk].topics[topicName][i].text = item.text;
-                }
-              });
+              // Tópico existente — substituir array inteiro (preserva adições/edições)
+              DADOS_REVISAO[dk].topics[topicName] = items;
             }
           }
         }
