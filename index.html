@@ -640,6 +640,7 @@ alter table tarefas disable row level security;
     <!-- Filtros -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
       <div class="section-title" style="margin:0;flex:1">Erros registrados</div>
+      <button onclick="abrirModalErro()" style="font-size:12px;padding:5px 12px;border:1px solid var(--amber);border-radius:var(--radius);background:transparent;color:var(--amber);cursor:pointer;font-family:inherit;font-weight:500">+ Registrar erro</button>
       <div class="tabs" style="margin:0">
         <button class="tab active" onclick="setCadFiltro('todos',this)">Todos</button>
         <button class="tab" onclick="setCadFiltro('pendente',this)">Pendentes</button>
@@ -667,10 +668,21 @@ alter table tarefas disable row level security;
             <div>
               <label class="form-label">Disciplina</label>
               <select id="ce-disc">
-                <option>LP</option><option>Dir. Adm</option><option>Dir. Const</option>
-                <option>AFO</option><option>Ctrl Ext</option><option>Auditoria</option>
-                <option>Eng — PNFL</option><option>Eng — Edificações</option>
-                <option>Eng — Hídricas</option><option>Eng — Rodoviárias</option>
+                <option>LP</option>
+                <option>Dir. Adm</option>
+                <option>Dir. Const</option>
+                <option>AFO</option>
+                <option>Controle Externo</option>
+                <option>Auditoria</option>
+                <option>Legislação TCE-MA</option>
+                <option>História e Geo MA</option>
+                <option>Direitos Humanos</option>
+                <option>Informática</option>
+                <option>Raciocínio Lógico</option>
+                <option>Eng — PNFL</option>
+                <option>Eng — Edificações</option>
+                <option>Eng — Obras Hídricas</option>
+                <option>Eng — Rodoviárias</option>
               </select>
             </div>
             <div>
@@ -3385,7 +3397,29 @@ async function confirmarModalRegistro(tarefaId){
     await saveTarefas();
   }
 
-  document.getElementById('modal-registro')?.remove();
+  const modalEl = document.getElementById('modal-registro');
+  // Perguntar se quer registrar erro (apenas se acertos < meta)
+  const mediaS = acertos!=null&&qtd ? Math.round(acertos/qtd*100) : null;
+  if(mediaS!==null && mediaS<(meta||75) && modalEl){
+    const btnErro = document.createElement('button');
+    btnErro.textContent = '📓 Registrar erro no caderno';
+    btnErro.style.cssText = 'width:100%;padding:8px;margin-top:8px;border:1px dashed var(--amber);border-radius:var(--radius);background:transparent;color:var(--amber);cursor:pointer;font-family:inherit;font-size:12px';
+    btnErro.onclick = ()=>{
+      modalEl.remove();
+      abrirModalErro(disc, assunto, semana);
+    };
+    const botoesEl = modalEl.querySelector('[id="mr-btn-salvar"]')?.parentElement;
+    if(botoesEl) botoesEl.after(btnErro);
+    // Auto fechar após 4s se não clicar
+    window._modalRegSaving = false;
+    renderAll();
+    if(document.getElementById('view-semana')?.classList.contains('active')){
+      renderSemana();
+      if(typeof semVisualizacao!=='undefined'&&semVisualizacao==='historico') renderHistoricoSessoes();
+    }
+    return;
+  }
+  modalEl?.remove();
   window._modalRegSaving = false;
   renderAll();
   // Atualizar aba semana imediatamente se estiver ativa
@@ -4784,6 +4818,116 @@ function renderDashConstanciaResumo(){
   });
 }
 
+
+function abrirModalErro(disc='', assunto='', semana=''){
+  document.getElementById('modal-erro')?.remove();
+
+  // Sugestões de assuntos baseadas nas tarefas da semana atual
+  const semAtual = document.getElementById('sem-selector')?.value || semana;
+  const assuntosSem = [...new Set(tarefas
+    .filter(t=>t.semana===semAtual||t.semana===semana)
+    .map(t=>t.assunto)
+    .filter(Boolean)
+  )];
+
+  const discs = ['LP','Dir. Adm','Dir. Const','AFO','Controle Externo','Auditoria',
+    'Legislação TCE-MA','História e Geo MA','Direitos Humanos','Informática','Raciocínio Lógico',
+    'Eng — PNFL','Eng — Edificações','Eng — Obras Hídricas','Eng — Rodoviárias'];
+
+  const overlay = document.createElement('div');
+  overlay.id = 'modal-erro';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center';
+
+  overlay.innerHTML = `
+    <div onclick="event.stopPropagation()" style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:1.25rem;width:500px;max-width:95vw;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem">
+        <div style="flex:1;font-size:15px;font-weight:500">📓 Registrar no caderno de erros</div>
+        <button onclick="document.getElementById('modal-erro').remove()" style="border:none;background:transparent;cursor:pointer;font-size:18px;color:var(--text3)">✕</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label class="form-label">Disciplina</label>
+          <select id="me-disc" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit">
+            ${discs.map(d=>'<option'+(d===disc?' selected':'')+'>'+d+'</option>').join('')}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Gravidade</label>
+          <select id="me-gravidade" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit">
+            <option value="pontual">🟡 Erro pontual</option>
+            <option value="conceitual">🟠 Dúvida conceitual</option>
+            <option value="lacuna">🔴 Lacuna total</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <label class="form-label">Assunto</label>
+        <input type="text" id="me-assunto" value="${assunto}" list="me-assunto-list"
+          style="width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"
+          placeholder="Ex: Condutos Forçados">
+        <datalist id="me-assunto-list">
+          ${assuntosSem.map(a=>'<option value="'+a+'">').join('')}
+        </datalist>
+        ${assuntosSem.length?'<div style="font-size:10px;color:var(--text3);margin-top:3px">Sugestões baseadas nas tarefas da '+semAtual+'</div>':''}
+      </div>
+
+      <div style="margin-bottom:10px">
+        <label class="form-label">O que errei / o que preciso revisar</label>
+        <textarea id="me-descricao" rows="3" placeholder="Descreva o conceito que errou ou a dúvida que ficou..."
+          style="width:100%;padding:7px 10px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);resize:vertical;font-family:inherit"></textarea>
+      </div>
+
+      <div style="margin-bottom:1rem">
+        <label class="form-label">Ação de revisão</label>
+        <input type="text" id="me-acao" placeholder="Ex: Reler seção X do resumo, resolver 10 questões de..."
+          style="width:100%;padding:7px 10px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+      </div>
+
+      <div style="display:flex;gap:8px">
+        <button onclick="salvarModalErro('${semana}')" style="flex:1;padding:10px;border:none;border-radius:var(--radius);background:var(--amber);color:#000;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+          📓 Salvar no caderno
+        </button>
+        <button onclick="document.getElementById('modal-erro').remove()" style="padding:10px 16px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit">
+          Cancelar
+        </button>
+      </div>
+    </div>`;
+
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  setTimeout(()=>document.getElementById('me-assunto')?.focus(), 100);
+}
+
+async function salvarModalErro(semana){
+  const assunto = document.getElementById('me-assunto')?.value?.trim();
+  if(!assunto){ alert('Informe o assunto'); return; }
+
+  const e = {
+    id:        Date.now(),
+    disc:      document.getElementById('me-disc')?.value||'',
+    assunto,
+    semana:    semana||document.getElementById('sem-selector')?.value||'S06',
+    data:      dataHoje(),
+    gravidade: document.getElementById('me-gravidade')?.value||'pontual',
+    descricao: document.getElementById('me-descricao')?.value?.trim()||'',
+    acao:      document.getElementById('me-acao')?.value?.trim()||'',
+    status:    'pendente',
+    data_superado: null
+  };
+
+  erros.push(e);
+  await saveErros();
+  document.getElementById('modal-erro')?.remove();
+  renderCaderno();
+  // Mostrar confirmação
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 16px;background:var(--amber);color:#000;border-radius:var(--radius);font-size:13px;font-weight:500;z-index:3000;animation:fadeIn .2s';
+  toast.textContent = '📓 Registrado no caderno!';
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(), 2500);
+}
 
 async function load(){
   // Mostrar loading
