@@ -1980,6 +1980,7 @@ function renderRevisao(){
     }).join('') +
     '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">' +
     '<button onclick="modalNovoTopico()" style="width:100%;text-align:left;padding:7px 10px;border-radius:var(--radius);border:1px dashed var(--border2);cursor:pointer;font-size:12px;font-family:inherit;background:transparent;color:var(--text2)">+ Novo tópico</button>' +
+    '<button onclick="importarTopicosSemanais()" style="margin-top:6px;width:100%;text-align:left;padding:7px 10px;border-radius:var(--radius);border:1px dashed var(--green);cursor:pointer;font-size:12px;font-family:inherit;background:transparent;color:var(--green)">⬇️ Importar da semana</button>' +
     '</div>' +
     '</div>';
 
@@ -4931,6 +4932,65 @@ async function salvarModalErro(semana){
   toast.textContent = '📓 Registrado no caderno!';
   document.body.appendChild(toast);
   setTimeout(()=>toast.remove(), 2500);
+}
+
+function importarTopicosSemanais(){
+  // Pegar semana atual do seletor
+  const sem = document.getElementById('sem-selector')?.value ||
+    [...new Set(tarefas.map(t=>t.semana))].sort().pop() || 'S06';
+
+  // Pegar tarefas da semana
+  const tarefasSem = tarefas.filter(t=>t.semana===sem && t.assunto);
+  if(!tarefasSem.length){
+    alert('Nenhuma tarefa encontrada na '+sem);
+    return;
+  }
+
+  // Normalizar disciplina para chave do DADOS_REVISAO
+  const discParaChave = {
+    'LP':'LP', 'Dir. Adm':'Dir. Adm', 'Dir. Const':'Dir. Const',
+    'AFO':'AFO', 'Controle Externo':'Controle Externo', 'Auditoria':'Auditoria',
+    'Eng — PNFL':'Eng — PNFL', 'Eng — Edificações':'Eng — Edificações',
+    'Eng — Obras Hídricas':'Eng — Obras Hídricas', 'Eng — Rodoviárias':'Eng — Rodoviárias',
+    'Legislação TCE-MA':'Legislação TCE-MA', 'História e Geo MA':'História e Geo MA',
+    'Direitos Humanos':'Direitos Humanos', 'Informática':'Informática',
+    'Raciocínio Lógico':'Raciocínio Lógico',
+  };
+
+  let novos = 0;
+  tarefasSem.forEach(t=>{
+    const chave = discParaChave[t.disc] || t.disc;
+    if(!chave) return;
+
+    // Criar disciplina se não existir
+    if(!DADOS_REVISAO[chave]){
+      DADOS_REVISAO[chave] = { nome: t.disc, topics: {} };
+    }
+
+    const assunto = t.assunto;
+    // Criar tópico se não existir
+    if(!DADOS_REVISAO[chave].topics[assunto]){
+      DADOS_REVISAO[chave].topics[assunto] = [
+        { tipo: 'concept', text: '📝 Preencher durante o estudo — ' + t.tipo + ' · ' + sem }
+      ];
+      novos++;
+    }
+  });
+
+  if(novos === 0){
+    alert('Todos os assuntos da '+sem+' já existem na revisão.');
+    return;
+  }
+
+  // Salvar no localStorage
+  try{
+    localStorage.setItem('tcema_revisao_dados', JSON.stringify(DADOS_REVISAO));
+  }catch(e){}
+
+  // Ir para a disciplina atual na revisão
+  revDisc = revDisc || Object.keys(DADOS_REVISAO)[0];
+  renderRevisao();
+  alert('✅ '+novos+' tópico(s) importados da '+sem+'!');
 }
 
 async function load(){
