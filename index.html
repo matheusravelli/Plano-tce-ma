@@ -2095,11 +2095,29 @@ function renderRevisao(){
           <!-- Texto (view normal ou edição) -->
           <div id="rev-texto-${safeId}" style="font-size:13px;line-height:1.65;color:var(--text)">${item.text}</div>
           <div id="rev-edit-${safeId}" style="display:none">
-            <textarea id="rev-ta-${safeId}" rows="4"
-              style="width:100%;padding:8px;font-size:13px;line-height:1.6;
+            <!-- Toolbar de formatação -->
+            <div style="display:flex;gap:2px;margin-bottom:4px;flex-wrap:wrap;padding:4px;background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border2)">
+              <button title="Negrito" onclick="revFmt('bold')" style="padding:3px 7px;border:none;border-radius:4px;background:transparent;cursor:pointer;color:var(--text);font-weight:700;font-size:13px">B</button>
+              <button title="Itálico" onclick="revFmt('italic')" style="padding:3px 7px;border:none;border-radius:4px;background:transparent;cursor:pointer;color:var(--text);font-style:italic;font-size:13px">I</button>
+              <button title="Sublinhado" onclick="revFmt('underline')" style="padding:3px 7px;border:none;border-radius:4px;background:transparent;cursor:pointer;color:var(--text);text-decoration:underline;font-size:13px">U</button>
+              <button title="Riscado" onclick="revFmt('strikeThrough')" style="padding:3px 7px;border:none;border-radius:4px;background:transparent;cursor:pointer;color:var(--text);text-decoration:line-through;font-size:13px">S</button>
+              <div style="width:1px;background:var(--border2);margin:2px 3px"></div>
+              <button title="Verde" onclick="revFmtCor('#22c55e')" style="padding:3px 7px;border:none;border-radius:4px;background:transparent;cursor:pointer;color:#22c55e;font-weight:700;font-size:13px">A</button>
+              <button title="Vermelho" onclick="revFmtCor('#ef4444')" style="padding:3px 7px;border:none;border-radius:4px;background:transparent;cursor:pointer;color:#ef4444;font-weight:700;font-size:13px">A</button>
+              <button title="Âmbar" onclick="revFmtCor('#f59e0b')" style="padding:3px 7px;border:none;border-radius:4px;background:transparent;cursor:pointer;color:#f59e0b;font-weight:700;font-size:13px">A</button>
+              <button title="Azul" onclick="revFmtCor('#3b82f6')" style="padding:3px 7px;border:none;border-radius:4px;background:transparent;cursor:pointer;color:#3b82f6;font-weight:700;font-size:13px">A</button>
+              <button title="Cor padrão" onclick="revFmtCor('')" style="padding:3px 7px;border:none;border-radius:4px;background:transparent;cursor:pointer;color:var(--text);font-size:13px">A</button>
+              <div style="width:1px;background:var(--border2);margin:2px 3px"></div>
+              <button title="Marcador" onclick="revFmt('insertUnorderedList')" style="padding:3px 7px;border:none;border-radius:4px;background:transparent;cursor:pointer;color:var(--text);font-size:13px">• Lista</button>
+              <button title="Limpar formatação" onclick="revFmt('removeFormat')" style="padding:3px 7px;border:none;border-radius:4px;background:transparent;cursor:pointer;color:var(--text3);font-size:11px">✕ fmt</button>
+            </div>
+            <!-- Editor rico -->
+            <div id="rev-ta-${safeId}" contenteditable="true"
+              style="width:100%;min-height:80px;padding:8px;font-size:13px;line-height:1.6;
                      border:1px solid var(--border2);border-radius:var(--radius);
-                     background:var(--bg);color:var(--text);font-family:inherit;resize:vertical"
-            >${item.text}</textarea>
+                     background:var(--bg);color:var(--text);outline:none;
+                     font-family:inherit;box-sizing:border-box"
+            >${item.text}</div>
             <div style="display:flex;gap:6px;margin-top:6px">
               <button onclick="salvarEdicaoItem('${id}','${safeId}')"
                 class="btn btn-primary btn-sm">Salvar</button>
@@ -2136,7 +2154,8 @@ function cancelarEdicaoItem(safeId){
 function salvarEdicaoItem(id, safeId){
   const ta = document.getElementById('rev-ta-'+safeId);
   if(!ta) return;
-  const novoTexto = ta.value.trim();
+  // Suporta tanto textarea (value) quanto contenteditable (innerHTML)
+  const novoTexto = ta.contentEditable==='true' ? ta.innerHTML.trim() : ta.value.trim();
   if(!novoTexto) return;
 
   // Atualizar no DADOS_REVISAO em memória
@@ -2152,7 +2171,7 @@ function salvarEdicaoItem(id, safeId){
   }
 
   // Atualizar view sem re-renderizar tudo
-  document.getElementById('rev-texto-'+safeId).textContent = novoTexto;
+  document.getElementById('rev-texto-'+safeId).innerHTML = novoTexto;
   document.getElementById('rev-texto-'+safeId).style.display='block';
   document.getElementById('rev-edit-'+safeId).style.display='none';
 }
@@ -4992,6 +5011,18 @@ function importarTopicosSemanais(){
   else revDisc = revDisc || Object.keys(DADOS_REVISAO)[0];
   renderRevisao();
   alert('✅ '+novos+' tópico(s) importados da '+sem+'!');
+}
+
+// ── FORMATAÇÃO DA REVISÃO ────────────────────────────────────────────────────
+function revFmt(cmd){
+  document.execCommand(cmd, false, null);
+}
+function revFmtCor(cor){
+  if(cor){
+    document.execCommand('foreColor', false, cor);
+  } else {
+    document.execCommand('removeFormat', false, null);
+  }
 }
 
 async function load(){
