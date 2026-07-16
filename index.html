@@ -1931,6 +1931,10 @@ function fecharTodosTópicos(){
   });
 }
 
+let revDisc = '';
+let revFiltro = 'todos';
+let revisaoProgress = {};
+
 function renderRevisao(){
   const sideEl = document.getElementById('rev-sidebar');
   const contEl = document.getElementById('rev-conteudo');
