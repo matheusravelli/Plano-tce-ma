@@ -4982,13 +4982,15 @@ function importarTopicosSemanais(){
     return;
   }
 
-  // Salvar no localStorage
+  // Salvar DADOS_REVISAO completo no localStorage (preserva tudo)
   try{
     localStorage.setItem('tcema_revisao_dados', JSON.stringify(DADOS_REVISAO));
   }catch(e){}
 
-  // Ir para a disciplina atual na revisão
-  revDisc = revDisc || Object.keys(DADOS_REVISAO)[0];
+  // Navegar para a disciplina do primeiro tópico importado
+  const primeiroDisc = tarefasSem[0]?.disc;
+  if(primeiroDisc && DADOS_REVISAO[primeiroDisc]) revDisc = primeiroDisc;
+  else revDisc = revDisc || Object.keys(DADOS_REVISAO)[0];
   renderRevisao();
   alert('✅ '+novos+' tópico(s) importados da '+sem+'!');
 }
@@ -5010,18 +5012,27 @@ async function load(){
   try{ const r=localStorage.getItem(LS_E); if(r) erros=JSON.parse(r); }catch(e){}
   try{ const r=localStorage.getItem(LS_P); if(r) planoSemanal=JSON.parse(r); }catch(e){}
   loadRevisaoProgress();
-  // Carregar edições salvas dos itens de revisão
+  // Carregar tópicos salvos (inclui importados da semana e edições)
   try{
     const editados = localStorage.getItem('tcema_revisao_dados');
     if(editados){
       const parsed = JSON.parse(editados);
-      // Mesclar só os textos editados
-      for(const [dk,dv] of Object.entries(parsed)){
-        if(DADOS_REVISAO[dk]){
-          for(const [t,items] of Object.entries(dv.topics||{})){
-            if(DADOS_REVISAO[dk].topics[t]){
+      for(const [dk, dv] of Object.entries(parsed)){
+        if(!DADOS_REVISAO[dk]){
+          // Disciplina nova (não existia no array base) — adicionar completa
+          DADOS_REVISAO[dk] = dv;
+        } else {
+          // Disciplina existente — mesclar tópicos
+          for(const [topicName, items] of Object.entries(dv.topics||{})){
+            if(!DADOS_REVISAO[dk].topics[topicName]){
+              // Tópico novo importado — adicionar
+              DADOS_REVISAO[dk].topics[topicName] = items;
+            } else {
+              // Tópico existente — mesclar textos editados
               items.forEach((item,i)=>{
-                if(DADOS_REVISAO[dk].topics[t][i]) DADOS_REVISAO[dk].topics[t][i].text=item.text;
+                if(DADOS_REVISAO[dk].topics[topicName][i]){
+                  DADOS_REVISAO[dk].topics[topicName][i].text = item.text;
+                }
               });
             }
           }
