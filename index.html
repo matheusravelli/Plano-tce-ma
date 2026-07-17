@@ -1981,6 +1981,7 @@ function renderRevisao(){
     '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">' +
     '<button onclick="modalNovoTopico()" style="width:100%;text-align:left;padding:7px 10px;border-radius:var(--radius);border:1px dashed var(--border2);cursor:pointer;font-size:12px;font-family:inherit;background:transparent;color:var(--text2)">+ Novo tópico</button>' +
     '<button onclick="importarTopicosSemanais()" style="margin-top:6px;width:100%;text-align:left;padding:7px 10px;border-radius:var(--radius);border:1px dashed var(--green);cursor:pointer;font-size:12px;font-family:inherit;background:transparent;color:var(--green)">⬇️ Importar da semana</button>' +
+    '<button onclick="importarOneNoteRevisao()" style="margin-top:6px;width:100%;text-align:left;padding:7px 10px;border-radius:var(--radius);border:1px dashed #7c3aed;cursor:pointer;font-size:12px;font-family:inherit;background:transparent;color:#a78bfa">📓 Importar do OneNote</button>' +
     '</div>' +
     '</div>';
 
@@ -5013,6 +5014,396 @@ function revFmtCor(cor){
   } else {
     document.execCommand('removeFormat', false, null);
   }
+}
+
+// ── INTEGRAÇÃO ONENOTE ──────────────────────────────────────────────────────
+
+async function exportarOneNote(){
+  // Verificar token Microsoft
+  const msToken = localStorage.getItem('ms_token');
+  if(!msToken){
+    const token = prompt('Cole seu token de acesso Microsoft (Graph API):\n\nObtenha em: https://developer.microsoft.com/graph/graph-explorer\nLog in → GET https://graph.microsoft.com/v1.0/me');
+    if(!token) return;
+    localStorage.setItem('ms_token', token.trim());
+  }
+
+  const token = localStorage.getItem('ms_token');
+  const hoje = dataHoje();
+
+  // Calcular semana atual
+  const inicioSem = new Date();
+  inicioSem.setDate(inicioSem.getDate() - inicioSem.getDay());
+  const ini_str = inicioSem.toISOString().split('T')[0];
+  const fim_str = new Date(inicioSem.getTime()+6*86400000).toISOString().split('T')[0];
+
+  const sessoesSem = sessoes.filter(s=>s.data>=ini_str&&s.data<=fim_str);
+  const errosPend  = erros.filter(e=>e.status==='pendente');
+
+  // Montar HTML da página OneNote
+  const totalQ   = sessoesSem.reduce((a,s)=>a+(parseInt(s.qtd)||0),0);
+  const totalAc  = sessoesSem.filter(s=>s.acertos!=null).reduce((a,s)=>a+(parseInt(s.acertos)||0),0);
+  const totalQ2  = sessoesSem.filter(s=>s.acertos!=null).reduce((a,s)=>a+(parseInt(s.qtd)||0),0);
+  const media    = totalQ2 ? Math.round(totalAc/totalQ2*100) : 0;
+  const tempoT   = sessoesSem.reduce((a,s)=>a+(parseInt(s.tempo_min)||0),0);
+  const tempoStr = t=>t>=60?Math.floor(t/60)+'h'+(t%60?String(t%60).padStart(2,'0')+'min':''):t+'min';
+
+  // Agrupar sessões por disciplina
+  const porDisc={};
+  sessoesSem.forEach(s=>{
+    if(!porDisc[s.disc]) porDisc[s.disc]={qtd:0,acertos:0,sessoes:[]};
+    porDisc[s.disc].qtd+=parseInt(s.qtd)||0;
+    porDisc[s.disc].acertos+=s.acertos!=null?parseInt(s.acertos)||0:0;
+    porDisc[s.disc].sessoes.push(s);
+  });
+
+  const pageHtml = `<!DOCTYPE html><html><head><title>TCE-MA — Resumo ${hoje}</title><meta charset="utf-8"></head><body>
+
+<h1>📊 Resumo de Estudos — TCE-MA 2026</h1>
+<p><b>Data:</b> ${hoje} &nbsp;|&nbsp; <b>Semana:</b> ${ini_str} a ${fim_str}</p>
+
+<h2>📈 Métricas da Semana</h2>
+<table border="1" style="border-collapse:collapse;width:100%">
+  <tr style="background:#22c55e;color:black">
+    <th style="padding:8px">Sessões</th>
+    <th style="padding:8px">Questões</th>
+    <th style="padding:8px">Média</th>
+    <th style="padding:8px">Tempo</th>
+  </tr>
+  <tr>
+    <td style="padding:8px;text-align:center">${sessoesSem.length}</td>
+    <td style="padding:8px;text-align:center">${totalQ}</td>
+    <td style="padding:8px;text-align:center;color:${media>=75?'green':'red'}">${media}%</td>
+    <td style="padding:8px;text-align:center">${tempoStr(tempoT)}</td>
+  </tr>
+</table>
+
+<h2>📚 Por Disciplina</h2>
+<table border="1" style="border-collapse:collapse;width:100%">
+  <tr style="background:#1a1a1a;color:white">
+    <th style="padding:8px">Disciplina</th>
+    <th style="padding:8px">Questões</th>
+    <th style="padding:8px">Média</th>
+    <th style="padding:8px">Assuntos estudados</th>
+  </tr>
+  ${Object.entries(porDisc).sort((a,b)=>a[1].qtd<b[1].qtd?1:-1).map(([disc,info])=>{
+    const m=info.qtd?Math.round(info.acertos/info.qtd*100):0;
+    const assuntos=[...new Set(info.sessoes.map(s=>s.assunto).filter(Boolean))].join(', ');
+    return `<tr>
+      <td style="padding:8px"><b>${disc}</b></td>
+      <td style="padding:8px;text-align:center">${info.qtd}</td>
+      <td style="padding:8px;text-align:center;color:${m>=75?'green':'red'}">${m}%</td>
+      <td style="padding:8px">${assuntos}</td>
+    </tr>`;
+  }).join('')}
+</table>
+
+<h2>⚠️ Caderno de Erros — Pendentes (${errosPend.length})</h2>
+${errosPend.length===0?'<p>✅ Nenhum erro pendente!</p>':`
+<table border="1" style="border-collapse:collapse;width:100%">
+  <tr style="background:#1a1a1a;color:white">
+    <th style="padding:8px">Disciplina</th>
+    <th style="padding:8px">Assunto</th>
+    <th style="padding:8px">Gravidade</th>
+    <th style="padding:8px">O que errei</th>
+    <th style="padding:8px">Ação</th>
+  </tr>
+  ${errosPend.map(e=>`<tr>
+    <td style="padding:8px">${e.disc}</td>
+    <td style="padding:8px"><b>${e.assunto}</b></td>
+    <td style="padding:8px">${e.gravidade==='lacuna'?'🔴 Lacuna':e.gravidade==='conceitual'?'🟠 Conceitual':'🟡 Pontual'}</td>
+    <td style="padding:8px">${e.descricao||'—'}</td>
+    <td style="padding:8px">${e.acao||'—'}</td>
+  </tr>`).join('')}
+</table>`}
+
+<h2>📋 Sessões detalhadas</h2>
+${sessoesSem.map(s=>{
+  const p=s.acertos!=null&&s.qtd?Math.round(s.acertos/s.qtd*100):null;
+  return `<p>• <b>${s.assunto}</b> (${s.disc}) — ${s.qtd}q${p!==null?' · '+p+'%':''} · ${s.data}</p>`;
+}).join('')}
+
+</body></html>`;
+
+  // Criar página no OneNote via Graph API
+  const btn = document.querySelector('button[onclick="exportarOneNote()"]');
+  if(btn){ btn.textContent='⏳ Exportando...'; btn.disabled=true; }
+
+  try{
+    // Primeiro: buscar notebooks disponíveis
+    const nbRes = await fetch('https://graph.microsoft.com/v1.0/me/onenote/notebooks', {
+      headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/json' }
+    });
+
+    if(nbRes.status===401){
+      localStorage.removeItem('ms_token');
+      alert('Token expirado. Clique em OneNote novamente para inserir um novo token.');
+      return;
+    }
+
+    const nbData = await nbRes.json();
+    const notebooks = nbData.value||[];
+
+    // Usar o primeiro notebook ou criar um específico
+    let notebookId = notebooks.find(n=>n.displayName==='TCE-MA 2026')?.id || notebooks[0]?.id;
+
+    if(!notebookId){
+      // Criar notebook TCE-MA 2026
+      const createNb = await fetch('https://graph.microsoft.com/v1.0/me/onenote/notebooks', {
+        method:'POST',
+        headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/json' },
+        body: JSON.stringify({displayName:'TCE-MA 2026'})
+      });
+      notebookId = (await createNb.json()).id;
+    }
+
+    // Buscar ou criar seção "Resumos Semanais"
+    const secRes = await fetch(`https://graph.microsoft.com/v1.0/me/onenote/notebooks/${notebookId}/sections`, {
+      headers:{ 'Authorization':'Bearer '+token }
+    });
+    const secData = await secRes.json();
+    let sectionId = secData.value?.find(s=>s.displayName==='Resumos Semanais')?.id;
+
+    if(!sectionId){
+      const createSec = await fetch(`https://graph.microsoft.com/v1.0/me/onenote/notebooks/${notebookId}/sections`, {
+        method:'POST',
+        headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/json' },
+        body: JSON.stringify({displayName:'Resumos Semanais'})
+      });
+      sectionId = (await createSec.json()).id;
+    }
+
+    // Criar a página
+    const pageRes = await fetch(`https://graph.microsoft.com/v1.0/me/onenote/sections/${sectionId}/pages`, {
+      method:'POST',
+      headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/xhtml+xml' },
+      body: pageHtml
+    });
+
+    if(pageRes.ok){
+      const page = await pageRes.json();
+      alert('✅ Exportado para o OneNote!\nNotebook: TCE-MA 2026\nSeção: Resumos Semanais\nPágina: '+page.title);
+    } else {
+      const err = await pageRes.json();
+      console.error('OneNote erro:', err);
+      alert('Erro ao criar página: '+JSON.stringify(err.error?.message||err));
+    }
+
+  } catch(e){
+    console.error('OneNote erro:', e);
+    alert('Erro na conexão: '+e.message);
+  } finally {
+    if(btn){ btn.textContent='📓 OneNote'; btn.disabled=false; }
+  }
+}
+
+async function importarOneNoteRevisao(){
+  let token = localStorage.getItem('ms_token');
+  if(!token){
+    token = prompt('Cole seu token Microsoft Graph:\n\nObtênha em: https://developer.microsoft.com/graph/graph-explorer');
+    if(!token) return;
+    localStorage.setItem('ms_token', token.trim());
+    token = token.trim();
+  }
+
+  // Mostrar modal de seleção
+  const overlay = document.createElement('div');
+  overlay.id = 'modal-onenote-import';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:1.5rem;width:560px;max-width:95vw;max-height:85vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+        <div style="flex:1;font-size:15px;font-weight:500">📓 Importar do OneNote</div>
+        <button onclick="document.getElementById('modal-onenote-import').remove()" style="border:none;background:transparent;cursor:pointer;font-size:18px;color:var(--text3)">✕</button>
+      </div>
+      <div id="on-status" style="font-size:13px;color:var(--text2);margin-bottom:12px">Buscando notebooks...</div>
+      <div id="on-conteudo"></div>
+    </div>`;
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+
+  try{
+    // Buscar notebooks
+    const setStatus = msg => { const el=document.getElementById('on-status'); if(el) el.textContent=msg; };
+
+    setStatus('Buscando notebooks...');
+    const nbRes = await fetch('https://graph.microsoft.com/v1.0/me/onenote/notebooks', {
+      headers:{'Authorization':'Bearer '+token}
+    });
+    if(nbRes.status===401){
+      localStorage.removeItem('ms_token');
+      document.getElementById('modal-onenote-import')?.remove();
+      alert('Token expirado. Tente novamente.');
+      return;
+    }
+    const nbData = await nbRes.json();
+    const notebooks = nbData.value||[];
+
+    if(!notebooks.length){
+      setStatus('Nenhum notebook encontrado.');
+      return;
+    }
+
+    // Mostrar notebooks para escolher
+    const cont = document.getElementById('on-conteudo');
+    setStatus('Selecione o notebook com seus resumos:');
+    cont.innerHTML = notebooks.map(nb=>`
+      <button onclick="onSelectNotebook('${nb.id}','${nb.displayName.replace(/'/g,"\'")}')"
+        style="display:block;width:100%;text-align:left;padding:10px 14px;margin-bottom:6px;
+               border:1px solid var(--border2);border-radius:var(--radius);
+               background:var(--bg2);color:var(--text);cursor:pointer;font-family:inherit;font-size:13px">
+        📔 ${nb.displayName}
+      </button>`).join('');
+
+  } catch(e){
+    const el=document.getElementById('on-status');
+    if(el) el.textContent='Erro: '+e.message;
+  }
+}
+
+async function onSelectNotebook(nbId, nbName){
+  const token = localStorage.getItem('ms_token');
+  const cont = document.getElementById('on-conteudo');
+  const setStatus = msg=>{ const el=document.getElementById('on-status'); if(el) el.textContent=msg; };
+
+  setStatus('Buscando seções de "'+nbName+'"...');
+  cont.innerHTML = '<div style="color:var(--text3);font-size:12px">Carregando...</div>';
+
+  const secRes = await fetch(`https://graph.microsoft.com/v1.0/me/onenote/notebooks/${nbId}/sections`, {
+    headers:{'Authorization':'Bearer '+token}
+  });
+  const secData = await secRes.json();
+  const sections = secData.value||[];
+
+  if(!sections.length){
+    setStatus('Nenhuma seção encontrada.');
+    return;
+  }
+
+  // Mapeamento automático de seção → disciplina do gerenciador
+  const DISC_MAP_ON = {
+    'língua portuguesa':'LP', 'lp':'LP', 'português':'LP',
+    'direito administrativo':'Dir. Adm', 'dir adm':'Dir. Adm', 'dir. adm':'Dir. Adm',
+    'direito constitucional':'Dir. Const', 'dir const':'Dir. Const',
+    'afo':'AFO', 'orçamento':'AFO', 'financeira':'AFO',
+    'controle externo':'Controle Externo',
+    'auditoria':'Auditoria',
+    'legislação':'Legislação TCE-MA', 'tce-ma':'Legislação TCE-MA', 'tce ma':'Legislação TCE-MA',
+    'história':'História e Geo MA', 'geografia':'História e Geo MA', 'maranhão':'História e Geo MA',
+    'direitos humanos':'Direitos Humanos',
+    'informática':'Informática', 'informatica':'Informática',
+    'raciocínio':'Raciocínio Lógico', 'logica':'Raciocínio Lógico',
+    'pnfl':'Eng — PNFL', 'planejamento':'Eng — PNFL', 'fiscalização':'Eng — PNFL',
+    'edificações':'Eng — Edificações', 'edificacoes':'Eng — Edificações',
+    'hídricas':'Eng — Obras Hídricas', 'hidricas':'Eng — Obras Hídricas', 'hidráulica':'Eng — Obras Hídricas',
+    'rodoviárias':'Eng — Rodoviárias', 'rodoviarias':'Eng — Rodoviárias', 'pavimentação':'Eng — Rodoviárias',
+  };
+
+  const mapearDisc = nome => {
+    const n = nome.toLowerCase();
+    for(const [k,v] of Object.entries(DISC_MAP_ON)){
+      if(n.includes(k)) return v;
+    }
+    return nome; // usa o nome original se não mapear
+  };
+
+  setStatus('Selecione as seções para importar:');
+  cont.innerHTML = `
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">
+      Cada seção será importada como uma disciplina na aba Revisão. As páginas dentro de cada seção viram tópicos.
+    </div>
+    <div id="on-sections">
+      ${sections.map(sec=>{
+        const discMapeada = mapearDisc(sec.displayName);
+        return `<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;margin-bottom:4px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:var(--bg2)">
+          <input type="checkbox" value="${sec.id}" data-nome="${sec.displayName}" data-disc="${discMapeada}" checked style="accent-color:var(--green)">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500">${sec.displayName}</div>
+            <div style="font-size:11px;color:var(--text3)">→ Disciplina: <b>${discMapeada}</b></div>
+          </div>
+        </label>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button onclick="onImportarSecoes()" style="flex:1;padding:10px;border:none;border-radius:var(--radius);background:var(--green);color:#000;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+        ⬇️ Importar selecionadas
+      </button>
+    </div>`;
+}
+
+async function onImportarSecoes(){
+  const token = localStorage.getItem('ms_token');
+  const setStatus = msg=>{ const el=document.getElementById('on-status'); if(el) el.textContent=msg; };
+  const checkboxes = document.querySelectorAll('#on-sections input[type=checkbox]:checked');
+
+  if(!checkboxes.length){ alert('Selecione ao menos uma seção.'); return; }
+
+  let totalImportados = 0;
+  setStatus('Importando...');
+
+  for(const cb of checkboxes){
+    const secId  = cb.value;
+    const discKey = cb.dataset.disc;
+    const secNome = cb.dataset.nome;
+
+    setStatus(`Importando "${secNome}"...`);
+
+    // Buscar páginas da seção
+    const pgsRes = await fetch(`https://graph.microsoft.com/v1.0/me/onenote/sections/${secId}/pages?$select=id,title`, {
+      headers:{'Authorization':'Bearer '+token}
+    });
+    const pgsData = await pgsRes.json();
+    const pages = pgsData.value||[];
+
+    // Garantir disciplina no DADOS_REVISAO
+    if(!DADOS_REVISAO[discKey]){
+      DADOS_REVISAO[discKey] = { nome: secNome, topics: {} };
+    }
+
+    for(const page of pages){
+      if(!page.title) continue;
+      setStatus(`Importando "${page.title}"...`);
+
+      // Buscar conteúdo HTML da página
+      const contRes = await fetch(`https://graph.microsoft.com/v1.0/me/onenote/pages/${page.id}/content`, {
+        headers:{'Authorization':'Bearer '+token}
+      });
+      const html_content = await contRes.text();
+
+      // Extrair texto limpo do HTML (remover tags desnecessárias)
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html_content;
+      // Remover scripts e estilos
+      tmp.querySelectorAll('script,style,meta,title').forEach(el=>el.remove());
+      const textoLimpo = tmp.innerHTML;
+
+      // Criar ou atualizar tópico
+      if(!DADOS_REVISAO[discKey].topics[page.title]){
+        DADOS_REVISAO[discKey].topics[page.title] = [
+          { tipo: 'concept', text: textoLimpo }
+        ];
+      } else {
+        // Adicionar como novo item se já existir
+        DADOS_REVISAO[discKey].topics[page.title].push({
+          tipo: 'concept',
+          text: '<hr style="border-color:var(--border)"><b>📓 OneNote:</b><br>' + textoLimpo
+        });
+      }
+      totalImportados++;
+    }
+  }
+
+  // Salvar
+  salvarDadosRevisao();
+
+  document.getElementById('modal-onenote-import')?.remove();
+
+  // Ir para a primeira disciplina importada
+  const primeiraDisc = document.querySelector('#on-sections input:checked')?.dataset.disc;
+  if(primeiraDisc && DADOS_REVISAO[primeiraDisc]) revDisc = primeiraDisc;
+  setEstudoTab('revisao');
+  renderRevisao();
+
+  alert(`✅ ${totalImportados} página(s) importadas do OneNote para a aba Revisão!`);
 }
 
 async function load(){
