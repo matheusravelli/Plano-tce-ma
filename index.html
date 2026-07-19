@@ -1111,7 +1111,9 @@ async function registrarDaTarefa(id){
   const tempo   = document.getElementById('rtf-tempo-'+id).value.trim();
   const obs     = document.getElementById('rtf-obs-'+id).value.trim();
 
-  if(!qtd){ alert('Informe a quantidade de questões'); return; }
+  const tipoAtual = document.getElementById('mr-tipo')?.value||tipo||'Fixação';
+  const isLeitura = tipoAtual==='Leitura'||tipoAtual==='Videoaula';
+  if(!qtd && !isLeitura){ alert('Informe a quantidade de questões'); window._modalRegSaving=false; return; }
 
   // Criar sessão
   const s = {
@@ -3348,9 +3350,10 @@ function abrirModalRegistro(tarefaId=null){
         </select>
       </div>` : ''}
 
-      <div style="display:flex;gap:8px">
-        <button id="mr-btn-salvar" onclick="this.disabled=true;this.textContent='Salvando...';confirmarModalRegistro(${tarefaId||'null'})"
-          style="flex:1;padding:12px;border:none;border-radius:var(--radius);background:var(--green);color:#000;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button id="mr-btn-salvar"
+          onclick="this.disabled=true;this.textContent='Salvando...';confirmarModalRegistro(${tarefaId||'null'})"
+          style="flex:1;padding:12px;border:none;border-radius:var(--radius);background:var(--green);color:#000;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
           ✅ Salvar sessão
         </button>
         <button onclick="document.getElementById('modal-registro').remove()"
