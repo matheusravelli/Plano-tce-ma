@@ -2327,6 +2327,7 @@ async function semRegistrar(id){
   const tempo   = parseInt(document.getElementById('sem-tempo-'+id)?.value)||0;
   const obs     = document.getElementById('sem-obs-'+id)?.value?.trim()||'';
 
+  const _tipoSem = 'Fixação'; // registro rápido sempre é fixação
   if(!qtd){ alert('Informe a quantidade de questões'); return; }
 
   // Criar sessão
@@ -3418,7 +3419,9 @@ async function confirmarModalRegistro(tarefaId){
   const data  = document.getElementById('mr-data')?.value || dataHoje();
   const obs   = document.getElementById('mr-obs')?.value?.trim()||'';
 
-  if(!qtd){ alert('Informe a quantidade de questões'); return; }
+  const _tipoMR = document.getElementById('mr-tipo')?.value || tipo || 'Fixação';
+  const _isLeituraMR = _tipoMR==='Leitura'||_tipoMR==='Videoaula';
+  if(!qtd && !_isLeituraMR){ alert('Informe a quantidade de questões'); window._modalRegSaving=false; return; }
 
   const t = tarefaId ? tarefas.find(t=>t.id===tarefaId) : null;
 
