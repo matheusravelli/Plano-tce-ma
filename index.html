@@ -3495,6 +3495,7 @@ function getInicioSemana(){
 function renderResumaSemana(){
   const el = document.getElementById('desemp-semana-conteudo');
   if(!el) return;
+  if(window._chartPizza){ window._chartPizza.destroy(); window._chartPizza=null; }
 
   const inicioSem = getInicioSemana();
   const fimSem = new Date(inicioSem);
@@ -4566,6 +4567,7 @@ function renderCiclo(){
 function renderDashSemanaResumo(){
   const el = document.getElementById('dash-semana-resumo');
   if(!el) return;
+  if(window._chartPizzaMini){ window._chartPizzaMini.destroy(); window._chartPizzaMini=null; }
 
   // Calcular semana atual (dom a sáb)
   const hoje = new Date();
@@ -4671,6 +4673,8 @@ const META_QUESTOES_DIA = 150;
 function renderDashConstanciaResumo(){
   const el = document.getElementById('dash-constancia-resumo');
   if(!el) return;
+  // Destruir chart anterior antes de recriar o DOM
+  if(window._chartConstDash){ window._chartConstDash.destroy(); window._chartConstDash=null; }
 
   const porDia = {};
   sessoes.forEach(s=>{
