@@ -2327,8 +2327,8 @@ async function semRegistrar(id){
   const tempo   = parseInt(document.getElementById('sem-tempo-'+id)?.value)||0;
   const obs     = document.getElementById('sem-obs-'+id)?.value?.trim()||'';
 
-  const _tipoSem = 'Fixação'; // registro rápido sempre é fixação
-  if(!qtd){ alert('Informe a quantidade de questões'); return; }
+  const _isLeituraMR = false; // registro rápido da semana sempre exige questões
+  if(!qtd && !_isLeituraMR){ alert('Informe a quantidade de questões'); return; }
 
   // Criar sessão
   const s = {
@@ -3323,7 +3323,7 @@ function abrirModalRegistro(tarefaId=null){
           <input type="number" id="mr-meta" value="${t?.meta||75}" min="0" max="100"
             style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"
             oninput="mrAtualizarPreview()">
-        </div></div>
+        </div>
         <div>
           <label class="form-label">Tempo (min)</label>
           <input type="number" id="mr-tempo" placeholder="ex: 45"
