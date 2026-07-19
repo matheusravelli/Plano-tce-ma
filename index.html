@@ -3256,7 +3256,7 @@ function abrirModalRegistro(tarefaId=null){
       </div>` : ''}
 
       <!-- Campos principais — destaque visual -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div id="mr-bloco-questoes" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
         <div>
           <label class="form-label">Questões feitas</label>
           <input type="number" id="mr-qtd" value="${t?.qtd||10}" min="1"
@@ -3272,9 +3272,11 @@ function abrirModalRegistro(tarefaId=null){
       </div>
 
       <!-- Preview % -->
+      <div id="mr-bloco-preview">
       <div id="mr-preview" style="text-align:center;padding:10px;margin-bottom:12px;border-radius:var(--radius);background:var(--bg2);min-height:40px;font-size:24px;font-weight:700"></div>
 
       ${!t ? `
+      </div><!-- fim bloco preview -->
       <!-- Disciplina + Assunto com autocomplete -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <div>
@@ -3287,8 +3289,8 @@ function abrirModalRegistro(tarefaId=null){
         </div>
         <div>
           <label class="form-label">Tipo</label>
-          <select id="mr-tipo" style="width:100%;padding:7px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit">
-            <option>Fixação</option><option>Diagnóstico</option><option>Revisão</option><option>Extensivo</option>
+          <select id="mr-tipo" onchange="mrToggleTipo()" style="width:100%;padding:7px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit">
+            <option>Fixação</option><option>Diagnóstico</option><option>Revisão</option><option>Extensivo</option><option value="Leitura">📖 Leitura</option><option value="Videoaula">🎥 Videoaula</option>
           </select>
         </div>
       </div>
@@ -3304,14 +3306,21 @@ function abrirModalRegistro(tarefaId=null){
           style="width:100%;padding:6px 10px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
       </div>` : ''}
 
+      <!-- Campo páginas lidas (só para leitura) -->
+      <div id="mr-bloco-leitura" style="display:none;margin-bottom:8px">
+        <label class="form-label">Páginas / tópicos lidos</label>
+        <input type="number" id="mr-paginas" placeholder="ex: 12" min="0"
+          style="width:100%;padding:7px 10px;font-size:16px;font-weight:600;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+      </div>
+
       <!-- Campos secundários -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-        <div>
+        <div id="mr-bloco-meta">
           <label class="form-label">Meta (%)</label>
           <input type="number" id="mr-meta" value="${t?.meta||75}" min="0" max="100"
             style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)"
             oninput="mrAtualizarPreview()">
-        </div>
+        </div></div>
         <div>
           <label class="form-label">Tempo (min)</label>
           <input type="number" id="mr-tempo" placeholder="ex: 45"
@@ -3352,6 +3361,26 @@ function abrirModalRegistro(tarefaId=null){
     </div>`;
 
   // Popular datalist de assuntos ao mudar disciplina
+  window.mrToggleTipo = function(){
+    const tipo = document.getElementById('mr-tipo')?.value;
+    const isLeitura = tipo==='Leitura'||tipo==='Videoaula';
+    const blocoQ = document.getElementById('mr-bloco-questoes');
+    const blocoP = document.getElementById('mr-bloco-preview');
+    const blocoL = document.getElementById('mr-bloco-leitura');
+    const blocoM = document.getElementById('mr-bloco-meta');
+    if(blocoQ) blocoQ.style.display = isLeitura?'none':'grid';
+    if(blocoP) blocoP.style.display = isLeitura?'none':'block';
+    if(blocoL) blocoL.style.display = isLeitura?'block':'none';
+    if(blocoM) blocoM.style.display = isLeitura?'none':'block';
+    // Limpar qtd/acertos se leitura
+    if(isLeitura){
+      const qtd = document.getElementById('mr-qtd');
+      const ac  = document.getElementById('mr-acertos');
+      if(qtd) qtd.value='0';
+      if(ac)  ac.value='';
+    }
+  };
+
   window.mrAtualizarAssuntos = function(){
     const disc = document.getElementById('mr-disc')?.value;
     const dl = document.getElementById('mr-assunto-list');
@@ -3382,6 +3411,7 @@ async function confirmarModalRegistro(tarefaId){
   const acertos = acEl!==''&&acEl!==undefined ? parseInt(acEl) : null;
   const meta = parseInt(document.getElementById('mr-meta')?.value)||75;
   const tempo = parseInt(document.getElementById('mr-tempo')?.value)||0;
+  const paginas = parseInt(document.getElementById('mr-paginas')?.value)||0;
   const data  = document.getElementById('mr-data')?.value || dataHoje();
   const obs   = document.getElementById('mr-obs')?.value?.trim()||'';
 
@@ -3399,7 +3429,7 @@ async function confirmarModalRegistro(tarefaId){
 
   const s = {
     id: Date.now(), semana, data, disc, assunto, tipo,
-    qtd, acertos, meta, obs, link,
+    qtd, acertos, meta, obs, link, paginas,
     tempo_min: parseInt(tempo)||0,
     tarefa_id: t ? Number(t.id) : null
   };
@@ -4214,7 +4244,8 @@ function sanitizarSessao(s){
     meta: parseInt(s.meta)||75,
     obs: s.obs||'',
     tempo_min: parseInt(s.tempo_min)||0,
-    tarefa_id: s.tarefa_id ? Number(s.tarefa_id) : null
+    tarefa_id: s.tarefa_id ? Number(s.tarefa_id) : null,
+    paginas: parseInt(s.paginas)||0
   };
 }
 
