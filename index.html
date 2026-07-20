@@ -3585,7 +3585,7 @@ function renderResumaSemana(){
 
     // Layout donut + legenda
     '<div style="display:grid;grid-template-columns:220px 1fr;gap:1.5rem;margin-bottom:1.5rem;align-items:center">' +
-      '<canvas id="chart-pizza-semana" style="display:block;width:200px;height:200px"></canvas>' +
+      '<div id="chart-pizza-wrap" style="width:200px;height:200px;position:relative"></div>' +
       '<div>' +
         '<div class="section-title">DISCIPLINAS</div>' +
         discsOrd.map(([disc,info])=>{
@@ -3638,13 +3638,17 @@ function renderResumaSemana(){
     });
   }
 
-  // Criar chart APÓS o canvas estar no DOM
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    const canvas = document.getElementById('chart-pizza-semana');
-    if(!canvas||!window.Chart) return;
+  // Criar canvas novo a cada render — evita bug do Chart.js com canvas reutilizado
+  setTimeout(()=>{
+    const wrap = document.getElementById('chart-pizza-wrap');
+    if(!wrap||!window.Chart) return;
     if(window._chartPizza){ try{window._chartPizza.destroy();}catch(e){} window._chartPizza=null; }
+    wrap.innerHTML = '';
+    const canvas = document.createElement('canvas');
     canvas.width  = 200;
     canvas.height = 200;
+    canvas.style.cssText = 'display:block';
+    wrap.appendChild(canvas);
     window._chartPizza = new Chart(canvas.getContext('2d'), {
       type:'doughnut',
       data:{
@@ -3667,7 +3671,7 @@ function renderResumaSemana(){
         animation:{duration:400}
       }
     });
-  }));
+  }, 100);
 }
 
 
