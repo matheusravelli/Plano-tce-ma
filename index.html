@@ -6413,15 +6413,17 @@ function renderDesempenho(){
   });
   const labels=semanas.filter((_,i)=>meds[i]!==null);
   const data=meds.filter(v=>v!==null);
-  if(chartSemanas){ chartSemanas.destroy(); chartSemanas=null; }
+  if(chartSemanas){ try{chartSemanas.destroy();}catch(e){} chartSemanas=null; }
   if(data.length){
-    chartSemanas=new Chart(document.getElementById('chart-semanas'),{
+    const wrapSem = document.getElementById('chart-semanas-wrap');
+    if(wrapSem){ wrapSem.innerHTML=''; const cvSem=document.createElement('canvas'); cvSem.style.cssText='width:100%;height:100%'; wrapSem.appendChild(cvSem);
+    chartSemanas=new Chart(cvSem.getContext('2d'),{
       type:'bar',
-      data:{labels,datasets:[{label:'Média %',data,backgroundColor:'#378ADD',borderRadius:4}]},
+      data:{labels,datasets:[{label:'Média %',data,backgroundColor:data.map(v=>v>=75?'#22c55e':v>=65?'#f59e0b':'#ef4444'),borderRadius:4}]},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{display:false}},
         scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}},x:{ticks:{autoSkip:false}}}}
-    });
+    }); }
   }
 
   const porA={};
