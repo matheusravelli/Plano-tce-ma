@@ -2910,7 +2910,7 @@ function renderEdital(){
     });
   }
   const discFiltro = sel?.value||'';
-  const filtroBtn = document.querySelector('.edital-filtro-btn.active')?.dataset?.filtro || 'todos';
+  const filtroBtn = typeof editalFiltro !== 'undefined' ? editalFiltro : 'todos';
 
   // Stats gerais
   let totalTopicos=0, topicosEstudados=0, topicosCriticos=0;
