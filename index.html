@@ -141,7 +141,7 @@ alter table tarefas disable row level security;
 
   <div class="nav">
     <button class="nav-btn active" id="nav-inicio" onclick="showView('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Início</button>
-    <button class="nav-btn" id="nav-semana" onclick="showView('semana',this)"><i class="ti ti-calendar-week"></i> Semana</button>
+    <button class="nav-btn" id="nav-semana" onclick="showView('semana',this)"><i class="ti ti-history"></i> Histórico</button>
     <button class="nav-btn" id="nav-desempenho" onclick="showView('desempenho',this)"><i class="ti ti-chart-bar"></i> Desempenho</button>
     <button class="nav-btn" id="nav-estudo" onclick="showView('estudo',this)"><i class="ti ti-books"></i> Estudo</button>
     <button class="nav-btn" id="nav-edital" onclick="showView('edital',this)"><i class="ti ti-list-check"></i> Edital</button>
@@ -5934,7 +5934,7 @@ function showView(v, btn){
   if(v==='semana')  setTimeout(renderSemana, 100);
   if(v==='revisao'||v==='estudo') setTimeout(()=>setEstudoTab('revisao'), 50);
   if(v==='edital') setTimeout(renderEdital, 50);
-  if(v==='semana') setTimeout(()=>{ renderDiario(); renderSemana(); renderPendencias(); }, 50);
+  if(v==='semana') setTimeout(renderHistoricoSessoes, 50);
   if(v==='caderno') setTimeout(()=>setEstudoTab('erros'), 50);
 }
 
@@ -5957,8 +5957,8 @@ function renderAll(){
   renderEvolucao();
   renderReforco();
   renderRegistrar();
-  // renderSemana chamada pelo showView
-  renderDiario();
+  // Histórico só renderiza se view ativa
+  renderHistoricoSessoes();
   // Renderizar aba estudo só se estiver visível
   const estudoView = document.getElementById('view-estudo');
   if(estudoView && estudoView.classList.contains('active')){
