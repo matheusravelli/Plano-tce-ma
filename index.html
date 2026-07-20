@@ -193,16 +193,16 @@ alter table tarefas disable row level security;
     <!-- Métricas gerais (necessário para renderMetrics) -->
     <div class="metric-grid" id="metrics" style="margin-bottom:1.5rem"></div>
 
-    <!-- Sugestão de hoje -->
+    <!-- Progresso do dia -->
     <div style="margin-bottom:1.5rem">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <div class="section-title" style="margin:0;flex:1">💡 O que fazer hoje</div>
-        <button onclick="setSemTab('diario');showView('semana',null)"
-          style="font-size:11px;border:none;background:transparent;color:var(--blue);cursor:pointer;padding:0">
-          Ver diário completo →
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div class="section-title" style="margin:0;flex:1">📅 Progresso de hoje</div>
+        <button onclick="setSemVisualizacao('historico');showView('semana',null)"
+          style="font-size:11px;border:none;background:transparent;color:var(--green);cursor:pointer;padding:0">
+          Ver histórico →
         </button>
       </div>
-      <div id="dash-sugestao"></div>
+      <div id="dash-progresso-dia"></div>
     </div>
 
     <!-- Resumo da semana no Dashboard -->
@@ -4673,6 +4673,8 @@ function renderDashSemanaResumo(){
 }
 
 const META_QUESTOES_DIA = 150;
+const META_TEMPO_DIA = {0:300,1:180,2:180,3:180,4:180,5:180,6:300}; // minutos por dia (dom=0)
+const META_TEMPO_SEMANA = 25*60; // 25h em minutos
 
 function renderDashConstanciaResumo(){
   const el = document.getElementById('dash-constancia-resumo');
@@ -5451,6 +5453,115 @@ async function onImportarSecoes(){
   alert(`✅ ${totalImportados} página(s) importadas do OneNote para a aba Revisão!`);
 }
 
+function renderProgressoDia(){
+  const el = document.getElementById('dash-progresso-dia');
+  if(!el) return;
+
+  const hoje      = dataHoje();
+  const diaSemana = new Date().getDay(); // 0=dom ... 6=sab
+  const metaTempo = META_TEMPO_DIA[diaSemana] || 180; // minutos
+  const metaQ     = META_QUESTOES_DIA;
+
+  // Sessões de hoje
+  const sessoesHoje = sessoes.filter(s=>s.data===hoje);
+  const tempoHoje   = sessoesHoje.reduce((a,s)=>a+(parseInt(s.tempo_min)||0),0);
+  const qHoje       = sessoesHoje.reduce((a,s)=>a+(parseInt(s.qtd)||0),0);
+
+  // Semana atual
+  const semIni = new Date(); semIni.setDate(semIni.getDate()-semIni.getDay()); semIni.setHours(0,0,0,0);
+  const semIniStr = semIni.toISOString().split('T')[0];
+  const semFimStr = new Date(semIni.getTime()+6*86400000).toISOString().split('T')[0];
+  const sessoesSem  = sessoes.filter(s=>s.data>=semIniStr&&s.data<=semFimStr);
+  const tempoSem    = sessoesSem.reduce((a,s)=>a+(parseInt(s.tempo_min)||0),0);
+  const qSem        = sessoesSem.reduce((a,s)=>a+(parseInt(s.qtd)||0),0);
+
+  const tempoStr = t => t>=60 ? Math.floor(t/60)+'h'+(t%60?String(t%60).padStart(2,'0')+'min':'') : t+'min';
+  const pctT     = Math.min(100,Math.round(tempoHoje/metaTempo*100));
+  const pctQ     = Math.min(100,Math.round(qHoje/metaQ*100));
+  const pctTS    = Math.min(100,Math.round(tempoSem/META_TEMPO_SEMANA*100));
+  const diasNome = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+  const corT = pctT>=100?'var(--green)':pctT>=60?'var(--amber)':'var(--red)';
+  const corQ = pctQ>=100?'var(--green)':pctQ>=60?'var(--amber)':'var(--red)';
+  const corS = pctTS>=100?'var(--green)':pctTS>=60?'var(--amber)':'var(--red)';
+
+  // Montar barras de progresso
+  const barra = (pct,cor) =>
+    '<div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:4px">'+
+    '<div style="height:6px;width:'+pct+'%;background:'+cor+';border-radius:3px;transition:width .4s"></div></div>';
+
+  el.innerHTML =
+    // Grid 3 colunas: tempo hoje, questões hoje, semana
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">'+
+
+    // Tempo hoje
+    '<div style="padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);border-top:2px solid '+corT+'">'+
+      '<div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">⏱️ Tempo hoje</div>'+
+      '<div style="display:flex;align-items:baseline;gap:4px">'+
+        '<span style="font-size:22px;font-weight:700;color:'+corT+'">'+tempoStr(tempoHoje)+'</span>'+
+        '<span style="font-size:11px;color:var(--text3)">/ '+tempoStr(metaTempo)+'</span>'+
+      '</div>'+
+      barra(pctT,corT)+
+      '<div style="font-size:10px;color:var(--text3);margin-top:4px">'+
+        (pctT>=100?'✅ Meta batida!':'Faltam '+tempoStr(metaTempo-tempoHoje))+' · '+diasNome[diaSemana]+
+      '</div>'+
+    '</div>'+
+
+    // Questões hoje
+    '<div style="padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);border-top:2px solid '+corQ+'">'+
+      '<div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">📝 Questões hoje</div>'+
+      '<div style="display:flex;align-items:baseline;gap:4px">'+
+        '<span style="font-size:22px;font-weight:700;color:'+corQ+'">'+qHoje+'</span>'+
+        '<span style="font-size:11px;color:var(--text3)">/ '+metaQ+'q</span>'+
+      '</div>'+
+      barra(pctQ,corQ)+
+      '<div style="font-size:10px;color:var(--text3);margin-top:4px">'+
+        (pctQ>=100?'✅ Meta batida!':'Faltam '+(metaQ-qHoje)+'q')+
+      '</div>'+
+    '</div>'+
+
+    // Semana
+    '<div style="padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);border-top:2px solid '+corS+'">'+
+      '<div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">📅 Semana (25h)</div>'+
+      '<div style="display:flex;align-items:baseline;gap:4px">'+
+        '<span style="font-size:22px;font-weight:700;color:'+corS+'">'+tempoStr(tempoSem)+'</span>'+
+        '<span style="font-size:11px;color:var(--text3)">/ 25h</span>'+
+      '</div>'+
+      barra(pctTS,corS)+
+      '<div style="font-size:10px;color:var(--text3);margin-top:4px">'+
+        qSem+'q esta semana · '+pctTS+'% da meta semanal'+
+      '</div>'+
+    '</div>'+
+
+    '</div>'+
+
+    // Mini timeline dos dias da semana
+    '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">'+
+    [0,1,2,3,4,5,6].map(dia=>{
+      const metaD   = META_TEMPO_DIA[dia];
+      const dtDia   = new Date(semIni); dtDia.setDate(semIni.getDate()+dia);
+      const diaStr  = dtDia.toISOString().split('T')[0];
+      const futura  = diaStr > hoje;
+      const tempoDia = sessoes.filter(s=>s.data===diaStr).reduce((a,s)=>a+(parseInt(s.tempo_min)||0),0);
+      const qDia     = sessoes.filter(s=>s.data===diaStr).reduce((a,s)=>a+(parseInt(s.qtd)||0),0);
+      const pctDia   = Math.min(100,Math.round(tempoDia/metaD*100));
+      const isHoje   = diaStr===hoje;
+      const corDia   = futura?'var(--bg3)':pctDia>=100?'var(--green)':pctDia>0?'var(--amber)':'var(--red)';
+      const corLabel = isHoje?'var(--green)':'var(--text3)';
+      return '<div style="text-align:center">'+
+        '<div style="font-size:10px;font-weight:'+(isHoje?'700':'400')+';color:'+corLabel+';margin-bottom:3px">'+diasNome[dia]+'</div>'+
+        '<div style="height:40px;background:var(--bg3);border-radius:4px;overflow:hidden;position:relative;'+(isHoje?'outline:2px solid var(--green);outline-offset:1px':'')+'">'+
+          (!futura?'<div style="position:absolute;bottom:0;left:0;right:0;height:'+pctDia+'%;background:'+corDia+';border-radius:4px;transition:height .3s"></div>':'')+
+        '</div>'+
+        '<div style="font-size:9px;color:var(--text3);margin-top:2px">'+
+          (futura?tempoStr(metaD):tempoDia?tempoStr(tempoDia):'-')+
+        '</div>'+
+        (qDia?'<div style="font-size:9px;color:var(--text3)">'+qDia+'q</div>':'')+
+      '</div>';
+    }).join('')+
+    '</div>';
+}
+
 async function load(){
   // Mostrar loading
   const appEl = document.getElementById('app') || document.querySelector('.app-container');
@@ -5620,6 +5731,7 @@ function renderAll(){
   renderMetrics();
   renderUltimasSessoes();
   renderDashTarefas();
+  renderProgressoDia();
   renderDashSemanaResumo();
   renderDashConstanciaResumo();
   renderDashDiscFracas();
