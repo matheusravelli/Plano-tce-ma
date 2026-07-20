@@ -712,6 +712,10 @@ alter table tarefas disable row level security;
         style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
         📥 Importar semana
       </button>
+      <button id="edital-tab-semvinculo" onclick="setEditalTab('semvinculo')"
+        style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
+        🔗 Sem vínculo
+      </button>
     </div>
 
     <!-- Painel Info -->
@@ -932,6 +936,11 @@ alter table tarefas disable row level security;
     <!-- Painel Importar -->
     <div id="edital-painel-importar" style="display:none">
       <div id="edital-importar-wrap"></div>
+    </div>
+
+    <!-- Painel Sem Vínculo -->
+    <div id="edital-painel-semvinculo" style="display:none">
+      <div id="edital-semvinculo-conteudo"></div>
     </div>
   </div>
 
@@ -3885,7 +3894,7 @@ function setDesempTab(tab){
 let editalTabAtiva = 'topicos';
 function setEditalTab(tab){
   editalTabAtiva = tab;
-  const tabs = ['info','simulador','topicos','importar'];
+  const tabs = ['info','simulador','topicos','importar','semvinculo'];
   tabs.forEach(t=>{
     const btn = document.getElementById('edital-tab-'+t);
     const pan = document.getElementById('edital-painel-'+t);
@@ -3898,6 +3907,7 @@ function setEditalTab(tab){
   });
   if(tab==='topicos') setTimeout(renderEdital, 50);
   if(tab==='simulador') setTimeout(()=>{ setSimTab('projecao'); renderSimProjecao(); }, 50);
+  if(tab==='semvinculo') setTimeout(renderSemVinculo, 50);
   if(tab==='importar'){
     // Mover conteúdo da view importar para cá
     const wrap = document.getElementById('edital-importar-wrap');
@@ -5661,6 +5671,74 @@ function removerVinculo(assunto){
   localStorage.setItem('tcema_vinculos_edital', JSON.stringify(vinculos));
   document.getElementById('modal-vinculo')?.remove();
   renderAll();
+}
+
+function renderSemVinculo(){
+  const el = document.getElementById('edital-semvinculo-conteudo');
+  if(!el) return;
+
+  const vinculosManuais = JSON.parse(localStorage.getItem('tcema_vinculos_edital')||'{}');
+
+  // Encontrar sessões que não batem com nenhum tópico do edital
+  const semVinculo = sessoes.filter(s=>{
+    if(!s.assunto || !s.disc) return false;
+    // Verificar se tem vínculo manual
+    if(vinculosManuais[s.assunto]) return false;
+    // Verificar se bate com algum tópico pelo matching atual
+    const bateu = Object.entries(EDITAL_CARGO13||{}).some(([disc,info])=>{
+      if(s.disc!==disc && !s.disc?.includes(disc.split(' ')[0])) return false;
+      return info.topicos.some(t=>{
+        const a = (s.assunto||'').toLowerCase().trim();
+        const tv = t.toLowerCase().trim();
+        return a===tv || a.includes(tv) || tv.includes(a);
+      });
+    });
+    return !bateu;
+  });
+
+  // Agrupar por assunto único
+  const porAssunto = {};
+  semVinculo.forEach(s=>{
+    const key = s.disc+'||'+s.assunto;
+    if(!porAssunto[key]) porAssunto[key]={disc:s.disc, assunto:s.assunto, count:0, datas:[]};
+    porAssunto[key].count++;
+    if(s.data) porAssunto[key].datas.push(s.data);
+  });
+
+  el.innerHTML = '';
+
+  if(!Object.keys(porAssunto).length){
+    el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--green)">✅ Todas as sessões estão vinculadas a tópicos do edital!</div>';
+    return;
+  }
+
+  // Header
+  const header = document.createElement('div');
+  header.style.cssText = 'margin-bottom:1rem;padding:10px 14px;background:var(--amber-bg,#1c1200);border:1px solid var(--amber);border-radius:var(--radius);font-size:12px;color:var(--amber)';
+  header.innerHTML = '⚠️ <b>'+Object.keys(porAssunto).length+' assuntos</b> sem correspondência no edital. Clique em "Vincular" para associar manualmente a um tópico.';
+  el.appendChild(header);
+
+  Object.values(porAssunto).sort((a,b)=>a.disc.localeCompare(b.disc)||a.assunto.localeCompare(b.assunto)).forEach(item=>{
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg2)';
+
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1;min-width:0';
+    info.innerHTML =
+      '<div style="font-size:13px;font-weight:500">'+item.assunto+'</div>'+
+      '<div style="font-size:11px;color:var(--text3)">'+item.disc+' · '+item.count+' sessão'+(item.count>1?'ões':'')+
+      (item.datas.length?' · última: '+item.datas.sort().reverse()[0]:'')+
+      '</div>';
+
+    const btn = document.createElement('button');
+    btn.textContent = '🔗 Vincular';
+    btn.style.cssText = 'padding:5px 12px;border:1px solid var(--green);border-radius:var(--radius);background:transparent;color:var(--green);cursor:pointer;font-family:inherit;font-size:12px;white-space:nowrap';
+    btn.onclick = ()=>abrirVinculoEdital(item.assunto, item.disc);
+
+    row.appendChild(info);
+    row.appendChild(btn);
+    el.appendChild(row);
+  });
 }
 
 async function load(){
