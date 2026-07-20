@@ -3230,7 +3230,16 @@ function abrirModalRegistro(tarefaId=null){
     'Eng — PNFL','Eng — Edificações','Eng — Obras Hídricas','Eng — Rodoviárias'];
 
   const discAtual = t?.disc || '';
-  const semAtual = document.getElementById('sem-selector')?.value || 'S06';
+  // Detectar semana atual pelo calendário
+  const semAtual = (()=>{
+    const hoje = dataHoje();
+    if(typeof CALENDARIO_SEMANAS !== 'undefined'){
+      for(const [s,c] of Object.entries(CALENDARIO_SEMANAS)){
+        if(hoje>=c.inicio && hoje<=c.fim) return s;
+      }
+    }
+    return document.getElementById('sem-selector')?.value || 'S08';
+  })();
 
   const overlay = document.createElement('div');
   overlay.id = 'modal-registro';
@@ -3397,7 +3406,7 @@ function abrirModalRegistro(tarefaId=null){
     const sel = document.getElementById('mr-semana');
     if(!sel) return;
     const hoje2 = dataHoje();
-    let semHoje = 'S07';
+    let semHoje = 'S08'; // atualizar conforme semana atual
     if(typeof CALENDARIO_SEMANAS !== 'undefined'){
       Object.entries(CALENDARIO_SEMANAS).forEach(([s,c])=>{
         if(hoje2>=c.inicio && hoje2<=c.fim) semHoje=s;
