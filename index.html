@@ -5658,6 +5658,22 @@ function abrirVinculoEdital(assunto, disc){
   });
   window._vinculoAssunto = assunto;
   document.body.appendChild(overlay);
+
+  // Popular botões de tópico via DOM (evita problemas de escaping)
+  const lista = document.getElementById('mv-topicos-lista');
+  if(lista){
+    if(!topicos.length){
+      lista.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">Nenhum tópico encontrado para esta disciplina.</div>';
+    } else {
+      topicos.forEach((t,ti)=>{
+        const btn = document.createElement('button');
+        btn.style.cssText = 'display:block;width:100%;text-align:left;padding:8px 12px;margin-bottom:4px;border:1px solid '+(t===vinculoAtual?'var(--green)':'var(--border)')+';border-radius:var(--radius);background:'+(t===vinculoAtual?'var(--green-bg)':'var(--bg2)')+';color:var(--text);cursor:pointer;font-family:inherit;font-size:12px';
+        btn.textContent = (t===vinculoAtual?'✅ ':'')+t;
+        btn.onclick = (e)=>{ e.stopPropagation(); salvarVinculo(assunto, t); };
+        lista.appendChild(btn);
+      });
+    }
+  }
 }
 
 function salvarVinculo(assunto, topico){
