@@ -2949,13 +2949,18 @@ function setEditalFiltro(f, btn){
 }
 
 function matchTopico(disc, topico){
-  // Buscar sessões que correspondem a este tópico
-  const t = topico.toLowerCase();
-  const palavras = t.replace(/[().,/—:]/g,' ').split(/\s+/).filter(p=>p.length>4);
+  const vinculosManuais = JSON.parse(localStorage.getItem('tcema_vinculos_edital')||'{}');
   return sessoes.filter(s=>{
     if(s.disc!==disc && !s.disc?.includes(disc.split(' ')[0])) return false;
-    const a = (s.assunto||'').toLowerCase();
-    return palavras.some(p=>a.includes(p)) || a.split(/\s+/).some(w=>w.length>4&&t.includes(w));
+    const a = (s.assunto||'').toLowerCase().trim();
+    const t = topico.toLowerCase().trim();
+    // 1. Vínculo manual explícito
+    if(vinculosManuais[s.assunto]===topico) return true;
+    // 2. Assunto idêntico ao tópico (case insensitive)
+    if(a===t) return true;
+    // 3. Assunto contém o tópico inteiro ou vice-versa
+    if(a.includes(t)||t.includes(a)) return true;
+    return false; a.split(/\s+/).some(w=>w.length>4&&t.includes(w));
   });
 }
 
