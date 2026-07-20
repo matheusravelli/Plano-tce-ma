@@ -3044,20 +3044,45 @@ function renderEdital(){
           const icone = status==='critico'?'🔴':status==='nao_estudado'?'⬜':'✅';
           const mediaStr = media!==null ? `${media}%` : '—';
           const revStr = revisoes>0 ? `${revisoes} sessão${revisoes>1?'ões':''}` : 'Não estudado';
-          return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:14px;flex-shrink:0">${icone}</span>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:12px;font-weight:${status==='nao_estudado'?'400':'500'};color:${status==='nao_estudado'?'var(--text3)':'var(--text)'}">${topico}</div>
-              <div style="font-size:11px;color:var(--text3)">${revStr}${media!==null?' · média: '+mediaStr:''}</div>
-            </div>
-            ${media!==null?`<span style="font-size:12px;font-weight:600;color:${cor};flex-shrink:0">${mediaStr}</span>`:''}
-          </div>`;
+          (()=>{
+            const sessRows = sess.sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(s=>{
+              const p = s.acertos!=null&&s.qtd>0?Math.round(s.acertos/s.qtd*100):null;
+              const corP = p===null?'var(--text3)':p>=75?'var(--green)':p>=65?'var(--amber)':'var(--red)';
+              const t2 = (s.tempo_min||0)>=60?Math.floor(s.tempo_min/60)+'h'+(s.tempo_min%60?String(s.tempo_min%60).padStart(2,'0')+'min':''):s.tempo_min?s.tempo_min+'min':'';
+              return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">'+
+                '<div style="flex:1;min-width:0">'+
+                  '<div style="font-size:12px;font-weight:500">'+(s.assunto||'—')+'</div>'+
+                  '<div style="font-size:11px;color:var(--text3)">'+(s.data||'')+' · '+(s.tipo||'')+' · '+(s.qtd||0)+'q'+(t2?' · '+t2:'')+'</div>'+
+                '</div>'+
+                (p!==null?'<span style="font-size:12px;font-weight:700;color:'+corP+'">'+p+'%</span>':'')+
+              '</div>';
+            }).join('');
+            const uid = Math.random().toString(36).slice(2,7);
+            const header = '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);cursor:'+(sess.length?'pointer':'default')+'" data-corpo="b'+uid+'">'+
+              '<span style="font-size:14px;flex-shrink:0">'+icone+'</span>'+
+              '<div style="flex:1;min-width:0">'+
+                '<div style="font-size:12px;font-weight:'+(status==='nao_estudado'?'400':'500')+';color:'+(status==='nao_estudado'?'var(--text3)':'var(--text)')+'">'+topico+'</div>'+
+                '<div style="font-size:11px;color:var(--text3)">'+revStr+(media!==null?' · média: '+mediaStr:'')+'</div>'+
+              '</div>'+
+              (media!==null?'<span style="font-size:12px;font-weight:600;color:'+cor+';flex-shrink:0">'+mediaStr+'</span>':'')+
+              (sess.length?'<span style="font-size:10px;color:var(--text3)"> ▼</span>':'')+
+            '</div>';
+            const corpo = sess.length?'<div id="b'+uid+'" style="display:none;padding:4px 0 4px 22px;background:var(--bg3);border-bottom:1px solid var(--border)">'+sessRows+'</div>':'';
+            return header+corpo;
+          })();
         }).join('')}
       </div>
     </div>`;
   });
 
   el.innerHTML = html_out || '<div class="empty" style="padding:2rem">Nenhum tópico neste filtro.</div>';
+  // Event delegation para expandir sessões
+  el.querySelectorAll('[data-corpo]').forEach(h=>{
+    h.addEventListener('click', ()=>{
+      const b = document.getElementById(h.dataset.corpo);
+      if(b) b.style.display = b.style.display==='none'?'block':'none';
+    });
+  });
 }
 
 // ── PAINEL INTELIGENTE //
