@@ -5647,7 +5647,16 @@ function abrirVinculoEdital(assunto, disc){
         '')+
     '</div>';
 
-  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  overlay.addEventListener('click', e=>{
+    if(e.target===overlay){ overlay.remove(); return; }
+    // Clicar em botão de tópico
+    const btn = e.target.closest('[data-assunto-vinc]');
+    if(btn){
+      const idx = parseInt(btn.dataset.topicoIdx);
+      salvarVinculo(assunto, topicos[idx]);
+    }
+  });
+  window._vinculoAssunto = assunto;
   document.body.appendChild(overlay);
 }
 
