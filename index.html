@@ -4404,6 +4404,8 @@ function setSemVisualizacao(v){
 function renderHistoricoSessoes(){
   const el = document.getElementById('sem-historico-conteudo');
   if(!el) return;
+  // Só renderizar se a view semana estiver ativa
+  if(!document.getElementById('view-semana')?.classList.contains('active')) return;
 
   const porData = {};
   [...sessoes].sort((a,b)=>(b.data||'').localeCompare(a.data||'')).forEach(s=>{
