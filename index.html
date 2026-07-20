@@ -3495,187 +3495,181 @@ function getInicioSemana(){
 function renderResumaSemana(){
   const el = document.getElementById('desemp-semana-conteudo');
   if(!el) return;
-  if(window._chartPizza){ window._chartPizza.destroy(); window._chartPizza=null; }
+  if(window._chartPizza){ try{window._chartPizza.destroy();}catch(e){} window._chartPizza=null; }
 
-  const inicioSem = getInicioSemana();
-  const fimSem = new Date(inicioSem);
-  fimSem.setDate(inicioSem.getDate() + 6);
-  fimSem.setHours(23,59,59,999);
+  // Seletor de semana
+  const semSel = document.getElementById('desemp-semana-sel')?.value || '';
 
-  const inicioStr = inicioSem.toISOString().split('T')[0];
-  const fimStr = fimSem.toISOString().split('T')[0];
+  // Calcular período
+  let ini_str, fim_str, semLabel;
+  if(semSel && CALENDARIO_SEMANAS[semSel]){
+    ini_str  = CALENDARIO_SEMANAS[semSel].inicio;
+    fim_str  = CALENDARIO_SEMANAS[semSel].fim;
+    semLabel = CALENDARIO_SEMANAS[semSel].label;
+  } else {
+    // Semana atual (dom a sáb)
+    const hoje = new Date();
+    const ini  = new Date(hoje); ini.setDate(hoje.getDate()-hoje.getDay()); ini.setHours(0,0,0,0);
+    const fim  = new Date(ini);  fim.setDate(ini.getDate()+6); fim.setHours(23,59,59,999);
+    ini_str  = ini.toISOString().split('T')[0];
+    fim_str  = fim.toISOString().split('T')[0];
+    semLabel = ini.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' a ' + fim.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  }
 
-  // Filtrar sessões desta semana
-  const sessoesSem = sessoes.filter(s=>{
-    if(!s.data) return false;
-    return s.data >= inicioStr && s.data <= fimStr;
-  });
+  const sessoesSem = sessoes.filter(s=>s.data && s.data>=ini_str && s.data<=fim_str);
+
+  // Montar HTML base com seletor
+  const semanas = Object.keys(CALENDARIO_SEMANAS);
+  const semAtualKey = (() => {
+    const hoje = new Date().toISOString().split('T')[0];
+    return semanas.find(k=>CALENDARIO_SEMANAS[k].inicio<=hoje&&CALENDARIO_SEMANAS[k].fim>=hoje)||'S06';
+  })();
+
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem">' +
+      '<div style="flex:1">' +
+        '<div class="section-title" style="margin:0">RESUMO DA SEMANA</div>' +
+        '<div style="font-size:13px;color:var(--text2);margin-top:2px">'+semLabel+'</div>' +
+      '</div>' +
+      '<select id="desemp-semana-sel" onchange="renderResumaSemana()" ' +
+        'style="padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit">' +
+        '<option value="">Semana atual</option>' +
+        semanas.map(s=>'<option value="'+s+'"'+(s===semSel?' selected':'')+'>'+s+' · '+CALENDARIO_SEMANAS[s].label+'</option>').join('') +
+      '</select>' +
+    '</div>' +
+    '<div id="_sem_content"></div>';
+
+  const cont = document.getElementById('_sem_content');
+  if(!cont) return;
 
   if(!sessoesSem.length){
-    el.innerHTML = '<div class="empty" style="padding:2rem">Nenhuma sessão registrada nesta semana.</div>';
+    cont.innerHTML = '<div class="empty" style="padding:2rem">Nenhuma sessão nesta semana.</div>';
     return;
   }
 
-  // Agrupar por disciplina — tempo e questões
-  const porDisc = {};
-  sessoesSem.forEach(s=>{
-    const d = s.disc || 'Sem disciplina';
-    if(!porDisc[d]) porDisc[d] = {tempo:0, qtd:0, acertos:0, sessoes:0};
-    porDisc[d].tempo   += parseInt(s.tempo_min)||0;
-    porDisc[d].qtd     += parseInt(s.qtd)||0;
-    porDisc[d].acertos += s.acertos!=null ? parseInt(s.acertos)||0 : 0;
-    porDisc[d].sessoes++;
-  });
-
-  const totalTempo = Object.values(porDisc).reduce((a,v)=>a+v.tempo, 0);
-  const totalQtd   = sessoesSem.reduce((a,s)=>a+(parseInt(s.qtd)||0), 0);
-  const totalAc    = sessoesSem.filter(s=>s.acertos!=null).reduce((a,s)=>a+(parseInt(s.acertos)||0), 0);
-  const totalQ2    = sessoesSem.filter(s=>s.acertos!=null).reduce((a,s)=>a+(parseInt(s.qtd)||0), 0);
-  const mediaGeral = totalQ2 ? Math.round(totalAc/totalQ2*100) : null;
-
   const tempoStr = t => t>=60 ? Math.floor(t/60)+'h'+(t%60?String(t%60).padStart(2,'0')+'min':'') : t+'min';
 
-  // Label da semana
-  const opts = {day:'2-digit',month:'2-digit'};
-  const semLabel = inicioSem.toLocaleDateString('pt-BR',opts) + ' a ' + fimSem.toLocaleDateString('pt-BR',opts);
-
-  // Cores para as disciplinas
-  const CORES = ['#22c55e','#3b82f6','#f59e0b','#ef4444','#a855f7','#06b6d4','#f97316','#84cc16','#ec4899','#14b8a6','#6366f1','#e11d48'];
-
-  const discsOrdenadas = Object.entries(porDisc).sort((a,b)=>b[1].tempo-a[1].tempo);
-  const coresMap = {};
-  discsOrdenadas.forEach(([d],i)=>{ coresMap[d]=CORES[i%CORES.length]; });
-
-  el.innerHTML = '';
-
-  // Header da semana
-  const header = document.createElement('div');
-  header.style.cssText = 'margin-bottom:1.5rem';
-  header.innerHTML = '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:8px">RESUMO DA SEMANA</div>'+
-    '<div style="font-size:13px;color:var(--text2)">'+semLabel+'</div>';
-  el.appendChild(header);
-
-  // Métricas da semana
-  const grid = document.createElement('div');
-  grid.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem';
-  [
-    ['⏱️ Tempo total', tempoStr(totalTempo)],
-    ['📝 Questões', totalQtd+'q'],
-    ['🎯 Média geral', mediaGeral!==null?mediaGeral+'%':'—'],
-  ].forEach(([label,val])=>{
-    const c = document.createElement('div');
-    c.className = 'metric';
-    c.innerHTML = '<div class="metric-label">'+label+'</div><div class="metric-val">'+val+'</div>';
-    grid.appendChild(c);
+  // Agrupar por disciplina
+  const porDisc = {};
+  sessoesSem.forEach(s=>{
+    const d = s.disc||'Sem disc';
+    if(!porDisc[d]) porDisc[d]={tempo:0,qtd:0,acertos:0};
+    porDisc[d].tempo   += parseInt(s.tempo_min)||0;
+    porDisc[d].qtd     += parseInt(s.qtd)||0;
+    porDisc[d].acertos += s.acertos!=null?parseInt(s.acertos)||0:0;
   });
-  el.appendChild(grid);
 
-  // Gráfico de pizza — distribuição por tempo
-  const chartSection = document.createElement('div');
-  chartSection.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;align-items:start';
+  const totalTempo = Object.values(porDisc).reduce((a,v)=>a+v.tempo,0);
+  const totalQtd   = sessoesSem.reduce((a,s)=>a+(parseInt(s.qtd)||0),0);
+  const totalAc    = sessoesSem.filter(s=>s.acertos!=null).reduce((a,s)=>a+(parseInt(s.acertos)||0),0);
+  const totalQ2    = sessoesSem.filter(s=>s.acertos!=null).reduce((a,s)=>a+(parseInt(s.qtd)||0),0);
+  const media      = totalQ2 ? Math.round(totalAc/totalQ2*100) : null;
+  const corMedia   = media===null?'var(--text3)':media>=75?'var(--green)':media>=65?'var(--amber)':'var(--red)';
 
-  // Canvas do gráfico
-  const chartWrap = document.createElement('div');
-  chartWrap.innerHTML = '<div class="section-title">DISTRIBUIÇÃO POR TEMPO</div><div style="position:relative;width:200px;height:200px;margin:0 auto"><canvas id="chart-pizza-semana"></canvas></div>';
-  chartSection.appendChild(chartWrap);
+  const CORES = ['#22c55e','#3b82f6','#f59e0b','#ef4444','#a855f7','#06b6d4','#f97316','#84cc16','#ec4899','#14b8a6'];
+  const discsOrd = Object.entries(porDisc).sort((a,b)=>b[1].tempo-a[1].tempo);
+  const coresMap = {}; discsOrd.forEach(([d],i)=>{ coresMap[d]=CORES[i%CORES.length]; });
 
-  // Legenda
-  const legWrap = document.createElement('div');
-  legWrap.innerHTML = '<div class="section-title">DISCIPLINAS</div>';
-  const legList = document.createElement('div');
-  legList.style.cssText = 'display:flex;flex-direction:column;gap:8px';
+  // Métricas
+  cont.innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem">' +
+    [['⏱️ Tempo total',tempoStr(totalTempo),'var(--text)'],
+     ['📝 Questões',totalQtd+'q','var(--text)'],
+     ['🎯 Média',media!==null?media+'%':'—',corMedia]
+    ].map(([l,v,c])=>
+      '<div class="metric" style="border-top:2px solid '+c+'">'+
+      '<div class="metric-label">'+l+'</div>'+
+      '<div class="metric-val" style="color:'+c+'">'+v+'</div></div>'
+    ).join('')+
+    '</div>' +
 
-  discsOrdenadas.forEach(([disc,info])=>{
-    const pct = totalTempo ? Math.round(info.tempo/totalTempo*100) : 0;
-    const media = info.qtd ? Math.round(info.acertos/info.qtd*100) : null;
-    const corMedia = media===null?'var(--text3)':media>=75?'var(--green)':media>=65?'var(--amber)':'var(--red)';
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:8px';
-    row.innerHTML =
-      '<div style="width:10px;height:10px;border-radius:50%;background:'+coresMap[disc]+';flex-shrink:0"></div>'+
-      '<div style="flex:1;min-width:0">'+
-        '<div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+disc+'</div>'+
-        '<div style="font-size:11px;color:var(--text3)">'+tempoStr(info.tempo)+' · '+info.qtd+'q'+(media!==null?' · <span style="color:'+corMedia+'">'+media+'%</span>':'')+'</div>'+
+    // Layout donut + legenda
+    '<div style="display:grid;grid-template-columns:220px 1fr;gap:1.5rem;margin-bottom:1.5rem;align-items:center">' +
+      '<canvas id="chart-pizza-semana" style="display:block;width:200px;height:200px"></canvas>' +
+      '<div>' +
+        '<div class="section-title">DISCIPLINAS</div>' +
+        discsOrd.map(([disc,info])=>{
+          const pct = totalTempo?Math.round(info.tempo/totalTempo*100):0;
+          const m   = info.qtd?Math.round(info.acertos/info.qtd*100):null;
+          const cm  = m===null?'var(--text3)':m>=75?'var(--green)':m>=65?'var(--amber)':'var(--red)';
+          return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'+
+            '<div style="width:10px;height:10px;border-radius:50%;background:'+coresMap[disc]+';flex-shrink:0"></div>'+
+            '<div style="flex:1;font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+disc+'</div>'+
+            '<div style="font-size:11px;color:var(--text3)">'+tempoStr(info.tempo)+'</div>'+
+            (m!==null?'<div style="font-size:11px;font-weight:600;color:'+cm+'">'+m+'%</div>':'')+
+            '<div style="font-size:11px;color:var(--text2);min-width:30px;text-align:right">'+pct+'%</div>'+
+          '</div>';
+        }).join('')+
       '</div>'+
-      '<div style="font-size:12px;font-weight:600;color:var(--text2)">'+pct+'%</div>';
-    legList.appendChild(row);
-  });
-  legWrap.appendChild(legList);
-  chartSection.appendChild(legWrap);
-  el.appendChild(chartSection);
+    '</div>' +
 
-  // Renderizar pizza com Chart.js
-  setTimeout(()=>{
+    // Barras por dia
+    '<div class="section-title">DIA A DIA</div>' +
+    '<div id="_sem_dias_wrap"></div>';
+
+  // Barras por dia
+  const diasNomes = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const porDia = {};
+  sessoesSem.forEach(s=>{
+    if(!s.data) return;
+    const d = diasNomes[new Date(s.data+'T12:00:00').getDay()];
+    if(!porDia[d]) porDia[d]={tempo:0,qtd:0};
+    porDia[d].tempo += parseInt(s.tempo_min)||0;
+    porDia[d].qtd   += parseInt(s.qtd)||0;
+  });
+  const maxT = Math.max(...diasNomes.map(d=>porDia[d]?.tempo||0),1);
+  const hojeNome = diasNomes[new Date().getDay()];
+  const diasWrap = document.getElementById('_sem_dias_wrap');
+  if(diasWrap){
+    diasWrap.style.cssText='display:grid;grid-template-columns:repeat(7,1fr);gap:6px';
+    diasNomes.forEach(d=>{
+      const info=porDia[d]||{tempo:0,qtd:0};
+      const pctH=Math.round(info.tempo/maxT*100);
+      const isHoje=d===hojeNome&&!semSel;
+      const col=document.createElement('div');
+      col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px';
+      col.innerHTML=
+        '<div style="font-size:10px;font-weight:600;color:'+(isHoje?'var(--green)':'var(--text3)')+'">'+d+'</div>'+
+        '<div style="width:100%;height:60px;background:var(--bg3);border-radius:4px;overflow:hidden;display:flex;align-items:flex-end">'+
+          '<div style="width:100%;height:'+pctH+'%;background:'+(isHoje?'var(--green)':'var(--border2)')+';border-radius:4px"></div>'+
+        '</div>'+
+        '<div style="font-size:10px;color:var(--text3);text-align:center">'+(info.tempo?tempoStr(info.tempo):'—')+'</div>';
+      diasWrap.appendChild(col);
+    });
+  }
+
+  // Criar chart APÓS o canvas estar no DOM
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
     const canvas = document.getElementById('chart-pizza-semana');
-    if(!canvas || !window.Chart) return;
-    // Destruir chart anterior se existir
-    if(window._chartPizza) { window._chartPizza.destroy(); }
-    window._chartPizza = new Chart(canvas, {
-      type: 'doughnut',
-      data: {
-        labels: discsOrdenadas.map(([d])=>d),
+    if(!canvas||!window.Chart) return;
+    if(window._chartPizza){ try{window._chartPizza.destroy();}catch(e){} window._chartPizza=null; }
+    canvas.width  = 200;
+    canvas.height = 200;
+    window._chartPizza = new Chart(canvas.getContext('2d'), {
+      type:'doughnut',
+      data:{
+        labels: discsOrd.map(([d])=>d),
         datasets:[{
-          data: discsOrdenadas.map(([,v])=>v.tempo||0),
-          backgroundColor: discsOrdenadas.map(([d])=>coresMap[d]),
-          borderColor: 'var(--bg)',
-          borderWidth: 2,
-          hoverOffset: 6
+          data: discsOrd.map(([,v])=>v.tempo||0),
+          backgroundColor: discsOrd.map(([d])=>coresMap[d]),
+          borderColor:'#0d0d0d',
+          borderWidth:2,
+          hoverOffset:4
         }]
       },
       options:{
         responsive:false,
         plugins:{
           legend:{display:false},
-          tooltip:{
-            callbacks:{
-              label: ctx => ' '+ctx.label+': '+tempoStr(ctx.raw)+' ('+Math.round(ctx.raw/totalTempo*100)+'%)'
-            }
-          }
+          tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+tempoStr(ctx.raw)+' ('+Math.round(ctx.raw/totalTempo*100)+'%)'}}
         },
-        cutout:'60%'
+        cutout:'60%',
+        animation:{duration:400}
       }
     });
-  }, 150);
-
-  // Distribuição por dia da semana
-  const diasLabel = document.createElement('div');
-  diasLabel.className = 'section-title';
-  diasLabel.style.marginTop = '1.5rem';
-  diasLabel.textContent = 'DIA A DIA DA SEMANA';
-  el.appendChild(diasLabel);
-
-  const diasNomes = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-  const porDia = {};
-  sessoesSem.forEach(s=>{
-    if(!s.data) return;
-    const d = new Date(s.data+'T12:00:00').getDay();
-    const nome = diasNomes[d];
-    if(!porDia[nome]) porDia[nome]={tempo:0,qtd:0};
-    porDia[nome].tempo += parseInt(s.tempo_min)||0;
-    porDia[nome].qtd   += parseInt(s.qtd)||0;
-  });
-
-  const maxTempo = Math.max(...diasNomes.map(d=>porDia[d]?.tempo||0), 1);
-  const diasGrid = document.createElement('div');
-  diasGrid.style.cssText = 'display:grid;grid-template-columns:repeat(7,1fr);gap:6px';
-
-  diasNomes.forEach(d=>{
-    const info = porDia[d]||{tempo:0,qtd:0};
-    const pctH = Math.round(info.tempo/maxTempo*100);
-    const hoje_nome = diasNomes[new Date().getDay()];
-    const isHoje = d===hoje_nome;
-    const col = document.createElement('div');
-    col.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px';
-    col.innerHTML =
-      '<div style="font-size:10px;font-weight:600;color:'+(isHoje?'var(--green)':'var(--text3)')+'">'+d+'</div>'+
-      '<div style="width:100%;height:60px;background:var(--bg3);border-radius:4px;overflow:hidden;display:flex;align-items:flex-end">'+
-        '<div style="width:100%;height:'+pctH+'%;background:'+(isHoje?'var(--green)':'var(--border2)')+';border-radius:4px;transition:height .3s"></div>'+
-      '</div>'+
-      '<div style="font-size:10px;color:var(--text3);text-align:center">'+(info.tempo?tempoStr(info.tempo):'—')+'</div>';
-    diasGrid.appendChild(col);
-  });
-  el.appendChild(diasGrid);
+  }));
 }
+
 
 function renderConstancia(){
   const el = document.getElementById('desemp-constancia-conteudo');
