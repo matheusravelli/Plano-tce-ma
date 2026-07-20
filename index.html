@@ -278,79 +278,17 @@ alter table tarefas disable row level security;
   <div id="view-semana" class="view">
     <!-- Sub-abas -->
     <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
-      <button id="sem-tab-lista" onclick="setSemVisualizacao('lista')"
+      <button id="sem-tab-historico" onclick="setSemVisualizacao('historico')"
         style="padding:7px 16px;font-size:13px;font-weight:500;border:none;border-bottom:2px solid var(--green);background:transparent;cursor:pointer;font-family:inherit;color:var(--text)">
-        📋 Lista
+        🕐 Histórico
       </button>
       <button id="sem-tab-ciclo" onclick="setSemVisualizacao('ciclo')"
         style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
-        📅 Por dia
-      </button>
-      <button id="sem-tab-historico" onclick="setSemVisualizacao('historico')"
-        style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
-        🕐 Histórico
+        📅 Ciclo semanal
       </button>
     </div>
 
-    <!-- Painel Lista -->
-    <div id="sem-painel-lista">
-    <!-- Filtros -->
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
-      <select id="sem-selector" onchange="renderSemana()" style="padding:6px 10px;font-size:14px;font-weight:600;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);width:82px">
-        <option>S01</option>
-        <option>S02</option>
-        <option>S03</option>
-        <option>S04</option>
-        <option>S05</option>
-        <option  selected>S06</option>
-        <option>S07</option>
-        <option>S08</option>
-        <option>S09</option>
-        <option>S10</option>
-        <option>S11</option>
-        <option>S12</option>
-        <option>S13</option>
-        <option>S14</option>
-        <option>S15</option>
-        <option>S16</option>
-        <option>S17</option>
-        <option>S18</option>
-        <option>S19</option>
-        <option>S20</option>
-        <option>S21</option>
-        <option>S22</option>
-        <option>S23</option>
-        <option>S24</option>
-        <option>S25</option>
-        <option>S26</option>
-      </select>
-      <div id="sem-subtitulo" style="font-size:12px;color:var(--text2);flex:1"></div>
-      <div class="tabs" style="margin:0" id="sem-prio-tabs">
-        <button class="tab active" onclick="setSemPrio('todas',this)">Todas</button>
-        <button class="tab" onclick="setSemPrio('A',this)">A</button>
-        <button class="tab" onclick="setSemPrio('B',this)">B</button>
-        <button class="tab" onclick="setSemPrio('C',this)">C</button>
-      </div>
-      <select id="sem-status-filtro" onchange="renderSemana()" style="padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)">
-        <option value="pendente">Pendentes</option>
-        <option value="feita">Concluídas</option>
-        <option value="todas">Todas</option>
-        <option value="atrasadas">⚠️ Todas pendentes</option>
-      </select>
-      <select id="sem-disc-filtro" onchange="renderSemana()" style="padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);max-width:160px">
-        <option value="">Todas as disc.</option>
-      </select>
-    </div>
-    <!-- Progresso -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
-      <div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
-        <div id="sem-prog-barra" style="height:6px;background:var(--green);border-radius:3px;transition:width .3s;width:0%"></div>
-      </div>
-      <div id="sem-prog-texto" style="font-size:12px;color:var(--text2);white-space:nowrap"></div>
-    </div>
-    <!-- Lista -->
-    <div id="sem-lista-tarefas"></div>
-    </div><!-- fim painel lista -->
+
 
     <!-- Painel Ciclo -->
     <div id="sem-painel-ciclo" style="display:none">
@@ -4461,8 +4399,7 @@ let semVisualizacao = 'lista';
 function setSemVisualizacao(v){
   semVisualizacao = v;
   const _sy=window.scrollY;
-  const _cont=document.querySelector('.container');
-  ['lista','ciclo','historico'].forEach(t=>{
+  ['ciclo','historico'].forEach(t=>{
     const btn = document.getElementById('sem-tab-'+t);
     const pan = document.getElementById('sem-painel-'+t);
     if(!btn||!pan) return;
@@ -4473,7 +4410,6 @@ function setSemVisualizacao(v){
     btn.style.fontWeight = active?'500':'400';
   });
   window.scrollTo({top:_sy,behavior:'instant'});
-  if(v==='lista') renderSemana();
   if(v==='ciclo') renderCiclo();
   if(v==='historico') renderHistoricoSessoes();
 }
