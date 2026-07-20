@@ -5603,78 +5603,85 @@ function renderProgressoDia(){
 function abrirVinculoEdital(assunto, disc){
   document.getElementById('modal-vinculo')?.remove();
 
-  // Buscar tópicos da disciplina no edital
   const discKey = Object.keys(EDITAL_CARGO13||{}).find(k=>
     k===disc || k.toLowerCase().includes((disc||'').toLowerCase().split(' — ')[1]||disc) ||
     (disc||'').toLowerCase().includes(k.toLowerCase().split(' — ')[1]||k)
   );
   const topicos = discKey ? (EDITAL_CARGO13[discKey]?.topicos||[]) : [];
-
-  // Verificar se já tem vínculo
   const vinculos = JSON.parse(localStorage.getItem('tcema_vinculos_edital')||'{}');
   const vinculoAtual = vinculos[assunto] || '';
 
+  // Criar modal via DOM
   const overlay = document.createElement('div');
   overlay.id = 'modal-vinculo';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center';
+  overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
 
-  overlay.innerHTML =
-    '<div onclick="event.stopPropagation()" style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:1.25rem;width:500px;max-width:95vw;max-height:85vh;overflow-y:auto">'+
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem">'+
-        '<div style="flex:1;font-size:14px;font-weight:500">🔗 Vincular ao edital</div>'+
-        '<button onclick="document.getElementById(\'modal-vinculo\').remove()" style="border:none;background:transparent;cursor:pointer;font-size:18px;color:var(--text3)">✕</button>'+
-      '</div>'+
-      '<div style="padding:8px 12px;background:var(--bg2);border-radius:var(--radius);margin-bottom:12px;font-size:13px">'+
-        '<b>'+assunto+'</b><br><span style="font-size:11px;color:var(--text3)">'+disc+'</span>'+
-      '</div>'+
-      (vinculoAtual?'<div style="font-size:12px;color:var(--green);margin-bottom:8px">✅ Vinculado: '+vinculoAtual+'</div>':'')+
-      '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">Selecione o tópico do edital que corresponde a este assunto:</div>'+
-      '<div style="max-height:300px;overflow-y:auto">'+
-        (topicos.length?
-          topicos.map((t,ti)=>
-            '<button data-topico-idx="'+ti+'" data-assunto-vinc="1" '+
-            'style="display:block;width:100%;text-align:left;padding:8px 12px;margin-bottom:4px;'+
-            'border:1px solid '+(t===vinculoAtual?'var(--green)':'var(--border)')+';border-radius:var(--radius);'+
-            'background:'+(t===vinculoAtual?'var(--green-bg)':'var(--bg2)')+';color:var(--text);cursor:pointer;font-family:inherit;font-size:12px">'+
-            (t===vinculoAtual?'✅ ':'')+ t+
-            '</button>'
-          ).join(''):
-          '<div style="color:var(--text3);font-size:12px;padding:8px">Nenhum tópico encontrado para esta disciplina. Tente registrar com o nome da disciplina exato.</div>'
-        )+
-      '</div>'+
-      (vinculoAtual?
-        '<button onclick="removerVinculo(window._vinculoAssunto)" style="margin-top:10px;width:100%;padding:8px;border:1px dashed var(--red);border-radius:var(--radius);background:transparent;color:var(--red);cursor:pointer;font-family:inherit;font-size:12px">🗑️ Remover vínculo</button>':
-        '')+
-    '</div>';
+  const box = document.createElement('div');
+  box.style.cssText = 'background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:1.25rem;width:500px;max-width:95vw;max-height:85vh;overflow-y:auto';
+  box.onclick = e => e.stopPropagation();
 
-  overlay.addEventListener('click', e=>{
-    if(e.target===overlay){ overlay.remove(); return; }
-    // Clicar em botão de tópico
-    const btn = e.target.closest('[data-assunto-vinc]');
-    if(btn){
-      const idx = parseInt(btn.dataset.topicoIdx);
-      salvarVinculo(assunto, topicos[idx]);
-    }
-  });
-  window._vinculoAssunto = assunto;
-  document.body.appendChild(overlay);
+  // Header
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:1rem';
+  header.innerHTML = '<div style="flex:1;font-size:14px;font-weight:500">🔗 Vincular ao edital</div>';
+  const closeBtn = document.createElement('button');
+  closeBtn.innerHTML = '✕';
+  closeBtn.style.cssText = 'border:none;background:transparent;cursor:pointer;font-size:18px;color:var(--text3)';
+  closeBtn.onclick = () => overlay.remove();
+  header.appendChild(closeBtn);
+  box.appendChild(header);
 
-  // Popular botões de tópico via DOM (evita problemas de escaping)
-  const lista = document.getElementById('mv-topicos-lista');
-  if(lista){
-    if(!topicos.length){
-      lista.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">Nenhum tópico encontrado para esta disciplina.</div>';
-    } else {
-      topicos.forEach((t,ti)=>{
-        const btn = document.createElement('button');
-        btn.style.cssText = 'display:block;width:100%;text-align:left;padding:8px 12px;margin-bottom:4px;border:1px solid '+(t===vinculoAtual?'var(--green)':'var(--border)')+';border-radius:var(--radius);background:'+(t===vinculoAtual?'var(--green-bg)':'var(--bg2)')+';color:var(--text);cursor:pointer;font-family:inherit;font-size:12px';
-        btn.textContent = (t===vinculoAtual?'✅ ':'')+t;
-        btn.onclick = (e)=>{ e.stopPropagation(); salvarVinculo(assunto, t); };
-        lista.appendChild(btn);
-      });
-    }
+  // Info do assunto
+  const info = document.createElement('div');
+  info.style.cssText = 'padding:8px 12px;background:var(--bg2);border-radius:var(--radius);margin-bottom:12px;font-size:13px';
+  info.innerHTML = '<b>'+assunto+'</b><br><span style="font-size:11px;color:var(--text3)">'+disc+'</span>';
+  box.appendChild(info);
+
+  // Vínculo atual
+  if(vinculoAtual){
+    const v = document.createElement('div');
+    v.style.cssText = 'font-size:12px;color:var(--green);margin-bottom:8px';
+    v.textContent = '✅ Vinculado: '+vinculoAtual;
+    box.appendChild(v);
   }
+
+  // Instrução
+  const inst = document.createElement('div');
+  inst.style.cssText = 'font-size:12px;color:var(--text2);margin-bottom:8px';
+  inst.textContent = 'Selecione o tópico do edital que corresponde a este assunto:';
+  box.appendChild(inst);
+
+  // Lista de tópicos
+  const lista = document.createElement('div');
+  lista.style.cssText = 'max-height:300px;overflow-y:auto';
+
+  if(!topicos.length){
+    lista.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">Nenhum tópico encontrado para esta disciplina.</div>';
+  } else {
+    topicos.forEach(t => {
+      const btn = document.createElement('button');
+      btn.style.cssText = 'display:block;width:100%;text-align:left;padding:8px 12px;margin-bottom:4px;border:1px solid '+(t===vinculoAtual?'var(--green)':'var(--border)')+';border-radius:var(--radius);background:'+(t===vinculoAtual?'var(--green-bg)':'var(--bg2)')+';color:var(--text);cursor:pointer;font-family:inherit;font-size:12px';
+      btn.textContent = (t===vinculoAtual?'✅ ':'')+t;
+      btn.addEventListener('click', () => salvarVinculo(assunto, t));
+      lista.appendChild(btn);
+    });
+  }
+  box.appendChild(lista);
+
+  // Botão remover vínculo
+  if(vinculoAtual){
+    const remBtn = document.createElement('button');
+    remBtn.style.cssText = 'margin-top:10px;width:100%;padding:8px;border:1px dashed var(--red);border-radius:var(--radius);background:transparent;color:var(--red);cursor:pointer;font-family:inherit;font-size:12px';
+    remBtn.textContent = '🗑️ Remover vínculo';
+    remBtn.onclick = () => removerVinculo(assunto);
+    box.appendChild(remBtn);
+  }
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
 }
+
 
 function salvarVinculo(assunto, topico){
   const vinculos = JSON.parse(localStorage.getItem('tcema_vinculos_edital')||'{}');
