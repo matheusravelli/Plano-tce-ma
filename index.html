@@ -2233,6 +2233,7 @@ function modalNovoItem(discKey, topic){
           class="btn">Cancelar</button>
       </div>
     </div>`;
+  window._vinculoAssunto = assunto;
   document.body.appendChild(overlay);
   document.getElementById('modal-texto').focus();
 }
@@ -3433,7 +3434,14 @@ function abrirModalRegistro(tarefaId=null){
     usados.forEach(a=>{ if(!assuntos.includes(a)) dl.innerHTML += `<option value="${a}">`; });
   };
 
-  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  overlay.addEventListener('click', e=>{
+    if(e.target===overlay){ overlay.remove(); return; }
+    const btn = e.target.closest('[data-assunto-vinc]');
+    if(btn){
+      const idx = parseInt(btn.dataset.topicoIdx);
+      salvarVinculo(assunto, topicos[idx]);
+    }
+  });
   document.body.appendChild(overlay);
 
   // Popular assuntos se disc já selecionada
@@ -5599,6 +5607,79 @@ function renderProgressoDia(){
     '</div>';
 }
 
+function abrirVinculoEdital(assunto, disc){
+  document.getElementById('modal-vinculo')?.remove();
+
+  // Buscar tópicos da disciplina no edital
+  const discKey = Object.keys(EDITAL_CARGO13||{}).find(k=>
+    k===disc || k.toLowerCase().includes((disc||'').toLowerCase().split(' — ')[1]||disc) ||
+    (disc||'').toLowerCase().includes(k.toLowerCase().split(' — ')[1]||k)
+  );
+  const topicos = discKey ? (EDITAL_CARGO13[discKey]?.topicos||[]) : [];
+
+  // Verificar se já tem vínculo
+  const vinculos = JSON.parse(localStorage.getItem('tcema_vinculos_edital')||'{}');
+  const vinculoAtual = vinculos[assunto] || '';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'modal-vinculo';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center';
+
+  overlay.innerHTML =
+    '<div onclick="event.stopPropagation()" style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:1.25rem;width:500px;max-width:95vw;max-height:85vh;overflow-y:auto">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem">'+
+        '<div style="flex:1;font-size:14px;font-weight:500">🔗 Vincular ao edital</div>'+
+        '<button onclick="document.getElementById(\'modal-vinculo\').remove()" style="border:none;background:transparent;cursor:pointer;font-size:18px;color:var(--text3)">✕</button>'+
+      '</div>'+
+      '<div style="padding:8px 12px;background:var(--bg2);border-radius:var(--radius);margin-bottom:12px;font-size:13px">'+
+        '<b>'+assunto+'</b><br><span style="font-size:11px;color:var(--text3)">'+disc+'</span>'+
+      '</div>'+
+      (vinculoAtual?'<div style="font-size:12px;color:var(--green);margin-bottom:8px">✅ Vinculado: '+vinculoAtual+'</div>':'')+
+      '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">Selecione o tópico do edital que corresponde a este assunto:</div>'+
+      '<div style="max-height:300px;overflow-y:auto">'+
+        (topicos.length?
+          topicos.map((t,ti)=>
+            '<button data-topico-idx="'+ti+'" data-assunto-vinc="1" '+
+            'style="display:block;width:100%;text-align:left;padding:8px 12px;margin-bottom:4px;'+
+            'border:1px solid '+(t===vinculoAtual?'var(--green)':'var(--border)')+';border-radius:var(--radius);'+
+            'background:'+(t===vinculoAtual?'var(--green-bg)':'var(--bg2)')+';color:var(--text);cursor:pointer;font-family:inherit;font-size:12px">'+
+            (t===vinculoAtual?'✅ ':'')+ t+
+            '</button>'
+          ).join(''):
+          '<div style="color:var(--text3);font-size:12px;padding:8px">Nenhum tópico encontrado para esta disciplina. Tente registrar com o nome da disciplina exato.</div>'
+        )+
+      '</div>'+
+      (vinculoAtual?
+        '<button onclick="removerVinculo(window._vinculoAssunto)" style="margin-top:10px;width:100%;padding:8px;border:1px dashed var(--red);border-radius:var(--radius);background:transparent;color:var(--red);cursor:pointer;font-family:inherit;font-size:12px">🗑️ Remover vínculo</button>':
+        '')+
+    '</div>';
+
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+function salvarVinculo(assunto, topico){
+  const vinculos = JSON.parse(localStorage.getItem('tcema_vinculos_edital')||'{}');
+  vinculos[assunto] = topico;
+  localStorage.setItem('tcema_vinculos_edital', JSON.stringify(vinculos));
+  document.getElementById('modal-vinculo')?.remove();
+  renderAll();
+  // Toast
+  const t = document.createElement('div');
+  t.style.cssText='position:fixed;bottom:20px;right:20px;padding:10px 16px;background:var(--green);color:#000;border-radius:var(--radius);font-size:13px;font-weight:500;z-index:3000';
+  t.textContent='🔗 Vínculo salvo!';
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2500);
+}
+
+function removerVinculo(assunto){
+  const vinculos = JSON.parse(localStorage.getItem('tcema_vinculos_edital')||'{}');
+  delete vinculos[assunto];
+  localStorage.setItem('tcema_vinculos_edital', JSON.stringify(vinculos));
+  document.getElementById('modal-vinculo')?.remove();
+  renderAll();
+}
+
 async function load(){
   // Mostrar loading
   const appEl = document.getElementById('app') || document.querySelector('.app-container');
@@ -5910,15 +5991,45 @@ function renderDashEditalProgress(){
   const discs = Object.entries(EDITAL_CARGO13);
   let html_out = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">';
 
+  // Vínculos manuais: { "assunto registrado": "tópico do edital" }
+  const vinculosManuais = JSON.parse(localStorage.getItem('tcema_vinculos_edital')||'{}');
+
   discs.forEach(([disc,info])=>{
     const total = info.topicos.length;
     let feitos = 0;
     info.topicos.forEach(t=>{
-      const palavras = t.toLowerCase().replace(/[().,/—:]/g,' ').split(/\s+/).filter(p=>p.length>4);
+      // Normalizar tópico
+      const tNorm = t.toLowerCase().replace(/[().,/—:;]/g,' ').replace(/\s+/g,' ').trim();
+      const palavrasTopico = tNorm.split(' ').filter(p=>p.length>3);
+
       const temSessao = sessoes.some(s=>{
-        if(s.disc!==disc&&!s.disc?.includes(disc.split(' — ')[1]||disc)) return false;
-        const a=(s.assunto||'').toLowerCase();
-        return palavras.some(p=>a.includes(p));
+        // Verificar disciplina
+        const discSessao = (s.disc||'').toLowerCase();
+        const discEdital = disc.toLowerCase();
+        const discMatch = discSessao===discEdital ||
+          discSessao.includes(discEdital.split(' — ')[1]||discEdital) ||
+          discEdital.includes(discSessao.split(' — ')[1]||discSessao);
+        if(!discMatch) return false;
+
+        const assunto = (s.assunto||'').toLowerCase().replace(/[().,/—:;]/g,' ').trim();
+
+        // 1. Vínculo manual
+        const vinc = vinculosManuais[s.assunto];
+        if(vinc && vinc===t) return true;
+
+        // 2. Assunto contém palavras do tópico (original)
+        const palavrasAssunto = assunto.split(' ').filter(p=>p.length>3);
+        if(palavrasTopico.some(p=>assunto.includes(p))) return true;
+
+        // 3. Tópico contém palavras do assunto (bidirecional)
+        if(palavrasAssunto.some(p=>tNorm.includes(p))) return true;
+
+        // 4. Similaridade por sigla/abreviação
+        const siglaT = palavrasTopico.filter(p=>p.length>5).map(p=>p[0]).join('');
+        const siglaA = palavrasAssunto.filter(p=>p.length>5).map(p=>p[0]).join('');
+        if(siglaT.length>2 && siglaT===siglaA) return true;
+
+        return false;
       });
       if(temSessao) feitos++;
     });
