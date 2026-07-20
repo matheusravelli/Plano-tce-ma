@@ -6382,7 +6382,8 @@ function renderEvolucao(){
   const abaixo = items.filter(a=>a.avg<a.meta).length;
   const mediaGeral = total ? Math.round(items.reduce((s,a)=>s+a.avg,0)/total) : 0;
 
-  document.getElementById('ev-metrics').innerHTML = `
+  const evMetEl2 = document.getElementById('ev-metrics');
+  if(evMetEl2) evMetEl2.innerHTML = `
     <div class="metric"><div class="metric-label">Assuntos monitorados</div><div class="metric-val">${total}</div></div>
     <div class="metric"><div class="metric-label">Acima da meta</div><div class="metric-val" style="color:var(--green)">${acima}</div></div>
     <div class="metric"><div class="metric-label">Abaixo da meta</div><div class="metric-val" style="color:var(--red)">${abaixo}</div></div>
@@ -6395,10 +6396,9 @@ function renderEvolucao(){
     porDisc[a.disc].push(a);
   });
 
-  const blocoEl = document.getElementById('ev-blocos');
-  if(!items.length){ blocoEl.innerHTML='<div class="empty" style="padding:3rem">Nenhuma sessão com registro de acertos ainda.<br>Registre sessões na aba Registrar para ver sua evolução.</div>'; return; }
+  if(!items.length){ evEl.innerHTML='<div class="empty" style="padding:3rem">Nenhuma sessão com registro de acertos ainda.</div>'; return; }
 
-  blocoEl.innerHTML = Object.entries(porDisc)
+  evEl.innerHTML = Object.entries(porDisc)
     .sort((a,b)=>a[0].localeCompare(b[0]))
     .map(([disc, assuntos])=>{
       const sorted = [...assuntos].sort((a,b)=>a.avg-b.avg);
