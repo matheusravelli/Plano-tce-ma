@@ -5998,38 +5998,15 @@ function renderDashEditalProgress(){
     const total = info.topicos.length;
     let feitos = 0;
     info.topicos.forEach(t=>{
-      // Normalizar tópico
-      const tNorm = t.toLowerCase().replace(/[().,/—:;]/g,' ').replace(/\s+/g,' ').trim();
-      const palavrasTopico = tNorm.split(' ').filter(p=>p.length>3);
-
+      const palavras = t.toLowerCase().replace(/[().,/—:]/g,' ').split(/\s+/).filter(p=>p.length>4);
       const temSessao = sessoes.some(s=>{
-        // Verificar disciplina
-        const discSessao = (s.disc||'').toLowerCase();
-        const discEdital = disc.toLowerCase();
-        const discMatch = discSessao===discEdital ||
-          discSessao.includes(discEdital.split(' — ')[1]||discEdital) ||
-          discEdital.includes(discSessao.split(' — ')[1]||discSessao);
-        if(!discMatch) return false;
-
-        const assunto = (s.assunto||'').toLowerCase().replace(/[().,/—:;]/g,' ').trim();
-
+        if(s.disc!==disc&&!s.disc?.includes(disc.split(' — ')[1]||disc)) return false;
         // 1. Vínculo manual
         const vinc = vinculosManuais[s.assunto];
         if(vinc && vinc===t) return true;
-
-        // 2. Assunto contém palavras do tópico (original)
-        const palavrasAssunto = assunto.split(' ').filter(p=>p.length>3);
-        if(palavrasTopico.some(p=>assunto.includes(p))) return true;
-
-        // 3. Tópico contém palavras do assunto (bidirecional)
-        if(palavrasAssunto.some(p=>tNorm.includes(p))) return true;
-
-        // 4. Similaridade por sigla/abreviação
-        const siglaT = palavrasTopico.filter(p=>p.length>5).map(p=>p[0]).join('');
-        const siglaA = palavrasAssunto.filter(p=>p.length>5).map(p=>p[0]).join('');
-        if(siglaT.length>2 && siglaT===siglaA) return true;
-
-        return false;
+        // 2. Matching original por palavras do tópico
+        const a=(s.assunto||'').toLowerCase();
+        return palavras.some(p=>a.includes(p));
       });
       if(temSessao) feitos++;
     });
