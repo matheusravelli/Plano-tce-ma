@@ -1013,9 +1013,9 @@ alter table tarefas disable row level security;
   <!-- DESEMPENHO -->
   <div id="view-desempenho" class="view">
     <!-- Sub-abas Desempenho -->
-    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem">
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1rem;overflow-x:auto;white-space:nowrap">
       <button id="desemp-tab-geral" onclick="setDesempTab('geral')"
-        style="padding:7px 16px;font-size:13px;font-weight:500;border:none;border-bottom:2px solid var(--green);background:transparent;cursor:pointer;font-family:inherit;color:var(--text)">
+        style="padding:7px 12px;font-size:12px;font-weight:500;border:none;border-bottom:2px solid var(--green);background:transparent;cursor:pointer;font-family:inherit;color:var(--text)">
         📊 Geral
       </button>
       <button id="desemp-tab-semana" onclick="setDesempTab('semana')"
@@ -3605,7 +3605,7 @@ function renderResumaSemana(){
   el.appendChild(chartSection);
 
   // Renderizar pizza com Chart.js
-  requestAnimationFrame(()=>{
+  setTimeout(()=>{
     const canvas = document.getElementById('chart-pizza-semana');
     if(!canvas || !window.Chart) return;
     // Destruir chart anterior se existir
@@ -3635,7 +3635,7 @@ function renderResumaSemana(){
         cutout:'60%'
       }
     });
-  });
+  }, 150);
 
   // Distribuição por dia da semana
   const diasLabel = document.createElement('div');
@@ -3838,6 +3838,7 @@ function setDesempTab(tab){
   window.scrollTo({top: scrollY, behavior: 'instant'});
   if(tab==='semana') setTimeout(renderResumaSemana, 50);
   if(tab==='constancia') setTimeout(renderConstancia, 50);
+  if(tab==='evolucao') setTimeout(renderEvolucao, 50);
   if(tab==='reforco'){
     const el = document.getElementById('desemp-rf-lista');
   if(!el) return;
@@ -4665,7 +4666,7 @@ function renderDashSemanaResumo(){
         animation:{duration:400}
       }
     });
-  });
+  }, 100);
 }
 
 const META_QUESTOES_DIA = 150;
@@ -6358,7 +6359,8 @@ function cancelarImport(){
 
 // ── EVOLUÇÃO //──────────
 function renderEvolucao(){
-  if(!document.getElementById('ev-blocos')) return;
+  const evEl = document.getElementById('desemp-ev-lista') || document.getElementById('ev-blocos');
+  if(!evEl) return;
 
   // Calcular média por disciplina+assunto
   const porAssunto = {};
@@ -6437,7 +6439,8 @@ function renderEvolucao(){
 let tarefasReforco = []; // buffer antes de confirmar
 
 function renderReforco(){
-  if(!document.getElementById('rf-lista')) return;
+  const rfEl = document.getElementById('desemp-rf-lista') || document.getElementById('rf-lista');
+  if(!rfEl) return;
 
   // Calcular média por assunto
   const porAssunto = {};
