@@ -3576,7 +3576,7 @@ function renderResumaSemana(){
 
   // Canvas do gráfico
   const chartWrap = document.createElement('div');
-  chartWrap.innerHTML = '<div class="section-title">DISTRIBUIÇÃO POR TEMPO</div><div style="position:relative;max-width:240px;margin:0 auto"><canvas id="chart-pizza-semana" width="240" height="240"></canvas></div>';
+  chartWrap.innerHTML = '<div class="section-title">DISTRIBUIÇÃO POR TEMPO</div><div style="position:relative;width:200px;height:200px;margin:0 auto"><canvas id="chart-pizza-semana"></canvas></div>';
   chartSection.appendChild(chartWrap);
 
   // Legenda
@@ -4660,13 +4660,14 @@ function renderDashSemanaResumo(){
         }]
       },
       options:{
-        responsive:false,
+        responsive:true,
+        maintainAspectRatio:true,
         plugins:{legend:{display:false},tooltip:{enabled:false}},
         cutout:'65%',
         animation:{duration:400}
       }
     });
-  }, 100);
+  }, 200);
 }
 
 const META_QUESTOES_DIA = 150;
