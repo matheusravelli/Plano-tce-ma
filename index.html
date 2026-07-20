@@ -3392,6 +3392,27 @@ function abrirModalRegistro(tarefaId=null){
     }
   };
 
+  // Popular select de semana com semana atual pré-selecionada
+  (function(){
+    const sel = document.getElementById('mr-semana');
+    if(!sel) return;
+    const hoje2 = dataHoje();
+    let semHoje = 'S07';
+    if(typeof CALENDARIO_SEMANAS !== 'undefined'){
+      Object.entries(CALENDARIO_SEMANAS).forEach(([s,c])=>{
+        if(hoje2>=c.inicio && hoje2<=c.fim) semHoje=s;
+      });
+    }
+    ['S01','S02','S03','S04','S05','S06','S07','S08','S09','S10','S11','S12',
+     'S13','S14','S15','S16','S17','S18','S19','S20','S21','S22','S23','S24','S25','S26'
+    ].forEach(s=>{
+      const o = document.createElement('option');
+      o.value = s; o.textContent = s;
+      if(s===semHoje) o.selected = true;
+      sel.appendChild(o);
+    });
+  })();
+
   window.mrAtualizarAssuntos = function(){
     const disc = document.getElementById('mr-disc')?.value;
     const dl = document.getElementById('mr-assunto-list');
