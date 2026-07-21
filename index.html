@@ -4710,7 +4710,7 @@ function renderDashSemanaResumo(){
   }, 150);
 }
 
-const META_QUESTOES_DIA = 150;
+const META_QUESTOES_DIA = 100;
 const META_TEMPO_DIA = {0:300,1:180,2:180,3:180,4:180,5:180,6:300}; // minutos por dia (dom=0)
 const META_TEMPO_SEMANA = 25*60; // 25h em minutos
 
@@ -5941,7 +5941,6 @@ function showView(v, btn){
 function renderAll(){
   renderMetrics();
   renderUltimasSessoes();
-  renderDashTarefas();
   renderProgressoDia();
   renderDashSemanaResumo();
   renderDashConstanciaResumo();
