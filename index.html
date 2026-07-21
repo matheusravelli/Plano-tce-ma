@@ -5905,8 +5905,6 @@ function _renderPlanilhaTabela(el, vinculosManuais, errosMap, discFiltro){
         return a===t||a.includes(t)||t.includes(a);
       });
 
-      if(!sessoesTopico.length) return; // só mostrar tópicos com sessões
-
       // Ordenar sessões cronologicamente
       const sessoesOrdem = [...sessoesTopico].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
       const contatoVals = sessoesOrdem.map(s=>({
@@ -5917,7 +5915,7 @@ function _renderPlanilhaTabela(el, vinculosManuais, errosMap, discFiltro){
 
       // Calcular média geral
       const todasMedias = contatoVals.map(c=>c.pct);
-      const mediaGeral = Math.round(todasMedias.reduce((a,b)=>a+b,0)/todasMedias.length);
+      const mediaGeral = todasMedias.length ? Math.round(todasMedias.reduce((a,b)=>a+b,0)/todasMedias.length) : null;
 
       // Erros pendentes para este tópico
       const errosPend = sessoesTopico.reduce((acc,s)=>{
@@ -5961,9 +5959,9 @@ function _renderPlanilhaTabela(el, vinculosManuais, errosMap, discFiltro){
 
       // Média geral
       const tdMedia = document.createElement('td');
-      const corMedia = mediaGeral>=75?'#22c55e':mediaGeral>=65?'#f59e0b':'#ef4444';
+      const corMedia = mediaGeral===null?'var(--text3)':mediaGeral>=75?'#22c55e':mediaGeral>=65?'#f59e0b':'#ef4444';
       tdMedia.style.cssText = 'padding:5px 8px;border:1px solid var(--border);text-align:center;font-weight:700;color:'+corMedia+';background:var(--bg3)';
-      tdMedia.textContent = mediaGeral+'%';
+      tdMedia.textContent = mediaGeral!==null ? mediaGeral+'%' : '—';
       tr.appendChild(tdMedia);
 
       // Erros pendentes
