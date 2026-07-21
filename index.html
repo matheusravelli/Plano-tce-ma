@@ -716,6 +716,10 @@ alter table tarefas disable row level security;
         style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
         🔗 Sem vínculo
       </button>
+      <button id="edital-tab-planilha" onclick="setEditalTab('planilha')"
+        style="padding:7px 16px;font-size:13px;font-weight:400;border:none;border-bottom:2px solid transparent;background:transparent;cursor:pointer;font-family:inherit;color:var(--text2)">
+        📊 Planilha
+      </button>
     </div>
 
     <!-- Painel Info -->
@@ -942,6 +946,11 @@ alter table tarefas disable row level security;
     <div id="edital-painel-semvinculo" style="display:none">
       <div id="edital-semvinculo-conteudo"></div>
     </div>
+
+    <!-- Painel Planilha -->
+    <div id="edital-painel-planilha" style="display:none">
+      <div id="edital-planilha-conteudo"></div>
+    </div>
   </div>
 
   <!-- DESEMPENHO -->
@@ -1092,6 +1101,7 @@ async function registrarDaTarefa(id){
   tarefaExpandida = null;
   delete window._regSaving[id];
   renderAll();
+  atualizarBadgeReforco();
 
   const msg = document.getElementById('reg-msg-'+id);
   if(msg){ msg.textContent = gravidade ? '✅ Registrado + erro no caderno' : '✅ Registrado'; }
@@ -1268,6 +1278,7 @@ function setCadFiltro(f, btn){
   document.querySelectorAll('#view-caderno .tab').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   renderCaderno();
+  atualizarBadgeReforco();
 }
 
 function toggleFormErro(){
@@ -3894,7 +3905,7 @@ function setDesempTab(tab){
 let editalTabAtiva = 'topicos';
 function setEditalTab(tab){
   editalTabAtiva = tab;
-  const tabs = ['info','simulador','topicos','importar','semvinculo'];
+  const tabs = ['info','simulador','topicos','importar','semvinculo','planilha'];
   tabs.forEach(t=>{
     const btn = document.getElementById('edital-tab-'+t);
     const pan = document.getElementById('edital-painel-'+t);
@@ -3908,6 +3919,7 @@ function setEditalTab(tab){
   if(tab==='topicos') setTimeout(renderEdital, 50);
   if(tab==='simulador') setTimeout(()=>{ setSimTab('projecao'); renderSimProjecao(); }, 50);
   if(tab==='semvinculo') setTimeout(renderSemVinculo, 50);
+  if(tab==='planilha') setTimeout(renderPlanilhaDesempenho, 50);
   if(tab==='importar'){
     // Mover conteúdo da view importar para cá
     const wrap = document.getElementById('edital-importar-wrap');
@@ -5771,6 +5783,226 @@ function renderSemVinculo(){
     row.appendChild(btn);
     el.appendChild(row);
   });
+}
+
+// ── PLANILHA DE DESEMPENHO POR TÓPICO ──────────────────────────────────────
+function renderPlanilhaDesempenho(){
+  const el = document.getElementById('edital-planilha-conteudo');
+  if(!el) return;
+
+  const vinculosManuais = JSON.parse(localStorage.getItem('tcema_vinculos_edital')||'{}');
+  const errosMap = {}; // assunto -> erros pendentes
+  erros.filter(e=>e.status==='pendente').forEach(e=>{
+    const k = (e.disc||'')+'||'+(e.assunto||'');
+    errosMap[k] = (errosMap[k]||0)+1;
+  });
+
+  // Coletar todas as datas únicas com sessões
+  const todasDatas = [...new Set(sessoes.filter(s=>s.acertos!=null&&s.qtd>0).map(s=>s.data))].sort();
+
+  // Limitar às últimas 10 datas para não ficar muito largo
+  const datas = todasDatas.slice(-10);
+
+  el.innerHTML = '';
+
+  // Seletor de disciplina
+  const discSel = document.createElement('div');
+  discSel.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap';
+  discSel.innerHTML = '<span style="font-size:12px;color:var(--text2)">Disciplina:</span>';
+  const sel = document.createElement('select');
+  sel.style.cssText = 'padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit';
+  sel.innerHTML = '<option value="">Todas</option>'+Object.entries(EDITAL_CARGO13).map(([k,v])=>`<option value="${k}">${v.nome}</option>`).join('');
+  sel.onchange = ()=>_renderPlanilhaTabela(el, datas, vinculosManuais, errosMap, sel.value);
+  discSel.appendChild(sel);
+
+  const info = document.createElement('span');
+  info.style.cssText = 'font-size:11px;color:var(--text3)';
+  info.textContent = 'Mostrando últimas '+datas.length+' sessões com acertos';
+  discSel.appendChild(info);
+  el.appendChild(discSel);
+
+  const tableWrap = document.createElement('div');
+  tableWrap.id = '_planilha_wrap';
+  tableWrap.style.cssText = 'overflow-x:auto';
+  el.appendChild(tableWrap);
+
+  _renderPlanilhaTabela(el, datas, vinculosManuais, errosMap, '');
+}
+
+function _renderPlanilhaTabela(el, datas, vinculosManuais, errosMap, discFiltro){
+  const wrap = document.getElementById('_planilha_wrap');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+
+  const table = document.createElement('table');
+  table.style.cssText = 'border-collapse:collapse;font-size:11px;min-width:600px;width:100%';
+
+  // Header
+  const thead = document.createElement('thead');
+  const trHead = document.createElement('tr');
+  trHead.style.cssText = 'background:var(--bg3)';
+
+  const thDisc = document.createElement('th');
+  thDisc.style.cssText = 'text-align:left;padding:6px 10px;border:1px solid var(--border);color:var(--text2);font-weight:600;min-width:140px;position:sticky;left:0;background:var(--bg3)';
+  thDisc.textContent = 'Disciplina';
+
+  const thTopico = document.createElement('th');
+  thTopico.style.cssText = 'text-align:left;padding:6px 10px;border:1px solid var(--border);color:var(--text2);font-weight:600;min-width:240px;position:sticky;left:140px;background:var(--bg3)';
+  thTopico.textContent = 'Tópico';
+
+  trHead.appendChild(thDisc);
+  trHead.appendChild(thTopico);
+
+  datas.forEach(d=>{
+    const th = document.createElement('th');
+    th.style.cssText = 'padding:6px 8px;border:1px solid var(--border);color:var(--text2);font-weight:600;min-width:70px;text-align:center;white-space:nowrap';
+    th.textContent = d.slice(5).replace('-','/'); // MM/DD
+    trHead.appendChild(th);
+  });
+
+  const thMedia = document.createElement('th');
+  thMedia.style.cssText = 'padding:6px 8px;border:1px solid var(--border);color:var(--text2);font-weight:700;min-width:60px;text-align:center;background:var(--bg3)';
+  thMedia.textContent = 'Média';
+  trHead.appendChild(thMedia);
+
+  const thReforco = document.createElement('th');
+  thReforco.style.cssText = 'padding:6px 8px;border:1px solid var(--border);color:var(--amber);font-weight:600;min-width:60px;text-align:center';
+  thReforco.textContent = '⚠️ Erros';
+  trHead.appendChild(thReforco);
+
+  thead.appendChild(trHead);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  let rowCount = 0;
+
+  Object.entries(EDITAL_CARGO13).forEach(([disc, info])=>{
+    if(discFiltro && disc!==discFiltro) return;
+
+    info.topicos.forEach((topico, ti)=>{
+      // Encontrar sessões para este tópico
+      const sessoesTopico = sessoes.filter(s=>{
+        if(s.acertos==null||!s.qtd) return false;
+        if(s.disc!==disc && !s.disc?.includes(disc.split(' ')[0])) return false;
+        const vinc = vinculosManuais[s.assunto];
+        if(vinc===topico) return true;
+        const a=(s.assunto||'').toLowerCase().trim();
+        const t=topico.toLowerCase().trim();
+        return a===t||a.includes(t)||t.includes(a);
+      });
+
+      if(!sessoesTopico.length) return; // só mostrar tópicos com sessões
+
+      // Agrupar por data
+      const porData = {};
+      sessoesTopico.forEach(s=>{
+        if(!porData[s.data]) porData[s.data]=[];
+        porData[s.data].push(Math.round(s.acertos/s.qtd*100));
+      });
+
+      // Calcular média geral
+      const todasMedias = sessoesTopico.map(s=>Math.round(s.acertos/s.qtd*100));
+      const mediaGeral = Math.round(todasMedias.reduce((a,b)=>a+b,0)/todasMedias.length);
+
+      // Erros pendentes para este tópico
+      const errosPend = sessoesTopico.reduce((acc,s)=>{
+        const k=(s.disc||'')+'||'+(s.assunto||'');
+        return acc+(errosMap[k]||0);
+      },0);
+
+      const tr = document.createElement('tr');
+      tr.style.cssText = 'background:'+(rowCount%2?'var(--bg2)':'var(--bg)');
+      rowCount++;
+
+      // Disciplina (só na primeira linha)
+      const tdDisc = document.createElement('td');
+      tdDisc.style.cssText = 'padding:5px 10px;border:1px solid var(--border);color:var(--text2);font-size:10px;position:sticky;left:0;background:inherit';
+      tdDisc.textContent = ti===0?info.nome:'';
+      tr.appendChild(tdDisc);
+
+      // Tópico
+      const tdTopico = document.createElement('td');
+      tdTopico.style.cssText = 'padding:5px 10px;border:1px solid var(--border);color:var(--text);position:sticky;left:140px;background:inherit;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      tdTopico.title = topico;
+      tdTopico.textContent = topico;
+      tr.appendChild(tdTopico);
+
+      // Valores por data
+      datas.forEach(d=>{
+        const td = document.createElement('td');
+        td.style.cssText = 'padding:5px 8px;border:1px solid var(--border);text-align:center';
+        const vals = porData[d];
+        if(vals){
+          const m = Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
+          const cor = m>=75?'#22c55e':m>=65?'#f59e0b':'#ef4444';
+          const bg = m>=75?'rgba(34,197,94,.12)':m>=65?'rgba(245,158,11,.12)':'rgba(239,68,68,.12)';
+          td.style.background = bg;
+          td.innerHTML = '<span style="font-weight:700;color:'+cor+'">'+m+'%</span>';
+          if(vals.length>1) td.title = vals.length+' sessões nesta data';
+        } else {
+          td.textContent = '—';
+          td.style.color = 'var(--text3)';
+        }
+        tr.appendChild(td);
+      });
+
+      // Média geral
+      const tdMedia = document.createElement('td');
+      const corMedia = mediaGeral>=75?'#22c55e':mediaGeral>=65?'#f59e0b':'#ef4444';
+      tdMedia.style.cssText = 'padding:5px 8px;border:1px solid var(--border);text-align:center;font-weight:700;color:'+corMedia+';background:var(--bg3)';
+      tdMedia.textContent = mediaGeral+'%';
+      tr.appendChild(tdMedia);
+
+      // Erros pendentes
+      const tdErros = document.createElement('td');
+      tdErros.style.cssText = 'padding:5px 8px;border:1px solid var(--border);text-align:center';
+      if(errosPend>0){
+        tdErros.innerHTML = '<span style="background:var(--amber);color:#000;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700">'+errosPend+'</span>';
+      } else {
+        tdErros.innerHTML = '<span style="color:var(--text3)">—</span>';
+      }
+      tr.appendChild(tdErros);
+
+      tbody.appendChild(tr);
+    });
+  });
+
+  table.appendChild(tbody);
+
+  if(!rowCount){
+    wrap.innerHTML = '<div class="empty" style="padding:2rem">Nenhum tópico com sessões registradas ainda.</div>';
+  } else {
+    wrap.appendChild(table);
+    // Rodapé com legenda
+    const leg = document.createElement('div');
+    leg.style.cssText = 'display:flex;gap:16px;margin-top:10px;font-size:11px;color:var(--text3)';
+    leg.innerHTML =
+      '<span>🟢 ≥75% (meta)</span>'+
+      '<span>🟡 65-74%</span>'+
+      '<span>🔴 &lt;65%</span>'+
+      '<span>⚠️ = erros pendentes no caderno</span>';
+    wrap.appendChild(leg);
+  }
+}
+
+// ── BADGE DE REFORÇOS PENDENTES ──────────────────────────────────────────────
+function atualizarBadgeReforco(){
+  const pendentes = erros.filter(e=>e.status==='pendente').length;
+  let badge = document.getElementById('badge-reforco');
+  if(!badge){
+    const btnEstudo = document.getElementById('nav-estudo');
+    if(!btnEstudo) return;
+    badge = document.createElement('span');
+    badge.id = 'badge-reforco';
+    badge.style.cssText = 'display:inline-block;background:var(--amber);color:#000;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;vertical-align:middle';
+    btnEstudo.appendChild(badge);
+  }
+  if(pendentes>0){
+    badge.textContent = pendentes;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
 }
 
 async function load(){
