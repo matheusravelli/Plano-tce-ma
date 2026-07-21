@@ -5798,11 +5798,6 @@ function renderPlanilhaDesempenho(){
   });
 
   // Coletar todas as datas únicas com sessões
-  const todasDatas = [...new Set(sessoes.filter(s=>s.acertos!=null&&s.qtd>0).map(s=>s.data))].sort();
-
-  // Limitar às últimas 10 datas para não ficar muito largo
-  const datas = todasDatas.slice(-10);
-
   el.innerHTML = '';
 
   // Seletor de disciplina
@@ -5812,13 +5807,8 @@ function renderPlanilhaDesempenho(){
   const sel = document.createElement('select');
   sel.style.cssText = 'padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit';
   sel.innerHTML = '<option value="">Todas</option>'+Object.entries(EDITAL_CARGO13).map(([k,v])=>`<option value="${k}">${v.nome}</option>`).join('');
-  sel.onchange = ()=>_renderPlanilhaTabela(el, datas, vinculosManuais, errosMap, sel.value);
+  sel.onchange = ()=>_renderPlanilhaTabela(el, vinculosManuais, errosMap, sel.value);
   discSel.appendChild(sel);
-
-  const info = document.createElement('span');
-  info.style.cssText = 'font-size:11px;color:var(--text3)';
-  info.textContent = 'Mostrando últimas '+datas.length+' sessões com acertos';
-  discSel.appendChild(info);
   el.appendChild(discSel);
 
   const tableWrap = document.createElement('div');
@@ -5826,10 +5816,10 @@ function renderPlanilhaDesempenho(){
   tableWrap.style.cssText = 'overflow-x:auto';
   el.appendChild(tableWrap);
 
-  _renderPlanilhaTabela(el, datas, vinculosManuais, errosMap, '');
+  _renderPlanilhaTabela(el, vinculosManuais, errosMap, '');
 }
 
-function _renderPlanilhaTabela(el, datas, vinculosManuais, errosMap, discFiltro){
+function _renderPlanilhaTabela(el, vinculosManuais, errosMap, discFiltro){
   const wrap = document.getElementById('_planilha_wrap');
   if(!wrap) return;
   wrap.innerHTML = '';
@@ -5853,12 +5843,36 @@ function _renderPlanilhaTabela(el, datas, vinculosManuais, errosMap, discFiltro)
   trHead.appendChild(thDisc);
   trHead.appendChild(thTopico);
 
-  datas.forEach(d=>{
+  // Colunas de contato serão adicionadas dinamicamente por tópico
+  // Calculamos o máximo de sessões de qualquer tópico para definir colunas
+  const maxContatos = (() => {
+    let max = 0;
+    Object.entries(EDITAL_CARGO13).forEach(([disc, info])=>{
+      if(discFiltro && disc!==discFiltro) return;
+      info.topicos.forEach(topico=>{
+        const n = sessoes.filter(s=>{
+          if(s.acertos==null||!s.qtd) return false;
+          if(s.disc!==disc && !s.disc?.includes(disc.split(' ')[0])) return false;
+          const vinc = vinculosManuais[s.assunto];
+          if(vinc===topico) return true;
+          const a=(s.assunto||'').toLowerCase().trim();
+          const t=topico.toLowerCase().trim();
+          return a===t||a.includes(t)||t.includes(a);
+        }).length;
+        if(n>max) max=n;
+      });
+    });
+    return Math.min(max, 8); // máximo 8 colunas
+  })();
+
+  const ordinals = ['1ª','2ª','3ª','4ª','5ª','6ª','7ª','8ª'];
+  const labels   = ['1º contato','2ª revisão','3ª revisão','4ª revisão','5ª revisão','6ª revisão','7ª revisão','8ª revisão'];
+  for(let i=0;i<maxContatos;i++){
     const th = document.createElement('th');
-    th.style.cssText = 'padding:6px 8px;border:1px solid var(--border);color:var(--text2);font-weight:600;min-width:70px;text-align:center;white-space:nowrap';
-    th.textContent = d.slice(5).replace('-','/'); // MM/DD
+    th.style.cssText = 'padding:6px 8px;border:1px solid var(--border);color:var(--text2);font-weight:600;min-width:80px;text-align:center;white-space:nowrap';
+    th.textContent = labels[i]||((i+1)+'ª revisão');
     trHead.appendChild(th);
-  });
+  }
 
   const thMedia = document.createElement('th');
   thMedia.style.cssText = 'padding:6px 8px;border:1px solid var(--border);color:var(--text2);font-weight:700;min-width:60px;text-align:center;background:var(--bg3)';
@@ -5893,15 +5907,16 @@ function _renderPlanilhaTabela(el, datas, vinculosManuais, errosMap, discFiltro)
 
       if(!sessoesTopico.length) return; // só mostrar tópicos com sessões
 
-      // Agrupar por data
-      const porData = {};
-      sessoesTopico.forEach(s=>{
-        if(!porData[s.data]) porData[s.data]=[];
-        porData[s.data].push(Math.round(s.acertos/s.qtd*100));
-      });
+      // Ordenar sessões cronologicamente
+      const sessoesOrdem = [...sessoesTopico].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+      const contatoVals = sessoesOrdem.map(s=>({
+        pct: Math.round(s.acertos/s.qtd*100),
+        data: s.data,
+        tipo: s.tipo||''
+      }));
 
       // Calcular média geral
-      const todasMedias = sessoesTopico.map(s=>Math.round(s.acertos/s.qtd*100));
+      const todasMedias = contatoVals.map(c=>c.pct);
       const mediaGeral = Math.round(todasMedias.reduce((a,b)=>a+b,0)/todasMedias.length);
 
       // Erros pendentes para este tópico
@@ -5927,24 +5942,22 @@ function _renderPlanilhaTabela(el, datas, vinculosManuais, errosMap, discFiltro)
       tdTopico.textContent = topico;
       tr.appendChild(tdTopico);
 
-      // Valores por data
-      datas.forEach(d=>{
+      // Células por contato (1º contato, 2ª revisão, ...)
+      for(let i=0;i<maxContatos;i++){
         const td = document.createElement('td');
         td.style.cssText = 'padding:5px 8px;border:1px solid var(--border);text-align:center';
-        const vals = porData[d];
-        if(vals){
-          const m = Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
-          const cor = m>=75?'#22c55e':m>=65?'#f59e0b':'#ef4444';
-          const bg = m>=75?'rgba(34,197,94,.12)':m>=65?'rgba(245,158,11,.12)':'rgba(239,68,68,.12)';
+        const c = contatoVals[i];
+        if(c){
+          const cor = c.pct>=75?'#22c55e':c.pct>=65?'#f59e0b':'#ef4444';
+          const bg  = c.pct>=75?'rgba(34,197,94,.12)':c.pct>=65?'rgba(245,158,11,.12)':'rgba(239,68,68,.12)';
           td.style.background = bg;
-          td.innerHTML = '<span style="font-weight:700;color:'+cor+'">'+m+'%</span>';
-          if(vals.length>1) td.title = vals.length+' sessões nesta data';
+          td.innerHTML = '<span style="font-weight:700;color:'+cor+'">'+c.pct+'%</span>';
+          td.title = c.data+(c.tipo?' · '+c.tipo:'');
         } else {
-          td.textContent = '—';
-          td.style.color = 'var(--text3)';
+          td.innerHTML = '<span style="color:var(--border2)">·</span>';
         }
         tr.appendChild(td);
-      });
+      }
 
       // Média geral
       const tdMedia = document.createElement('td');
@@ -5980,7 +5993,9 @@ function _renderPlanilhaTabela(el, datas, vinculosManuais, errosMap, discFiltro)
       '<span>🟢 ≥75% (meta)</span>'+
       '<span>🟡 65-74%</span>'+
       '<span>🔴 &lt;65%</span>'+
-      '<span>⚠️ = erros pendentes no caderno</span>';
+      '<span>· = ainda não estudado</span>'+
+      '<span>⚠️ = erros pendentes</span>'+
+      '<span style="color:var(--text3)">Passe o mouse sobre a célula para ver data e tipo</span>';
     wrap.appendChild(leg);
   }
 }
