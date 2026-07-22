@@ -5807,8 +5807,20 @@ function renderPlanilhaDesempenho(){
   const sel = document.createElement('select');
   sel.style.cssText = 'padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit';
   sel.innerHTML = '<option value="">Todas</option>'+Object.entries(EDITAL_CARGO13).map(([k,v])=>`<option value="${k}">${v.nome}</option>`).join('');
-  sel.onchange = ()=>_renderPlanilhaTabela(el, vinculosManuais, errosMap, sel.value);
+  sel.onchange = ()=>_renderPlanilhaTabela(el, vinculosManuais, errosMap, sel.value, sortSel.value);
   discSel.appendChild(sel);
+
+  const sortLabel = document.createElement('span');
+  sortLabel.style.cssText = 'font-size:12px;color:var(--text2)';
+  sortLabel.textContent = 'Ordenar:';
+  discSel.appendChild(sortLabel);
+
+  const sortSel = document.createElement('select');
+  sortSel.style.cssText = 'padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:inherit';
+  sortSel.innerHTML = '<option value="edital">Ordem do edital</option><option value="asc">Pior desempenho primeiro</option><option value="desc">Melhor desempenho primeiro</option><option value="naoestu">Não estudados primeiro</option>';
+  sortSel.onchange = ()=>_renderPlanilhaTabela(el, vinculosManuais, errosMap, sel.value, sortSel.value);
+  discSel.appendChild(sortSel);
+
   el.appendChild(discSel);
 
   const tableWrap = document.createElement('div');
@@ -5816,10 +5828,10 @@ function renderPlanilhaDesempenho(){
   tableWrap.style.cssText = 'overflow-x:auto';
   el.appendChild(tableWrap);
 
-  _renderPlanilhaTabela(el, vinculosManuais, errosMap, '');
+  _renderPlanilhaTabela(el, vinculosManuais, errosMap, '', 'edital');
 }
 
-function _renderPlanilhaTabela(el, vinculosManuais, errosMap, discFiltro){
+function _renderPlanilhaTabela(el, vinculosManuais, errosMap, discFiltro, sortMode){
   const wrap = document.getElementById('_planilha_wrap');
   if(!wrap) return;
   wrap.innerHTML = '';
@@ -5890,10 +5902,53 @@ function _renderPlanilhaTabela(el, vinculosManuais, errosMap, discFiltro){
   const tbody = document.createElement('tbody');
   let rowCount = 0;
 
+  // Coletar todos os itens para ordenar
+  const todosItens = [];
   Object.entries(EDITAL_CARGO13).forEach(([disc, info])=>{
     if(discFiltro && disc!==discFiltro) return;
-
     info.topicos.forEach((topico, ti)=>{
+      todosItens.push({disc, info, topico, ti});
+    });
+  });
+
+  // Ordenar conforme modo selecionado
+  if(sortMode==='asc'||sortMode==='desc'||sortMode==='naoestu'){
+    const getMedia = ({disc,topico})=>{
+      const s = sessoes.filter(s=>{
+        if(s.acertos==null||!s.qtd) return false;
+        if(s.disc!==disc&&!s.disc?.includes(disc.split(' ')[0])) return false;
+        const vinc=vinculosManuais[s.assunto];
+        if(vinc===topico) return true;
+        const a=(s.assunto||'').toLowerCase().trim();
+        const t=topico.toLowerCase().trim();
+        return a===t||a.includes(t)||t.includes(a);
+      });
+      if(!s.length) return null;
+      return Math.round(s.reduce((acc,x)=>acc+Math.round(x.acertos/x.qtd*100),0)/s.length);
+    };
+    if(sortMode==='asc') todosItens.sort((a,b)=>{
+      const ma=getMedia(a), mb=getMedia(b);
+      if(ma===null&&mb===null) return 0;
+      if(ma===null) return 1;
+      if(mb===null) return -1;
+      return ma-mb;
+    });
+    else if(sortMode==='desc') todosItens.sort((a,b)=>{
+      const ma=getMedia(a), mb=getMedia(b);
+      if(ma===null&&mb===null) return 0;
+      if(ma===null) return 1;
+      if(mb===null) return -1;
+      return mb-ma;
+    });
+    else if(sortMode==='naoestu') todosItens.sort((a,b)=>{
+      const ma=getMedia(a), mb=getMedia(b);
+      if(ma===null&&mb!==null) return -1;
+      if(ma!==null&&mb===null) return 1;
+      return 0;
+    });
+  }
+
+  todosItens.forEach(({disc, info, topico, ti})=>{
       // Encontrar sessões para este tópico
       const sessoesTopico = sessoes.filter(s=>{
         if(s.acertos==null||!s.qtd) return false;
@@ -5975,7 +6030,6 @@ function _renderPlanilhaTabela(el, vinculosManuais, errosMap, discFiltro){
       tr.appendChild(tdErros);
 
       tbody.appendChild(tr);
-    });
   });
 
   table.appendChild(tbody);
