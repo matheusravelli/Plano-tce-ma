@@ -6072,6 +6072,78 @@ function atualizarBadgeReforco(){
   }
 }
 
+// ── CRONÔMETRO ──────────────────────────────────────────────────────────────
+let _cronoInterval = null;
+let _cronoSegundos = 0;
+let _cronoPausado = false;
+let _cronoDisc = '';
+let _cronoAssunto = '';
+
+function cronoAbrir(disc, assunto){
+  _cronoDisc = disc || '';
+  _cronoAssunto = assunto || '';
+  // Se já tem um cronômetro rodando, só mostrar
+  if(_cronoInterval || _cronoPausado){
+    document.getElementById('crono-widget').style.display = 'block';
+    document.getElementById('crono-fab').style.display = 'none';
+    return;
+  }
+  _cronoSegundos = 0;
+  _cronoPausado = false;
+  const lbl = document.getElementById('crono-label');
+  if(lbl) lbl.textContent = disc&&assunto ? disc+' — '+assunto : 'Sessão de estudo';
+  document.getElementById('crono-widget').style.display = 'block';
+  document.getElementById('crono-fab').style.display = 'none';
+  cronoAtualizar();
+  _cronoInterval = setInterval(()=>{
+    if(!_cronoPausado){ _cronoSegundos++; cronoAtualizar(); }
+  }, 1000);
+}
+
+function cronoAtualizar(){
+  const h = Math.floor(_cronoSegundos/3600);
+  const m = Math.floor((_cronoSegundos%3600)/60);
+  const s = _cronoSegundos%60;
+  const display = document.getElementById('crono-display');
+  if(display) display.textContent =
+    String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+function cronoPausar(){
+  _cronoPausado = !_cronoPausado;
+  const btn = document.getElementById('crono-btn-pausar');
+  if(btn) btn.textContent = _cronoPausado ? '▶ Retomar' : '⏸ Pausar';
+  const display = document.getElementById('crono-display');
+  if(display) display.style.color = _cronoPausado ? 'var(--amber)' : 'var(--green)';
+}
+
+function cronoFinalizar(){
+  if(_cronoInterval){ clearInterval(_cronoInterval); _cronoInterval=null; }
+  _cronoPausado = false;
+  const minutos = Math.round(_cronoSegundos/60);
+  document.getElementById('crono-widget').style.display = 'none';
+  document.getElementById('crono-fab').style.display = 'flex';
+  // Abrir modal de registro com tempo preenchido
+  abrirModalRegistro(null);
+  setTimeout(()=>{
+    const tempoEl = document.getElementById('mr-tempo');
+    if(tempoEl) tempoEl.value = minutos;
+    const discEl = document.getElementById('mr-disc');
+    const assEl  = document.getElementById('mr-assunto');
+    if(_cronoDisc && discEl){ discEl.value=_cronoDisc; if(window.mrAtualizarAssuntos) window.mrAtualizarAssuntos(); }
+    if(_cronoAssunto && assEl) assEl.value = _cronoAssunto;
+  }, 150);
+  _cronoSegundos = 0;
+}
+
+function cronoFechar(){
+  if(_cronoInterval){ clearInterval(_cronoInterval); _cronoInterval=null; }
+  _cronoPausado = false;
+  _cronoSegundos = 0;
+  document.getElementById('crono-widget').style.display = 'none';
+  document.getElementById('crono-fab').style.display = 'flex';
+}
+
 async function load(){
   // Mostrar loading
   const appEl = document.getElementById('app') || document.querySelector('.app-container');
